@@ -1,0 +1,14 @@
+================================================================================
+
+                yacm2 - yet another coffee maker - second edition
+
+This project implements the logic of a coffee maker. The code is written in C
+for CARME or Orchid hardware.
+
+Authors:
+	- Toni Baumann (bauma12@bfh.ch)
+	- Ronny Stauffer (staur3@bfh.ch)
+	- Elmar Vonlanthen (vonle1@bfh.ch)
+
+================================================================================
+
