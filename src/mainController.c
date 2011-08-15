@@ -12,10 +12,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "activity.h"
+#include "coffeeSupply.h"
 
-static void setUpMainController(void *);
-static void runMainController(void *);
-static void tearDownMainController(void *);
+static void setUpMainController(void *activity);
+static void runMainController(void *activity);
+static void tearDownMainController(void *activity);
 
 static ActivityDescriptor mainController = {
 		.name = "mainController",
@@ -28,15 +29,24 @@ ActivityDescriptor getMainControllerDescriptor() {
 	return mainController;
 }
 
-static void setUpMainController(void *par) {
-	printf("Set up...\n");
+static void setUpMainController(void *activity) {
+	printf("Set up main controller...\n");
 }
 
-static void runMainController(void *par) {
-	printf("Running...\n");
-	sleep(15);
+static void runMainController(void *activity) {
+	printf("Running main controller...\n");
+
+	sleep(10);
+
+	printf("Send message to coffee supply...\n");
+	printf("Message size: %ld\n", sizeof(CoffeeSupplyMessage));
+	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage){
+		.intValue = 123,
+		.stringValue = "abc"
+		}, sizeof(CoffeeSupplyMessage));
+	printf("...done. (send message)\n");
 }
 
-static void tearDownMainController(void *par) {
-	printf("Tear down...\n");
+static void tearDownMainController(void *activity) {
+	printf("Tear down main controller...\n");
 }

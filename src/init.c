@@ -13,16 +13,19 @@
 #include <unistd.h>
 #include "activity.h"
 #include "mainController.h"
+#include "coffeeSupply.h"
 
 int main(int argc, char **argv) {
 	printf("Set up subsystems...\n");
+	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor());
 	Activity *mainController = createActivity(getMainControllerDescriptor());
 
-	sleep(10);
+	sleep(60);
 
 	printf("Tear down subsystems...\n");
 	destroyActivity(mainController);
-	printf("...done.\n");
+	destroyActivity(coffeeSupply);
+	printf("...done. (tear down subsystems)\n");
 
 	return 0;
 }

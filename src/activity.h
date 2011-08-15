@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include <mqueue.h>
 
-typedef void (*ActivityRun)(void *);
+typedef void (*ActivityRun)(void *activity);
 
 typedef struct {
 	char *name;
@@ -24,7 +24,6 @@ typedef struct {
 	ActivityRun tearDown;
 } ActivityDescriptor;
 
-//typedef pthread_t Activity;
 typedef struct {
 	ActivityDescriptor *descriptor;
 	pthread_t thread;
@@ -33,5 +32,8 @@ typedef struct {
 
 Activity *createActivity(ActivityDescriptor descriptor);
 void destroyActivity(Activity *activity);
+
+unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length);
+void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length);
 
 #endif /* ACTIVITY_H_ */

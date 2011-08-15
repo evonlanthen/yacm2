@@ -15,6 +15,7 @@
 #include "activity.h"
 
 static void logError(char *message) {
+	perror(message);
 	printf("Log: [ERROR]: %s\n", message);
 }
 
@@ -36,7 +37,7 @@ static mqd_t createMessageQueue(char *activityName) {
 			.mq_msgsize = 10
 	};
 
-	mqd_t queue = mq_open(id, O_CREAT, S_IRWXU | S_IRWXG, &attributes);
+	mqd_t queue = mq_open(id, O_CREAT | O_RDONLY, S_IRWXU | S_IRWXG, &attributes);
 	free(id);
 	if (queue < 0) {
 		logError("Error creating queue!");
@@ -45,14 +46,14 @@ static mqd_t createMessageQueue(char *activityName) {
 	return queue;
 }
 
-static void * runThread(void *par) {
-	ActivityDescriptor *activityDescriptor = (ActivityDescriptor *)par;
+static void * runThread(void *argument) {
+	Activity *activity = (Activity *)argument;
 
-	pthread_cleanup_push(activityDescriptor->tearDown, NULL);
+	pthread_cleanup_push(activity->descriptor->tearDown, NULL);
 
-	activityDescriptor->setUp(NULL);
+	activity->descriptor->setUp(NULL);
 
-	activityDescriptor->run(NULL);
+	activity->descriptor->run(activity);
 
 	printf("Thread terminated.\n");
 
@@ -71,19 +72,23 @@ Activity *createActivity(ActivityDescriptor descriptor) {
 	memcpy(descriptorCopy, &descriptor, sizeof(ActivityDescriptor));
 	activity->descriptor = descriptorCopy;
 
-	// Start new thread
-	pthread_t thread;
-	if (pthread_create(&thread, NULL, runThread, descriptorCopy) < 0) {
-		logError("Error creating new thread for activity!");
-	}
-	activity->thread = thread;
-
 	// Create new message queue (= queue for incoming messages)
 	mqd_t messageQueue = createMessageQueue(descriptor.name);
 	if (messageQueue < 0) {
 		logError("Error creating activity's message queue for incoming messages!");
+
+		// TODO Error handling
 	}
 	activity->messageQueue = messageQueue;
+
+	// Start new thread
+	pthread_t thread;
+	if (pthread_create(&thread, NULL, runThread, activity) < 0) {
+		logError("Error creating new thread for activity!");
+
+		// TODO Error handling
+	}
+	activity->thread = thread;
 
 	return activity;
 }
@@ -101,3 +106,34 @@ void destroyActivity(Activity *activity) {
 	free(activity);
 }
 
+unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length) {
+	Activity *activity = (Activity *)_activity;
+
+	char receiveBuffer[11];
+	ssize_t n;
+	if ((n = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
+		logError("Error receiving message!");
+	}
+	if (n != length) {
+
+	}
+	memcpy(buffer, receiveBuffer, length);
+
+	return n;
+}
+
+void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length) {
+	char *messageQueueId = createMessageQueueId(activity.name);
+	mqd_t queue = mq_open(messageQueueId, O_WRONLY);
+	free(messageQueueId);
+	if (queue < 0) {
+		logError("Error opening message queue for sending!");
+
+		return;
+	}
+
+	if (mq_send(queue, buffer, length, /* priority: */ 1) < 0) {
+		logError("Error sending message!");
+	}
+	mq_close(queue);
+}
