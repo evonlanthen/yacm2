@@ -12,10 +12,26 @@
 #ifndef ACTIVITY_H_
 #define ACTIVITY_H_
 
-typedef pthread_t Activity;
-typedef void *(*ActivityRun)();
+#include <pthread.h>
+#include <mqueue.h>
 
-Activity *createActivity(ActivityRun run);
+typedef void (*ActivityRun)(void *);
+
+typedef struct {
+	char *name;
+	ActivityRun setUp;
+	ActivityRun run;
+	ActivityRun tearDown;
+} ActivityDescriptor;
+
+//typedef pthread_t Activity;
+typedef struct {
+	ActivityDescriptor *descriptor;
+	pthread_t thread;
+	mqd_t messageQueue;
+} Activity;
+
+Activity *createActivity(ActivityDescriptor descriptor);
 void destroyActivity(Activity *activity);
 
 #endif /* ACTIVITY_H_ */
