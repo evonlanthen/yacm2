@@ -6,6 +6,9 @@
  * @date    Aug 22, 2011
  */
 
+#ifndef WATERSUPPLY_H_
+#define WATERSUPPLY_H_
+
 #include <mqueue.h>
 #include "activity.h"
 
@@ -15,3 +18,5 @@ typedef struct {
 } WaterSupplyMessage;
 
 extern ActivityDescriptor getWaterSupplyDescriptor(void);
+
+#endif /* WATERSUPPLY_H_ */
