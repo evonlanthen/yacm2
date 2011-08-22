@@ -11,6 +11,7 @@
  */
 
 #include <stdio.h>
+#include "sensor.h"
 #include "waterSupply.h"
 
 static void setUpWaterSupply(void *activity);
@@ -33,11 +34,16 @@ static void setUpWaterSupply(void *activity) {
 }
 
 static void runWaterSupply(void *activity) {
+	char buf[80];
 	printf("Running Water supply...\n");
 
 	while (1) {
 		sleep(3);
 
+		readNonBlockableSensor("./dev/waterSensor", buf);
+		printf("buffer value: %s\n", buf);
+		break;
+		/*
 		printf("Going to receive message...\n");
 		//char buffer[11];
 		//WaterSupplyMessage *message = (WaterSupplyMessage *)buffer;
@@ -48,6 +54,7 @@ static void runWaterSupply(void *activity) {
 		printf("Content:\n");
 		printf("\tintValue: %d\n", message.intValue);
 		printf("\tstringValue: %s\n", message.stringValue);
+		*/
 	}
 }
 

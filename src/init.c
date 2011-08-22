@@ -12,6 +12,7 @@
 #include "activity.h"
 #include "mainController.h"
 #include "coffeeSupply.h"
+#include "waterSupply.h"
 
 int main(int argc, char **argv) {
 	int i = 42;
@@ -19,12 +20,14 @@ int main(int argc, char **argv) {
 	printf("Set up subsystems...\n");
 	logInfo("Set up subsystems (%d)...", i);
 	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor());
+	Activity *waterSupply = createActivity(getWaterSupplyDescriptor());
 	Activity *mainController = createActivity(getMainControllerDescriptor());
 
 	sleep(60);
 
 	printf("Tear down subsystems...\n");
 	destroyActivity(mainController);
+	destroyActivity(waterSupply);
 	destroyActivity(coffeeSupply);
 	printf("...done. (tear down subsystems)\n");
 	tearDownSyslog();
