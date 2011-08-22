@@ -1,11 +1,8 @@
 /**
- * <short description>
- *
- * <long description>
- *
+ * @brief   Initial system setup
  * @file    init.c
- * @version 0.1
- * @author  Elmar Vonlanthen (vonle1@bfh.ch)
+ * @version 1.0
+ * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 15, 2011
  */
 
@@ -17,9 +14,10 @@
 #include "coffeeSupply.h"
 
 int main(int argc, char **argv) {
+	int i = 42;
 	setUpSyslog();
 	printf("Set up subsystems...\n");
-	logInfo("Set up subsystems...");
+	logInfo("Set up subsystems (%d)...", i);
 	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor());
 	Activity *mainController = createActivity(getMainControllerDescriptor());
 

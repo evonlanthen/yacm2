@@ -8,6 +8,8 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <syslog.h>
 #include "syslog.h"
@@ -17,16 +19,25 @@ int setUpSyslog(void) {
 	return 0;
 }
 
-void logInfo(char *str) {
-	syslog(LOG_INFO, "%s", str);
+void logInfo(const char *str, ...) {
+	va_list ap;
+	va_start(ap, str);
+	vsyslog(LOG_INFO, str, ap);
+	va_end(ap);
 }
 
-void logWarn(char *str) {
-	syslog(LOG_WARNING, "%s", str);
+void logWarn(const char *str, ...) {
+	va_list ap;
+	va_start(ap, str);
+	vsyslog(LOG_WARNING, str, ap);
+	va_end(ap);
 }
 
-void logErr(char *str) {
-	syslog(LOG_ERR, "%s", str);
+void logErr(const char *str, ...) {
+	va_list ap;
+	va_start(ap, str);
+	vsyslog(LOG_ERR, str, ap);
+	va_end(ap);
 }
 
 void tearDownSyslog(void) {
