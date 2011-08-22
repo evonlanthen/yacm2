@@ -9,11 +9,6 @@
 #ifndef SYSLOG_H_
 #define SYSLOG_H_
 
-#include <stdio.h>
-#include <unistd.h>
-#include <syslog.h>
-#include "syslog.h"
-
 extern int setUpSyslog(void);
 extern void logInfo(const char *format, ...);
 extern void logWarn(const char *format, ...);

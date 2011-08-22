@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "activity.h"
+#include "syslog.h"
 #include "coffeeSupply.h"
 
 static void setUpMainController(void *activity);
@@ -32,6 +33,7 @@ static void setUpMainController(void *activity) {
 
 static void runMainController(void *activity) {
 	printf("Running main controller...\n");
+	logInfo("Running main controller");
 
 	sleep(10);
 
