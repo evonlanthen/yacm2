@@ -1,11 +1,8 @@
 /**
- * <short description>
- *
- * <long description>
- *
+ * @brief   Submodule coffee supply
  * @file    coffeeSupply.h
- * @version 0.1
- * @author  Elmar Vonlanthen (vonle1@bfh.ch)
+ * @version 1.0
+ * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 15, 2011
  */
 
@@ -20,6 +17,6 @@ typedef struct {
 	char stringValue[4];
 } CoffeeSupplyMessage;
 
-ActivityDescriptor getCoffeeSupplyDescriptor();
+extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
 
 #endif /* COFFEESUPPLY_H_ */

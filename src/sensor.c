@@ -1,8 +1,8 @@
 /**
  * Sensor helper functions
  *
- * @file    fifo.c
- * @version 0.1
+ * @file    sensor.c
+ * @version 1.0
  * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 17, 2011
  */

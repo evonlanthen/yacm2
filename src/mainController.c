@@ -1,11 +1,8 @@
 /**
- * <short description>
- *
- * <long description>
- *
+ * @brief   Main system control module
  * @file    mainController.c
- * @version 0.1
- * @author  Elmar Vonlanthen (vonle1@bfh.ch)
+ * @version 1.0
+ * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 15, 2011
  */
 

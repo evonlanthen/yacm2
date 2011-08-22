@@ -1,11 +1,8 @@
 /**
- * <short description>
- *
- * <long description>
- *
+ * @brief   Submodule coffee supply
  * @file    coffeeSupply.c
- * @version 0.1
- * @author  Elmar Vonlanthen (vonle1@bfh.ch)
+ * @version 1.0
+ * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 15, 2011
  */
 
@@ -24,10 +21,10 @@ static void runCoffeeSupply(void *activity);
 static void tearDownCoffeeSupply(void *activity);
 
 static ActivityDescriptor coffeeSupply = {
-		.name = "coffeeSupply",
-		.setUp = setUpCoffeeSupply,
-		.run = runCoffeeSupply,
-		.tearDown = tearDownCoffeeSupply
+	.name = "coffeeSupply",
+	.setUp = setUpCoffeeSupply,
+	.run = runCoffeeSupply,
+	.tearDown = tearDownCoffeeSupply
 };
 
 ActivityDescriptor getCoffeeSupplyDescriptor() {
