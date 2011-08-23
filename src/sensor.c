@@ -13,6 +13,7 @@
 #include <string.h>
 #include <poll.h>
 #include <errno.h>
+#include "syslog.h"
 #include "sensor.h"
 
 int readBlockableSensor(char *sensorFifo) {
@@ -58,7 +59,7 @@ int readBlockableSensor(char *sensorFifo) {
 
 int readNonBlockableSensor(char *sensorFile) {
 	char input[80];
-	int fd;
+	int fd, i;
 	struct flock lock;
 	ssize_t bytesRead = 0;
 	memset(input, 0, 80);
@@ -77,7 +78,13 @@ int readNonBlockableSensor(char *sensorFile) {
 	}
 	lock.l_type = F_UNLCK;
 	fcntl(fd, F_SETLKW, &lock);
-	logInfo("Value of sensor %s: %s\n", sensorFile, input);
 	close(fd);
+
+	// replace newline with EOF:
+	for (i = 0; i < 80; i++) {
+		if (input[i] == '\n') {
+			input[i] = '\0';
+		}
+	}
 	return atoi(input);
 }
