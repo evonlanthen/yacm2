@@ -25,6 +25,21 @@ static ActivityDescriptor waterSupply = {
 	.tearDown = tearDownWaterSupply
 };
 
+typedef enum {
+	wsState_off = 0,
+	wsState_standby,
+	wsState_pumpOn,
+	wsState_heaterOn
+} waterSupplyState;
+
+typedef enum {
+	wsEvent_deliverWater = 0,
+	wsEvent_hasWater,
+	wsEvent_hasFlow,
+	wsEvent_hasTemp,
+	wsEvent_enoughWater
+} waterSupplyEvent;
+
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
 }
@@ -33,15 +48,77 @@ static void setUpWaterSupply(void *activity) {
 	printf("Set up Water supply...\n");
 }
 
+static int hasWater(void) {
+	return readNonBlockableSensor("./dev/waterSenor");
+}
+
+static int hasFlow(void) {
+	return readNonBlockableSensor("./dev/waterFlowSenor");
+}
+
+static int hasTemp(void) {
+	int minTemp = 60;
+	int curTemp = readNonBlockableSensor("./dev/waterTemperatureSenor");
+	return (curTemp >= minTemp) ? TRUE : FALSE;
+}
+
 static void runWaterSupply(void *activity) {
 	char buf[80];
+	waterSupplyState state = wsState_off;
+	waterSupplyEvent event;
+	int deliverWater = FALSE;
+
+	while(TRUE) {
+		// read message queue:
+		// TODO:
+		switch(state) {
+		case(wsState_off):
+			// TODO: ...
+			break;
+		case(wsState_standby):
+			if (deliverWater && hasWater()) {
+				if (controlPump(TRUE) < 0) {
+					controlPump(FALSE);
+					logErr("Could not start water pump!");
+				} else {
+					state = wsState_pumpOn;
+				}
+			} else {
+				controlPump(FALSE);
+			}
+			break;
+		case(wsState_pumpOn):
+			if (deliverWater && hasWater() && hasFlow()) {
+				if (controlHeater(TRUE) < 0) {
+					controlHeater(FALSE);
+					logErr("Could not start heater!");
+				} else {
+					state = wsState_heaterOn;
+				}
+			} else {
+				controlPump(FALSE);
+				controlHeater(FALSE);
+				state = wsState_standby;
+			}
+			break;
+		case(wsState_heaterOn):
+			if (!deliverWater || !hasWater()) {
+				controlPump(FALSE);
+				controlHeater(FALSE);
+			}
+			if (!hasFlow() || hasTemp()) {
+				controlHeater(FALSE);
+			}
+			break
+		}
+	}
+
 	printf("Running Water supply...\n");
 
-	while (1) {
-		sleep(3);
+	while (deliverWater) {
+		CoffeeMakerEvent;
 
-		readNonBlockableSensor("./dev/waterSensor", buf);
-		printf("buffer value: %s\n", buf);
+
 		break;
 		/*
 		printf("Going to receive message...\n");

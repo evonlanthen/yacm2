@@ -56,7 +56,7 @@ int readBlockableSensor(char *sensorFifo) {
 	return 0;
 }
 
-int readNonBlockableSensor(char *sensorFile, char *buf) {
+int readNonBlockableSensor(char *sensorFile) {
 	char input[80];
 	int fd;
 	struct flock lock;
@@ -78,7 +78,6 @@ int readNonBlockableSensor(char *sensorFile, char *buf) {
 	lock.l_type = F_UNLCK;
 	fcntl(fd, F_SETLKW, &lock);
 	logInfo("Value of sensor %s: %s\n", sensorFile, input);
-	strcpy(buf, input);
 	close(fd);
-	return 0;
+	return atoi(input);
 }
