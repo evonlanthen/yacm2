@@ -31,10 +31,11 @@ static mqd_t createMessageQueue(char *activityName) {
 
 	struct mq_attr attributes = {
 			.mq_maxmsg = 10,
-			.mq_msgsize = 10
+			.mq_msgsize = 200
 	};
 
 	mqd_t queue = mq_open(id, O_CREAT | O_RDONLY, S_IRWXU | S_IRWXG, &attributes);
+	//mqd_t queue = mq_open(id, O_CREAT | O_RDONLY | O_NONBLOCK, S_IRWXU | S_IRWXG, &attributes);
 	free(id);
 	if (queue < 0) {
 		logError("Error creating queue!");
@@ -106,7 +107,7 @@ void destroyActivity(Activity *activity) {
 unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length) {
 	Activity *activity = (Activity *)_activity;
 
-	char receiveBuffer[11];
+	char receiveBuffer[201];
 	ssize_t n;
 	if ((n = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
 		logError("Error receiving message!");
