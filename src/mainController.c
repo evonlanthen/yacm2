@@ -11,6 +11,7 @@
 #include "activity.h"
 #include "syslog.h"
 #include "coffeeSupply.h"
+#include "waterSupply.h"
 
 static void setUpMainController(void *activity);
 static void runMainController(void *activity);
@@ -44,6 +45,11 @@ static void runMainController(void *activity) {
 		.stringValue = "abc"
 		}, sizeof(CoffeeSupplyMessage));
 	printf("...done. (send message)\n");
+
+	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+		.intValue = 42,
+		.stringValue = "Start that stuff"
+	}, sizeof(WaterSupplyMessage));
 }
 
 static void tearDownMainController(void *activity) {
