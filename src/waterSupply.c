@@ -11,6 +11,8 @@
  */
 
 #include <stdio.h>
+#include "defines.h"
+#include "syslog.h"
 #include "sensor.h"
 #include "waterSupply.h"
 
@@ -29,16 +31,14 @@ typedef enum {
 	wsState_off = 0,
 	wsState_standby,
 	wsState_pumpOn,
-	wsState_heaterOn
+	wsState_heaterOn,
+	wsState_error
 } waterSupplyState;
 
 typedef enum {
-	wsEvent_deliverWater = 0,
-	wsEvent_hasWater,
-	wsEvent_hasFlow,
-	wsEvent_hasTemp,
-	wsEvent_enoughWater
-} waterSupplyEvent;
+	devState_off = 0,
+	devState_on
+} deviceState;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -49,89 +49,120 @@ static void setUpWaterSupply(void *activity) {
 }
 
 static int hasWater(void) {
-	return readNonBlockableSensor("./dev/waterSenor");
+	return readNonBlockableSensor("./dev/waterSensor");
 }
 
 static int hasFlow(void) {
-	return readNonBlockableSensor("./dev/waterFlowSenor");
+	return readNonBlockableSensor("./dev/waterFlowSensor");
 }
 
 static int hasTemp(void) {
 	int minTemp = 60;
-	int curTemp = readNonBlockableSensor("./dev/waterTemperatureSenor");
+	int curTemp = readNonBlockableSensor("./dev/waterTemperatureSensor");
 	return (curTemp >= minTemp) ? TRUE : FALSE;
 }
 
-static void runWaterSupply(void *activity) {
-	char buf[80];
-	waterSupplyState state = wsState_off;
-	waterSupplyEvent event;
-	int deliverWater = FALSE;
+static int controlPump(deviceState state) {
+	switch(state) {
+	case(devState_on):
+		logInfo("Water pump started");
+		break;
+	case(devState_off):
+		logInfo("Water pump stopped");
+		break;
+	}
+	return TRUE;
+}
 
+static int controlHeater(deviceState state) {
+	switch(state) {
+	case(devState_on):
+		logInfo("Water heater started");
+		break;
+	case(devState_off):
+		logInfo("Water heater stopped");
+		break;
+	}
+	return TRUE;
+}
+
+static void runWaterSupply(void *activity) {
+	waterSupplyState state = wsState_off;
+	int deliverWater = FALSE;
+	WaterSupplyMessage message;
+	unsigned long msgLen;
+
+	printf("Running Water supply...\n");
+	logInfo("Running Water supply");
 	while(TRUE) {
 		// read message queue:
-		// TODO:
+		// TODO: should be nonblockable!
+		if (!deliverWater) {
+			printf("Going to receive message for water supply...\n");
+			msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
+			if (msgLen > 0) {
+				printf("Message length: %ld\n", msgLen);
+				printf("Content:\n");
+				printf("\tintValue: %d\n", message.intValue);
+				printf("\tstringValue: %s\n", message.stringValue);
+				if (message.intValue == 42) {
+					deliverWater = TRUE;
+				}
+			}
+		}
+		// state event machine:
 		switch(state) {
 		case(wsState_off):
 			// TODO: ...
+			state = wsState_standby;
 			break;
 		case(wsState_standby):
 			if (deliverWater && hasWater()) {
-				if (controlPump(TRUE) < 0) {
-					controlPump(FALSE);
+				if (controlPump(devState_on) < 0) {
+					controlPump(devState_off);
 					logErr("Could not start water pump!");
 				} else {
 					state = wsState_pumpOn;
 				}
 			} else {
-				controlPump(FALSE);
+				controlPump(devState_off);
 			}
 			break;
 		case(wsState_pumpOn):
 			if (deliverWater && hasWater() && hasFlow()) {
-				if (controlHeater(TRUE) < 0) {
-					controlHeater(FALSE);
+				if (controlHeater(devState_on) < 0) {
+					controlHeater(devState_off);
+					state = wsState_error;
 					logErr("Could not start heater!");
 				} else {
 					state = wsState_heaterOn;
 				}
 			} else {
-				controlPump(FALSE);
-				controlHeater(FALSE);
+				controlPump(devState_off);
+				controlHeater(devState_off);
 				state = wsState_standby;
 			}
 			break;
 		case(wsState_heaterOn):
 			if (!deliverWater || !hasWater()) {
-				controlPump(FALSE);
-				controlHeater(FALSE);
+				controlPump(devState_off);
+				controlHeater(devState_off);
 			}
 			if (!hasFlow() || hasTemp()) {
-				controlHeater(FALSE);
+				if (controlHeater(devState_off) < 0) {
+					state = wsState_error;
+				} else {
+					state = wsState_pumpOn;
+				}
 			}
-			break
+			break;
+		case(wsState_error):
+			// TODO: send message to main controller
+			break;
+		default:
+			logErr("Unknown state %d", state);
 		}
-	}
-
-	printf("Running Water supply...\n");
-
-	while (deliverWater) {
-		CoffeeMakerEvent;
-
-
-		break;
-		/*
-		printf("Going to receive message...\n");
-		//char buffer[11];
-		//WaterSupplyMessage *message = (WaterSupplyMessage *)buffer;
-		WaterSupplyMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("Message received!\n");
-		printf("Message length: %ld\n", messageLength);
-		printf("Content:\n");
-		printf("\tintValue: %d\n", message.intValue);
-		printf("\tstringValue: %s\n", message.stringValue);
-		*/
+		sleep(3);
 	}
 }
 
