@@ -14,6 +14,9 @@
  */
 
 #include <stdio.h>
+#include "syslog.h"
+#include "sensor.h"
+#include "mainController.h"
 #include "coffeeSupply.h"
 
 static void setUpCoffeeSupply(void *activity);

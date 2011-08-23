@@ -8,10 +8,12 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include "activity.h"
+#include "sensor.h"
 #include "syslog.h"
 #include "coffeeSupply.h"
 #include "waterSupply.h"
+#include "milkSupply.h"
+#include "mainController.h"
 
 static void setUpMainController(void *activity);
 static void runMainController(void *activity);

@@ -14,6 +14,7 @@
 #include "defines.h"
 #include "syslog.h"
 #include "sensor.h"
+#include "mainController.h"
 #include "waterSupply.h"
 
 static void setUpWaterSupply(void *activity);

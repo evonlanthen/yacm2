@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include "syslog.h"
 #include "milkSupply.h"
 
 static void setUpMilkSupply(void *activity);

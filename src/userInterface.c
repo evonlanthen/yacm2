@@ -12,6 +12,9 @@
  */
 
 #include <stdio.h>
+#include "syslog.h"
+#include "sensor.h"
+#include "mainController.h"
 #include "userInterface.h"
 
 static void setUpUserInterface(void *activity);
