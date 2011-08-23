@@ -10,6 +10,6 @@
 #define SENSOR_H_
 
 extern int readBlockableSensor(char *sensorFifo);
-extern int readNonBlockableSensor(char *sensorFile, char *buf);
+extern int readNonBlockableSensor(char *sensorFile);
 
 #endif /* SENSOR_H_ */
