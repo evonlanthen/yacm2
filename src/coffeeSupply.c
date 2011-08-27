@@ -14,6 +14,7 @@
  */
 
 #include <stdio.h>
+#include "defines.h"
 #include "syslog.h"
 #include "sensor.h"
 #include "mainController.h"
@@ -35,28 +36,21 @@ ActivityDescriptor getCoffeeSupplyDescriptor() {
 }
 
 static void setUpCoffeeSupply(void *activity) {
-	printf("Set up coffee supply...\n");
+	printf("[coffeeSupply] Setting up...\n");
 }
 
 static void runCoffeeSupply(void *activity) {
-	printf("Running coffee supply...\n");
+	printf("[coffeeSupply] Running...\n");
 
-	while (1) {
-		sleep(3);
-
-		printf("Going to receive message...\n");
-		//char buffer[11];
-		//CoffeeSupplyMessage *message = (CoffeeSupplyMessage *)buffer;
+	while (TRUE) {
+		printf("[coffeeSupply] Going to receive message...\n");
 		CoffeeSupplyMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("Message received!\n");
-		printf("Message length: %ld\n", messageLength);
-		printf("Content:\n");
-		printf("\tintValue: %d\n", message.intValue);
-		printf("\tstringValue: %s\n", message.stringValue);
+		printf("[coffeeSupply] Message received - length: %ld, value: %d, message: %s\n",
+				messageLength, message.intValue, message.strValue);
 	}
 }
 
 static void tearDownCoffeeSupply(void *activity) {
-	printf("Tear down coffee supply...\n");
+	printf("[coffee supply] Tearing down...\n");
 }

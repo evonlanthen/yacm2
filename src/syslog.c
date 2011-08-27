@@ -21,23 +21,50 @@ int setUpSyslog(void) {
 
 void logInfo(const char *str, ...) {
 	va_list ap;
+	/* print to sylog: */
 	va_start(ap, str);
 	vsyslog(LOG_INFO, str, ap);
 	va_end(ap);
+#ifdef DEBUG
+	/* print to stdout as well: */
+	printf("Info: ");
+	va_start(ap, str);
+	vprintf(str, ap);
+	va_end(ap);
+	printf("\n");
+#endif
 }
 
 void logWarn(const char *str, ...) {
 	va_list ap;
+	/* print to sylog: */
 	va_start(ap, str);
 	vsyslog(LOG_WARNING, str, ap);
 	va_end(ap);
+#ifdef DEBUG
+	/* print to stdout as well: */
+	printf("Warning: ");
+	va_start(ap, str);
+	vprintf(str, ap);
+	va_end(ap);
+	printf("\n");
+#endif
 }
 
 void logErr(const char *str, ...) {
 	va_list ap;
+	/* print to sylog: */
 	va_start(ap, str);
 	vsyslog(LOG_ERR, str, ap);
 	va_end(ap);
+#ifdef DEBUG
+	/* print to stdout as well: */
+	printf("Error: ");
+	va_start(ap, str);
+	vprintf(str, ap);
+	va_end(ap);
+	printf("\n");
+#endif
 }
 
 void tearDownSyslog(void) {

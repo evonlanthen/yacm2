@@ -13,6 +13,7 @@
 
 #include <pthread.h>
 #include <mqueue.h>
+#include <sys/stat.h>
 
 typedef void (*ActivityRun)(void *activity);
 
@@ -29,10 +30,16 @@ typedef struct {
 	mqd_t messageQueue;
 } Activity;
 
+typedef enum {
+	prio_low = 0,
+	prio_medium,
+	prio_high,
+} MessagePrio;
+
 Activity *createActivity(ActivityDescriptor descriptor);
 void destroyActivity(Activity *activity);
 
 unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length);
-void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length);
+void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, unsigned int prio);
 
 #endif /* ACTIVITY_H_ */

@@ -12,6 +12,7 @@
  */
 
 #include <stdio.h>
+#include "defines.h"
 #include "syslog.h"
 #include "sensor.h"
 #include "mainController.h"
@@ -33,28 +34,21 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 }
 
 static void setUpUserInterface(void *activity) {
-	printf("Set up User Interface...\n");
+	printf("[userInterface] Setting up...\n");
 }
 
 static void runUserInterface(void *activity) {
-	printf("Running User Interface...\n");
+	printf("[userInterface] Running...\n");
 
-	while (1) {
-		sleep(3);
-
-		printf("Going to receive message...\n");
-		//char buffer[11];
-		//userInterfaceMessage *message = (userInterfaceMessage *)buffer;
+	while (TRUE) {
+		printf("[userInterface] Going to receive message...\n");
 		UserInterfaceMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("Message received!\n");
-		printf("Message length: %ld\n", messageLength);
-		printf("Content:\n");
-		printf("\tintValue: %d\n", message.intValue);
-		printf("\tstringValue: %s\n", message.stringValue);
+		printf("[userInterface] Message received - length: %ld, value: %d, message: %s\n",
+				messageLength, message.intValue, message.strValue);
 	}
 }
 
 static void tearDownUserInterface(void *activity) {
-	printf("Tear down User Interface...\n");
+	printf("[userInterface] Tearing down...\n");
 }

@@ -15,7 +15,10 @@
  */
 
 #include <stdio.h>
+#include "defines.h"
 #include "syslog.h"
+#include "sensor.h"
+#include "mainController.h"
 #include "milkSupply.h"
 
 static void setUpMilkSupply(void *activity);
@@ -34,28 +37,21 @@ ActivityDescriptor getMilkSupplyDescriptor() {
 }
 
 static void setUpMilkSupply(void *activity) {
-	printf("Set up milk supply...\n");
+	printf("[milkSupply] Setting up...\n");
 }
 
 static void runMilkSupply(void *activity) {
-	printf("Running milk supply...\n");
+	printf("[milkSupply] Running...\n");
 
-	while (1) {
-		sleep(3);
-
-		printf("Going to receive message...\n");
-		//char buffer[11];
-		//milkSupplyMessage *message = (milkSupplyMessage *)buffer;
+	while (TRUE) {
+		printf("[milkSupply] Going to receive message...\n");
 		MilkSupplyMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("Message received!\n");
-		printf("Message length: %ld\n", messageLength);
-		printf("Content:\n");
-		printf("\tintValue: %d\n", message.intValue);
-		printf("\tstringValue: %s\n", message.stringValue);
+		printf("[milkSupply] Message received - length: %ld, value: %d, message: %s\n",
+				messageLength, message.intValue, message.strValue);
 	}
 }
 
 static void tearDownMilkSupply(void *activity) {
-	printf("Tear down milk supply...\n");
+	printf("[milkSupply] Tearing down...\n");
 }

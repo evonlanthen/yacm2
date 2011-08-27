@@ -14,7 +14,7 @@
 
 typedef struct {
 	int intValue;
-	char stringValue[100];
+	char strValue[256];
 } WaterSupplyMessage;
 
 extern ActivityDescriptor getWaterSupplyDescriptor(void);

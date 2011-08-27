@@ -46,7 +46,7 @@ ActivityDescriptor getWaterSupplyDescriptor() {
 }
 
 static void setUpWaterSupply(void *activity) {
-	printf("Set up Water supply...\n");
+	printf("[waterSupply] Setting up...\n");
 }
 
 static int hasWater(void) {
@@ -93,21 +93,24 @@ static void runWaterSupply(void *activity) {
 	WaterSupplyMessage message;
 	unsigned long msgLen;
 
-	printf("Running Water supply...\n");
-	logInfo("Running Water supply");
+	printf("[waterSupply] Running...\n");
 	while(TRUE) {
 		// read message queue:
 		// TODO: should be nonblockable!
 		if (!deliverWater) {
-			printf("Going to receive message for water supply...\n");
+			printf("[waterSupply] Going to receive message...\n");
 			msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
 			if (msgLen > 0) {
-				printf("Message length: %ld\n", msgLen);
-				printf("Content:\n");
-				printf("\tintValue: %d\n", message.intValue);
-				printf("\tstringValue: %s\n", message.stringValue);
-				if (message.intValue == 42) {
+				printf("[waterSupply] Message received: length: %ld, value: %d, message: %s\n",
+						msgLen, message.intValue, message.strValue);
+				if (message.intValue == 1) {
 					deliverWater = TRUE;
+					// return test message:
+					sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+						.subSystem = ss_waterSupply,
+						.intValue = 1,
+						.strValue = "Ok, got it!",
+					}, sizeof(MainControllerMessage), prio_low);
 				}
 			}
 		}
@@ -168,5 +171,5 @@ static void runWaterSupply(void *activity) {
 }
 
 static void tearDownWaterSupply(void *activity) {
-	printf("Tear down Water supply...\n");
+	printf("[waterSupply] Tearing down...\n");
 }

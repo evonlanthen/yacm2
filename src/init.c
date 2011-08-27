@@ -10,26 +10,33 @@
 #include <unistd.h>
 #include "syslog.h"
 #include "activity.h"
-#include "mainController.h"
 #include "coffeeSupply.h"
 #include "waterSupply.h"
+#include "milkSupply.h"
+#include "userInterface.h"
+#include "serviceInterface.h"
+#include "mainController.h"
 
 int main(int argc, char **argv) {
-	int i = 42;
 	setUpSyslog();
-	printf("Set up subsystems...\n");
-	logInfo("Set up subsystems (%d)...", i);
+	printf("[init] Setting up subsystems...\n");
 	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor());
 	Activity *waterSupply = createActivity(getWaterSupplyDescriptor());
+	Activity *milkSupply = createActivity(getMilkSupplyDescriptor());
+	Activity *userInterface = createActivity(getUserInterfaceDescriptor());
+	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor());
 	Activity *mainController = createActivity(getMainControllerDescriptor());
 
 	sleep(60);
 
-	printf("Tear down subsystems...\n");
+	printf("[init] Tearing down subsystems...\n");
 	destroyActivity(mainController);
+	destroyActivity(serviceInterface);
+	destroyActivity(userInterface);
+	destroyActivity(milkSupply);
 	destroyActivity(waterSupply);
 	destroyActivity(coffeeSupply);
-	printf("...done. (tear down subsystems)\n");
+	printf("[init] ...done. (tear down subsystems)\n");
 	tearDownSyslog();
 	return 0;
 }

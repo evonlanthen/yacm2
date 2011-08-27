@@ -14,7 +14,7 @@
 
 typedef struct {
 	int intValue;
-	char stringValue[4];
+	char strValue[256];
 } CoffeeSupplyMessage;
 
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
