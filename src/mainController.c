@@ -20,14 +20,6 @@ static void setUpMainController(void *activity);
 static void runMainController(void *activity);
 static void tearDownMainController(void *activity);
 
-static const char *subSystemStr[] = {
-		"Coffee supply",
-		"Milk Supply",
-		"Water Supply",
-		"Service Interface",
-		"User Interface"
-};
-
 static ActivityDescriptor mainController = {
 		.name = "mainController",
 		.setUp = setUpMainController,
@@ -52,6 +44,7 @@ static void runMainController(void *activity) {
 	printf("[mainController] Send message to coffee supply...\n");
 	printf("[mainController] Message size: %ld\n", sizeof(CoffeeSupplyMessage));
 	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage){
+		.activity = getMainControllerDescriptor(),
 		.intValue = 123,
 		.strValue = "abc"
 		}, sizeof(CoffeeSupplyMessage), prio_medium);
@@ -59,6 +52,7 @@ static void runMainController(void *activity) {
 
 	printf("[mainController] Send message to water supply...\n");
 	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+		.activity = getMainControllerDescriptor(),
 		.intValue = 1,
 		.strValue = "Start water supply",
 	}, sizeof(WaterSupplyMessage), prio_medium);
@@ -68,7 +62,7 @@ static void runMainController(void *activity) {
 		msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
 		if (msgLen > 0) {
 			printf("[mainController] Message from %s (%ld): intVal=%d, strVal='%s'\n",
-					subSystemStr[message.subSystem],
+					message.activity.name,
 					msgLen,
 					message.intValue,
 					message.strValue);

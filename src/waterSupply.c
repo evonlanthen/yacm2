@@ -101,13 +101,13 @@ static void runWaterSupply(void *activity) {
 			printf("[waterSupply] Going to receive message...\n");
 			msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
 			if (msgLen > 0) {
-				printf("[waterSupply] Message received: length: %ld, value: %d, message: %s\n",
-						msgLen, message.intValue, message.strValue);
+				printf("[waterSupply] Message received from %s (length: %ld): value: %d, message: %s\n",
+						message.activity.name, msgLen, message.intValue, message.strValue);
 				if (message.intValue == 1) {
 					deliverWater = TRUE;
 					// return test message:
 					sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-						.subSystem = ss_waterSupply,
+						.activity = getWaterSupplyDescriptor(),
 						.intValue = 1,
 						.strValue = "Ok, got it!",
 					}, sizeof(MainControllerMessage), prio_low);

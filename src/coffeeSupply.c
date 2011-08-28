@@ -46,8 +46,8 @@ static void runCoffeeSupply(void *activity) {
 		printf("[coffeeSupply] Going to receive message...\n");
 		CoffeeSupplyMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("[coffeeSupply] Message received - length: %ld, value: %d, message: %s\n",
-				messageLength, message.intValue, message.strValue);
+		printf("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s\n",
+				message.activity.name, messageLength, message.intValue, message.strValue);
 	}
 }
 

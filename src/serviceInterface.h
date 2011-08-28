@@ -13,6 +13,7 @@
 #include "activity.h"
 
 typedef struct {
+	ActivityDescriptor activity;
 	int intValue;
 	char strValue[256];
 } ServiceInterfaceMessage;

@@ -12,16 +12,8 @@
 #include <mqueue.h>
 #include "activity.h"
 
-typedef enum {
-	ss_coffeeSupply = 0,
-	ss_milkSupply,
-	ss_waterSupply,
-	ss_serviceInterface,
-	ss_userInterface
-} SubSystem;
-
 typedef struct {
-	SubSystem subSystem;
+	ActivityDescriptor activity;
 	int intValue;
 	char strValue[256];
 } MainControllerMessage;
