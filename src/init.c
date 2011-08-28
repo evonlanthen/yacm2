@@ -20,12 +20,12 @@
 int main(int argc, char **argv) {
 	setUpSyslog();
 	printf("[init] Setting up subsystems...\n");
-	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor());
-	Activity *waterSupply = createActivity(getWaterSupplyDescriptor());
-	Activity *milkSupply = createActivity(getMilkSupplyDescriptor());
-	Activity *userInterface = createActivity(getUserInterfaceDescriptor());
-	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor());
-	Activity *mainController = createActivity(getMainControllerDescriptor());
+	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor(), mq_blockable);
+	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), mq_nonblockable);
+	Activity *milkSupply = createActivity(getMilkSupplyDescriptor(), mq_blockable);
+	Activity *userInterface = createActivity(getUserInterfaceDescriptor(), mq_blockable);
+	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor(), mq_blockable);
+	Activity *mainController = createActivity(getMainControllerDescriptor(), mq_blockable);
 
 	sleep(60);
 

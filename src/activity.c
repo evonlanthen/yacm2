@@ -25,16 +25,22 @@ static char *createMessageQueueId(char *activityName) {
 	return id;
 }
 
-static mqd_t createMessageQueue(char *activityName) {
+static mqd_t createMessageQueue(char *activityName, MqMode mqMode) {
 	char *id = createMessageQueueId(activityName);
+	mqd_t queue;
 
 	struct mq_attr attributes = {
 			.mq_maxmsg = 10,
 			.mq_msgsize = MSG_MAX_SIZE
 	};
 
-	mqd_t queue = mq_open(id, O_CREAT | O_RDONLY, S_IRWXU | S_IRWXG, &attributes);
-	//mqd_t queue = mq_open(id, O_CREAT | O_RDONLY | O_NONBLOCK, S_IRWXU | S_IRWXG, &attributes);
+	if (mqMode == mq_nonblockable) {
+		queue = mq_open(id, O_CREAT | O_RDONLY | O_NONBLOCK, S_IRWXU | S_IRWXG, &attributes);
+	} else {
+		queue = mq_open(id, O_CREAT | O_RDONLY, S_IRWXU | S_IRWXG, &attributes);
+	}
+
+	//
 	free(id);
 	if (queue < 0) {
 		logErr("%s: Error creating message queue, %s", activityName, strerror(errno));
@@ -59,7 +65,7 @@ static void * runThread(void *argument) {
 	return NULL;
 }
 
-Activity *createActivity(ActivityDescriptor descriptor) {
+Activity *createActivity(ActivityDescriptor descriptor, MqMode mqMode) {
 	// Create new activity instance
 	Activity *activity = (Activity *) malloc(sizeof(Activity));
 	memset(activity, 0, sizeof(Activity));
@@ -70,13 +76,14 @@ Activity *createActivity(ActivityDescriptor descriptor) {
 	activity->descriptor = descriptorCopy;
 
 	// Create new message queue (= queue for incoming messages)
-	mqd_t messageQueue = createMessageQueue(descriptor.name);
+	mqd_t messageQueue = createMessageQueue(descriptor.name, mqMode);
 	if (messageQueue < 0) {
 		logErr("%s: Error creating activity's message queue for incoming messages, %s", descriptor.name, strerror(errno));
 
 		// TODO Error handling
 	}
 	activity->messageQueue = messageQueue;
+	activity->mqMode = mqMode;
 
 	// Start new thread
 	pthread_t thread;
@@ -108,7 +115,9 @@ unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length
 	char receiveBuffer[MSG_MAX_SIZE+1];
 	ssize_t n;
 	if ((n = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
-		logErr("%s: Error receiving message, %s", activity->descriptor->name, strerror(errno));
+		if (activity->mqMode != mq_nonblockable) {
+			logErr("%s: Error receiving message, %s", activity->descriptor->name, strerror(errno));
+		}
 	}
 	if (n != length) {
 

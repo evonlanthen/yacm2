@@ -11,6 +11,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include "defines.h"
 #include "syslog.h"
 #include "sensor.h"
@@ -91,7 +92,7 @@ static void runWaterSupply(void *activity) {
 	waterSupplyState state = wsState_off;
 	int deliverWater = FALSE;
 	WaterSupplyMessage message;
-	unsigned long msgLen;
+	int msgLen;
 
 	printf("[waterSupply] Running...\n");
 	while(TRUE) {

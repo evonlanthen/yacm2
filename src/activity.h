@@ -24,10 +24,16 @@ typedef struct {
 	ActivityRun tearDown;
 } ActivityDescriptor;
 
+typedef enum {
+	mq_blockable = 0,
+	mq_nonblockable
+} MqMode;
+
 typedef struct {
 	ActivityDescriptor *descriptor;
 	pthread_t thread;
 	mqd_t messageQueue;
+	MqMode mqMode;
 } Activity;
 
 typedef enum {
@@ -36,10 +42,10 @@ typedef enum {
 	prio_high,
 } MessagePrio;
 
-Activity *createActivity(ActivityDescriptor descriptor);
+Activity *createActivity(ActivityDescriptor descriptor, MqMode mqMode);
 void destroyActivity(Activity *activity);
 
 unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length);
-void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, unsigned int prio);
+void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePrio prio);
 
 #endif /* ACTIVITY_H_ */
