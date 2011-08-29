@@ -27,7 +27,7 @@ void logInfo(const char *str, ...) {
 	va_end(ap);
 #ifdef DEBUG
 	/* print to stdout as well: */
-	printf("Info: ");
+	printf("LogInfo: ");
 	va_start(ap, str);
 	vprintf(str, ap);
 	va_end(ap);
@@ -43,7 +43,7 @@ void logWarn(const char *str, ...) {
 	va_end(ap);
 #ifdef DEBUG
 	/* print to stdout as well: */
-	printf("Warning: ");
+	printf("LogWarn: ");
 	va_start(ap, str);
 	vprintf(str, ap);
 	va_end(ap);
@@ -59,7 +59,7 @@ void logErr(const char *str, ...) {
 	va_end(ap);
 #ifdef DEBUG
 	/* print to stdout as well: */
-	printf("Error: ");
+	printf("LogErr: ");
 	va_start(ap, str);
 	vprintf(str, ap);
 	va_end(ap);
