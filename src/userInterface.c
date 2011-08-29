@@ -14,13 +14,16 @@
 #include <stdio.h>
 #include "defines.h"
 #include "syslog.h"
-#include "sensor.h"
+#include "device.h"
+#include "display.h"
 #include "mainController.h"
 #include "userInterface.h"
 
 static void setUpUserInterface(void *activity);
 static void runUserInterface(void *activity);
 static void tearDownUserInterface(void *activity);
+
+static Activity *display;
 
 static ActivityDescriptor userInterface = {
 	.name = "userInterface",
@@ -35,6 +38,7 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 
 static void setUpUserInterface(void *activity) {
 	printf("[userInterface] Setting up...\n");
+	display = createActivity(getDisplayDescriptor(), mq_blockable);
 }
 
 static void runUserInterface(void *activity) {
