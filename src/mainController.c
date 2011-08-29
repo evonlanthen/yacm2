@@ -14,6 +14,7 @@
 #include "coffeeSupply.h"
 #include "waterSupply.h"
 #include "milkSupply.h"
+#include "userInterface.h"
 #include "mainController.h"
 
 static void setUpMainController(void *activity);
@@ -56,6 +57,13 @@ static void runMainController(void *activity) {
 		.intValue = 1,
 		.strValue = "Start water supply",
 	}, sizeof(WaterSupplyMessage), prio_medium);
+
+	printf("[mainController] Send message to user interface...\n");
+	sendMessage(getUserInterfaceDescriptor(), (char *)&(UserInterfaceMessage) {
+		.activity = getMainControllerDescriptor(),
+		.intValue = 2,
+		.strValue = "Show view 2",
+	}, sizeof(UserInterfaceMessage), prio_medium);
 
 	while(TRUE) {
 		printf("[mainController] Waiting for subsystem messages...\n");

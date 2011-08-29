@@ -12,6 +12,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "defines.h"
 #include "syslog.h"
 #include "device.h"
@@ -42,17 +43,37 @@ static void setUpUserInterface(void *activity) {
 }
 
 static void runUserInterface(void *activity) {
+	MainControllerMessage message;
+	int msgLen;
 	printf("[userInterface] Running...\n");
 
 	while (TRUE) {
 		printf("[userInterface] Going to receive message...\n");
-		UserInterfaceMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("[userInterface] Message received - length: %ld, value: %d, message: %s\n",
-				messageLength, message.intValue, message.strValue);
+		msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
+		printf("[userInterface] Message from %s (%d): intVal=%d, strVal='%s'\n",
+				message.activity.name,
+				msgLen,
+				message.intValue,
+				message.strValue);
+		if (strcmp(message.activity.name, "mainController") == 0) {
+			printf("[userInterface] Send message to display...\n");
+			sendMessage(getDisplayDescriptor(), (char *)&(DisplayMessage) {
+				.activity = getUserInterfaceDescriptor(),
+				.intValue = 2,
+				.strValue = "Show view 2",
+			}, sizeof(DisplayMessage), prio_medium);
+		} else if (strcmp(message.activity.name, "display") == 0) {
+			printf("[userInterface] Send message to mainController (%d, %s)...\n", message.intValue, message.strValue);
+			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+				.activity = getMainControllerDescriptor(),
+				.intValue = message.intValue,
+				.strValue = message.strValue,
+			}, sizeof(MainControllerMessage), prio_medium);
+		}
 	}
 }
 
 static void tearDownUserInterface(void *activity) {
 	printf("[userInterface] Tearing down...\n");
+	destroyActivity(display);
 }

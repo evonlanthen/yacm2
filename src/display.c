@@ -7,8 +7,10 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include "defines.h"
+#include "syslog.h"
 #include "device.h"
 #include "activity.h"
 #include "userInterface.h"
@@ -36,6 +38,9 @@ static void setUpDisplay(void *activity) {
 static void runDisplay(void *activity) {
 	DisplayMessage message;
 	int msgLen;
+	UserInterfaceMessage uiMsg;
+	uiMsg.activity = getDisplayDescriptor();
+
 	printf("[display] Running...\n");
 
 	while(TRUE) {
@@ -46,11 +51,19 @@ static void runDisplay(void *activity) {
 				message.activity.name, msgLen, message.intValue, message.strValue);
 
 			// TODO: update display and leds
-			sendMessage(getUserInterfaceDescriptor(), (char *)&(UserInterfaceMessage) {
-				.activity = getDisplayDescriptor(),
-				.intValue = 1,
-				.strValue = "Ok, got it!",
-			}, sizeof(UserInterfaceMessage), prio_low);
+			if (writeNonBlockableDevice("./dev/display", message.strValue, wrm_append, TRUE)) {
+				uiMsg.intValue = TRUE;
+				strcpy(uiMsg.strValue, "Success!");
+			} else {
+				logErr("[display] Could not write to display!");
+				uiMsg.intValue = FALSE;
+				strcpy(uiMsg.strValue, "Failure!");
+			}
+
+			sendMessage(getUserInterfaceDescriptor(),
+					(char *)&uiMsg,
+					sizeof(uiMsg),
+					prio_low);
 		}
 	}
 }
