@@ -43,32 +43,36 @@ static void setUpUserInterface(void *activity) {
 }
 
 static void runUserInterface(void *activity) {
-	MainControllerMessage message;
+	UserInterfaceMessage uiMsg;
 	int msgLen;
+	MainControllerMessage mcMsg;
+	mcMsg.activity = getUserInterfaceDescriptor();
+
 	printf("[userInterface] Running...\n");
 
 	while (TRUE) {
 		printf("[userInterface] Going to receive message...\n");
-		msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
+		msgLen = receiveMessage(activity, (char *)&uiMsg, sizeof(uiMsg));
 		printf("[userInterface] Message from %s (%d): intVal=%d, strVal='%s'\n",
-				message.activity.name,
+				uiMsg.activity.name,
 				msgLen,
-				message.intValue,
-				message.strValue);
-		if (strcmp(message.activity.name, "mainController") == 0) {
+				uiMsg.intValue,
+				uiMsg.strValue);
+		if (strcmp(uiMsg.activity.name, "mainController") == 0) {
 			printf("[userInterface] Send message to display...\n");
 			sendMessage(getDisplayDescriptor(), (char *)&(DisplayMessage) {
 				.activity = getUserInterfaceDescriptor(),
 				.intValue = 2,
 				.strValue = "Show view 2",
 			}, sizeof(DisplayMessage), prio_medium);
-		} else if (strcmp(message.activity.name, "display") == 0) {
-			printf("[userInterface] Send message to mainController (%d, %s)...\n", message.intValue, message.strValue);
-			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-				.activity = getMainControllerDescriptor(),
-				.intValue = message.intValue,
-				.strValue = message.strValue,
-			}, sizeof(MainControllerMessage), prio_medium);
+		} else if (strcmp(uiMsg.activity.name, "display") == 0) {
+			printf("[userInterface] Send message to mainController (%d, %s)...\n", uiMsg.intValue, uiMsg.strValue);
+			mcMsg.intValue = uiMsg.intValue;
+			strcpy(mcMsg.strValue, uiMsg.strValue);
+			sendMessage(getMainControllerDescriptor(),
+				(char *)&mcMsg,
+				sizeof(mcMsg),
+				prio_medium);
 		}
 	}
 }
