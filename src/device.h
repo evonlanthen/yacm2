@@ -9,7 +9,13 @@
 #ifndef DEVICE_H_
 #define DEVICE_H_
 
+typedef enum {
+	wrm_replace = 0,
+	wrm_append
+} WriteMode;
+
 extern int readBlockableDevice(char *deviceFifo);
 extern int readNonBlockableDevice(char *deviceFile);
+extern int writeNonBlockableDevice(char *deviceFile, char *str, WriteMode mode, int newLine);
 
 #endif /* DEVICE_H_ */

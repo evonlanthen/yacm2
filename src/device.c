@@ -13,6 +13,7 @@
 #include <string.h>
 #include <poll.h>
 #include <errno.h>
+#include "defines.h"
 #include "syslog.h"
 #include "device.h"
 
@@ -89,13 +90,17 @@ int readNonBlockableDevice(char *deviceFile) {
 	return atoi(input);
 }
 
-ssize_t writeNonBlockableDevice(char *deviceFile, char *str) {
+int writeNonBlockableDevice(char *deviceFile, char *str, WriteMode mode, int newLine) {
 	int fd;
 	struct flock lock;
-	ssize_t bytesWritten = 0;
+	mode_t openMode = O_WRONLY;
+	int bytesWritten = 0;
 	memset(&lock, 0, sizeof(struct flock));
 
-	if ((fd = open(deviceFile, O_WRONLY)) < 0) {
+	if (mode == wrm_append) {
+		openMode |= O_APPEND;
+	}
+	if ((fd = open(deviceFile, openMode)) < 0) {
 		logErr("open: %s", strerror(errno));
 		return bytesWritten;
 	}
@@ -109,6 +114,12 @@ ssize_t writeNonBlockableDevice(char *deviceFile, char *str) {
 	bytesWritten = write(fd, str, strlen(str));
 	if (bytesWritten < 0) {
 		logErr("write: %s", strerror(errno));
+	}
+	if (newLine == TRUE) {
+		bytesWritten += write(fd, "\n", 1);
+		if (bytesWritten < 0) {
+			logErr("write: %s", strerror(errno));
+		}
 	}
 	lock.l_type = F_UNLCK;
 	fcntl(fd, F_SETLKW, &lock);
