@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include "defines.h"
 #include "syslog.h"
-#include "sensor.h"
+#include "device.h"
 #include "mainController.h"
 #include "waterSupply.h"
 
@@ -51,16 +51,16 @@ static void setUpWaterSupply(void *activity) {
 }
 
 static int hasWater(void) {
-	return readNonBlockableSensor("./dev/waterSensor");
+	return readNonBlockableDevice("./dev/waterSensor");
 }
 
 static int hasFlow(void) {
-	return readNonBlockableSensor("./dev/waterFlowSensor");
+	return readNonBlockableDevice("./dev/waterFlowSensor");
 }
 
 static int hasTemp(void) {
 	int minTemp = 60;
-	int curTemp = readNonBlockableSensor("./dev/waterTemperatureSensor");
+	int curTemp = readNonBlockableDevice("./dev/waterTemperatureSensor");
 	return (curTemp >= minTemp) ? TRUE : FALSE;
 }
 

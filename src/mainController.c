@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "defines.h"
-#include "sensor.h"
+#include "device.h"
 #include "syslog.h"
 #include "coffeeSupply.h"
 #include "waterSupply.h"

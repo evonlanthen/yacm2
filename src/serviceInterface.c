@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "defines.h"
 #include "syslog.h"
-#include "sensor.h"
+#include "device.h"
 #include "mainController.h"
 #include "serviceInterface.h"
 

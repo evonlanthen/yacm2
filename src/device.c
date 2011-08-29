@@ -1,6 +1,6 @@
 /**
- * @brief   Sensor helper functions
- * @file    sensor.c
+ * @brief   Device helper functions
+ * @file    device.c
  * @version 1.0
  * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 17, 2011
@@ -14,9 +14,9 @@
 #include <poll.h>
 #include <errno.h>
 #include "syslog.h"
-#include "sensor.h"
+#include "device.h"
 
-int readBlockableSensor(char *sensorFifo) {
+int readBlockableDevice(char *deviceFifo) {
 	char input[2];
 	int ret, fd;
 	struct flock lock;
@@ -24,7 +24,7 @@ int readBlockableSensor(char *sensorFifo) {
 
 	memset(input, 0, 2);
 	memset(&lock, 0, sizeof(struct flock));
-	fd = open(sensorFifo, O_RDONLY);
+	fd = open(deviceFifo, O_RDONLY);
 	listen_for[0].fd = fd;
 	listen_for[0].events = POLLIN;
 	listen_for[0].revents = 0;
@@ -57,14 +57,14 @@ int readBlockableSensor(char *sensorFifo) {
 	return 0;
 }
 
-int readNonBlockableSensor(char *sensorFile) {
+int readNonBlockableDevice(char *deviceFile) {
 	char input[80];
 	int fd, i;
 	struct flock lock;
 	ssize_t bytesRead = 0;
 	memset(input, 0, 80);
 	memset(&lock, 0, sizeof(struct flock));
-	fd = open(sensorFile, O_RDONLY);
+	fd = open(deviceFile, O_RDONLY);
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
 
@@ -87,4 +87,32 @@ int readNonBlockableSensor(char *sensorFile) {
 		}
 	}
 	return atoi(input);
+}
+
+ssize_t writeNonBlockableDevice(char *deviceFile, char *str) {
+	int fd;
+	struct flock lock;
+	ssize_t bytesWritten = 0;
+	memset(&lock, 0, sizeof(struct flock));
+
+	if ((fd = open(deviceFile, O_WRONLY)) < 0) {
+		logErr("open: %s", strerror(errno));
+		return bytesWritten;
+	}
+	lock.l_type = F_WRLCK;
+	lock.l_whence = SEEK_SET;
+
+	if (fcntl(fd, F_SETLKW, &lock) < 0) {
+		logErr("fcntl: %s", strerror(errno));
+		return bytesWritten;
+	}
+	bytesWritten = write(fd, str, strlen(str));
+	if (bytesWritten < 0) {
+		logErr("write: %s", strerror(errno));
+	}
+	lock.l_type = F_UNLCK;
+	fcntl(fd, F_SETLKW, &lock);
+	close(fd);
+
+	return bytesWritten;
 }
