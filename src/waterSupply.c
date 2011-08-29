@@ -102,7 +102,7 @@ static void runWaterSupply(void *activity) {
 			printf("[waterSupply] Going to receive message...\n");
 			msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
 			if (msgLen > 0) {
-				printf("[waterSupply] Message received from %s (length: %ld): value: %d, message: %s\n",
+				printf("[waterSupply] Message received from %s (length: %d): value: %d, message: %s\n",
 						message.activity.name, msgLen, message.intValue, message.strValue);
 				if (message.intValue == 1) {
 					deliverWater = TRUE;
