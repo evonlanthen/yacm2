@@ -7,7 +7,10 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <signal.h>
 #include "syslog.h"
 #include "activity.h"
 #include "coffeeSupply.h"
@@ -17,17 +20,26 @@
 #include "serviceInterface.h"
 #include "mainController.h"
 
-int main(int argc, char **argv) {
-	setUpSyslog();
-	printf("[init] Setting up subsystems...\n");
-	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor(), mq_blockable);
-	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), mq_nonblockable);
-	Activity *milkSupply = createActivity(getMilkSupplyDescriptor(), mq_blockable);
-	Activity *userInterface = createActivity(getUserInterfaceDescriptor(), mq_blockable);
-	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor(), mq_blockable);
-	Activity *mainController = createActivity(getMainControllerDescriptor(), mq_blockable);
+static void sigCtrlC(int sig)
+{
+	/* do nothing here */
+	;
+}
 
-	sleep(60);
+int main(int argc, char **argv) {
+	printf("[init] Setting up subsystems...\n");
+	setUpSyslog();
+	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor(), messageQueue_blocking);
+	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), messageQueue_nonBlocking);
+	Activity *milkSupply = createActivity(getMilkSupplyDescriptor(), messageQueue_blocking);
+	Activity *userInterface = createActivity(getUserInterfaceDescriptor(), messageQueue_blocking);
+	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor(), messageQueue_blocking);
+	Activity *mainController = createActivity(getMainControllerDescriptor(), messageQueue_blocking);
+
+	/* Establish the signal handler. */
+	(void) signal(SIGINT, sigCtrlC);
+	/* wait for signal SIGINT: */
+	pause();
 
 	printf("[init] Tearing down subsystems...\n");
 	destroyActivity(mainController);

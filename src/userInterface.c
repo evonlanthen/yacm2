@@ -39,7 +39,7 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 
 static void setUpUserInterface(void *activity) {
 	printf("[userInterface] Setting up...\n");
-	display = createActivity(getDisplayDescriptor(), mq_blockable);
+	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
 }
 
 static void runUserInterface(void *activity) {
@@ -64,7 +64,7 @@ static void runUserInterface(void *activity) {
 				.activity = getUserInterfaceDescriptor(),
 				.intValue = 2,
 				.strValue = "Show view 2",
-			}, sizeof(DisplayMessage), prio_medium);
+			}, sizeof(DisplayMessage), messagePriority_medium);
 		} else if (strcmp(uiMsg.activity.name, "display") == 0) {
 			printf("[userInterface] Send message to mainController (%d, %s)...\n", uiMsg.intValue, uiMsg.strValue);
 			mcMsg.intValue = uiMsg.intValue;
@@ -72,7 +72,7 @@ static void runUserInterface(void *activity) {
 			sendMessage(getMainControllerDescriptor(),
 				(char *)&mcMsg,
 				sizeof(mcMsg),
-				prio_medium);
+				messagePriority_medium);
 		}
 	}
 }

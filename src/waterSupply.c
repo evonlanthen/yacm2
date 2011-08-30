@@ -111,7 +111,7 @@ static void runWaterSupply(void *activity) {
 						.activity = getWaterSupplyDescriptor(),
 						.intValue = 1,
 						.strValue = "Ok, got it!",
-					}, sizeof(MainControllerMessage), prio_low);
+					}, sizeof(MainControllerMessage), messagePriority_low);
 				}
 			}
 		}

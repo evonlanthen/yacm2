@@ -63,7 +63,7 @@ static void runDisplay(void *activity) {
 			sendMessage(getUserInterfaceDescriptor(),
 					(char *)&uiMsg,
 					sizeof(uiMsg),
-					prio_low);
+					messagePriority_low);
 		}
 	}
 }
