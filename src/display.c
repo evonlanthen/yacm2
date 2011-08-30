@@ -32,42 +32,42 @@ ActivityDescriptor getDisplayDescriptor() {
 }
 
 static void setUpDisplay(void *activity) {
-	printf("[display] Setting up...\n");
+	logInfo("[display] Setting up...");
 }
 
 static void runDisplay(void *activity) {
-	DisplayMessage message;
-	int msgLen;
-	UserInterfaceMessage uiMsg;
-	uiMsg.activity = getDisplayDescriptor();
+	DisplayMessage displayMessage;
+	int messageLength;
+	UserInterfaceMessage userInterfaceMessage;
+	userInterfaceMessage.activity = getDisplayDescriptor();
 
-	printf("[display] Running...\n");
+	logInfo("[display] Running...");
 
 	while(TRUE) {
-		printf("[display] Going to receive message...\n");
-		msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
-		if (msgLen > 0) {
-			printf("[display] Message received from %s (length: %d): value: %d, message: %s\n",
-				message.activity.name, msgLen, message.intValue, message.strValue);
+		logInfo("[display] Going to receive message...");
+		messageLength = receiveMessage(activity, (char *)&displayMessage, sizeof(displayMessage));
+		if (messageLength > 0) {
+			logInfo("[display] Message received from %s (length: %d): value: %d, message: %s",
+				displayMessage.activity.name, messageLength, displayMessage.intValue, displayMessage.strValue);
 
 			// TODO: update display and leds
-			if (writeNonBlockableDevice("./dev/display", message.strValue, wrm_append, TRUE)) {
-				uiMsg.intValue = TRUE;
-				strcpy(uiMsg.strValue, "Success!");
+			if (writeNonBlockingDevice("./dev/display", displayMessage.strValue, wrm_append, TRUE)) {
+				userInterfaceMessage.intValue = TRUE;
+				strcpy(userInterfaceMessage.strValue, "Success!");
 			} else {
 				logErr("[display] Could not write to display!");
-				uiMsg.intValue = FALSE;
-				strcpy(uiMsg.strValue, "Failure!");
+				userInterfaceMessage.intValue = FALSE;
+				strcpy(userInterfaceMessage.strValue, "Failure!");
 			}
 
 			sendMessage(getUserInterfaceDescriptor(),
-					(char *)&uiMsg,
-					sizeof(uiMsg),
+					(char *)&userInterfaceMessage,
+					sizeof(userInterfaceMessage),
 					messagePriority_low);
 		}
 	}
 }
 
 static void tearDownDisplay(void *activity) {
-	printf("[display] Tearing down...\n");
+	logInfo("[display] Tearing down...");
 }

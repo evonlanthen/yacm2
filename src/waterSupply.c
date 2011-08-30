@@ -47,30 +47,30 @@ ActivityDescriptor getWaterSupplyDescriptor() {
 }
 
 static void setUpWaterSupply(void *activity) {
-	printf("[waterSupply] Setting up...\n");
+	logInfo("[waterSupply] Setting up...");
 }
 
 static int hasWater(void) {
-	return readNonBlockableDevice("./dev/waterSensor");
+	return readNonBlockingDevice("./dev/waterSensor");
 }
 
 static int hasFlow(void) {
-	return readNonBlockableDevice("./dev/waterFlowSensor");
+	return readNonBlockingDevice("./dev/waterFlowSensor");
 }
 
 static int hasTemp(void) {
 	int minTemp = 60;
-	int curTemp = readNonBlockableDevice("./dev/waterTemperatureSensor");
+	int curTemp = readNonBlockingDevice("./dev/waterTemperatureSensor");
 	return (curTemp >= minTemp) ? TRUE : FALSE;
 }
 
 static int controlPump(deviceState state) {
 	switch(state) {
 	case(devState_on):
-		logInfo("Water pump started");
+		logInfo("[waterSupply] Water pump started");
 		break;
 	case(devState_off):
-		logInfo("Water pump stopped");
+		logInfo("[waterSupply] Water pump stopped");
 		break;
 	}
 	return TRUE;
@@ -79,10 +79,10 @@ static int controlPump(deviceState state) {
 static int controlHeater(deviceState state) {
 	switch(state) {
 	case(devState_on):
-		logInfo("Water heater started");
+		logInfo("[waterSupply] Water heater started");
 		break;
 	case(devState_off):
-		logInfo("Water heater stopped");
+		logInfo("[waterSupply] Water heater stopped");
 		break;
 	}
 	return TRUE;
@@ -92,18 +92,18 @@ static void runWaterSupply(void *activity) {
 	waterSupplyState state = wsState_off;
 	int deliverWater = FALSE;
 	WaterSupplyMessage message;
-	int msgLen;
+	int messageLength;
 
-	printf("[waterSupply] Running...\n");
+	logInfo("[waterSupply] Running...");
 	while(TRUE) {
 		// read message queue:
 		// TODO: should be nonblockable!
 		if (!deliverWater) {
-			printf("[waterSupply] Going to receive message...\n");
-			msgLen = receiveMessage(activity, (char *)&message, sizeof(message));
-			if (msgLen > 0) {
-				printf("[waterSupply] Message received from %s (length: %d): value: %d, message: %s\n",
-						message.activity.name, msgLen, message.intValue, message.strValue);
+			logInfo("[waterSupply] Going to receive message...");
+			messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
+			if (messageLength > 0) {
+				logInfo("[waterSupply] Message received from %s (length: %d): value: %d, message: %s",
+						message.activity.name, messageLength, message.intValue, message.strValue);
 				if (message.intValue == 1) {
 					deliverWater = TRUE;
 					// return test message:
@@ -125,7 +125,7 @@ static void runWaterSupply(void *activity) {
 			if (deliverWater && hasWater()) {
 				if (controlPump(devState_on) < 0) {
 					controlPump(devState_off);
-					logErr("Could not start water pump!");
+					logErr("[waterSupply] Could not start water pump!");
 				} else {
 					state = wsState_pumpOn;
 				}
@@ -138,7 +138,7 @@ static void runWaterSupply(void *activity) {
 				if (controlHeater(devState_on) < 0) {
 					controlHeater(devState_off);
 					state = wsState_error;
-					logErr("Could not start heater!");
+					logErr("[waterSupply] Could not start heater!");
 				} else {
 					state = wsState_heaterOn;
 				}
@@ -165,12 +165,12 @@ static void runWaterSupply(void *activity) {
 			// TODO: send message to main controller
 			break;
 		default:
-			logErr("Unknown state %d", state);
+			logErr("[waterSupply] Unknown state %d", state);
 		}
 		sleep(3);
 	}
 }
 
 static void tearDownWaterSupply(void *activity) {
-	printf("[waterSupply] Tearing down...\n");
+	logInfo("[waterSupply] Tearing down...");
 }

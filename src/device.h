@@ -14,8 +14,8 @@ typedef enum {
 	wrm_append
 } WriteMode;
 
-extern int readBlockableDevice(char *deviceFifo);
-extern int readNonBlockableDevice(char *deviceFile);
-extern int writeNonBlockableDevice(char *deviceFile, char *str, WriteMode mode, int newLine);
+extern int readBlockingDevice(char *deviceFifo);
+extern int readNonBlockingDevice(char *deviceFile);
+extern int writeNonBlockingDevice(char *deviceFile, char *str, WriteMode mode, int newLine);
 
 #endif /* DEVICE_H_ */

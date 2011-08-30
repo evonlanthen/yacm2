@@ -37,21 +37,21 @@ ActivityDescriptor getMilkSupplyDescriptor() {
 }
 
 static void setUpMilkSupply(void *activity) {
-	printf("[milkSupply] Setting up...\n");
+	logInfo("[milkSupply] Setting up...");
 }
 
 static void runMilkSupply(void *activity) {
-	printf("[milkSupply] Running...\n");
+	logInfo("[milkSupply] Running...");
 
 	while (TRUE) {
-		printf("[milkSupply] Going to receive message...\n");
+		logInfo("[milkSupply] Going to receive message...");
 		MilkSupplyMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("[milkSupply] Message received - length: %ld, value: %d, message: %s\n",
+		logInfo("[milkSupply] Message received - length: %ld, value: %d, message: %s",
 				messageLength, message.intValue, message.strValue);
 	}
 }
 
 static void tearDownMilkSupply(void *activity) {
-	printf("[milkSupply] Tearing down...\n");
+	logInfo("[milkSupply] Tearing down...");
 }

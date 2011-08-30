@@ -38,7 +38,7 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 }
 
 static void setUpUserInterface(void *activity) {
-	printf("[userInterface] Setting up...\n");
+	logInfo("[userInterface] Setting up...");
 	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
 }
 
@@ -48,25 +48,25 @@ static void runUserInterface(void *activity) {
 	MainControllerMessage mcMsg;
 	mcMsg.activity = getUserInterfaceDescriptor();
 
-	printf("[userInterface] Running...\n");
+	logInfo("[userInterface] Running...");
 
 	while (TRUE) {
-		printf("[userInterface] Going to receive message...\n");
+		logInfo("[userInterface] Going to receive message...");
 		msgLen = receiveMessage(activity, (char *)&uiMsg, sizeof(uiMsg));
-		printf("[userInterface] Message from %s (%d): intVal=%d, strVal='%s'\n",
+		logInfo("[userInterface] Message from %s (%d): intVal=%d, strVal='%s'",
 				uiMsg.activity.name,
 				msgLen,
 				uiMsg.intValue,
 				uiMsg.strValue);
 		if (strcmp(uiMsg.activity.name, "mainController") == 0) {
-			printf("[userInterface] Send message to display...\n");
+			logInfo("[userInterface] Send message to display...");
 			sendMessage(getDisplayDescriptor(), (char *)&(DisplayMessage) {
 				.activity = getUserInterfaceDescriptor(),
 				.intValue = 2,
 				.strValue = "Show view 2",
 			}, sizeof(DisplayMessage), messagePriority_medium);
 		} else if (strcmp(uiMsg.activity.name, "display") == 0) {
-			printf("[userInterface] Send message to mainController (%d, %s)...\n", uiMsg.intValue, uiMsg.strValue);
+			logInfo("[userInterface] Send message to mainController (%d, %s)...", uiMsg.intValue, uiMsg.strValue);
 			mcMsg.intValue = uiMsg.intValue;
 			strcpy(mcMsg.strValue, uiMsg.strValue);
 			sendMessage(getMainControllerDescriptor(),
@@ -78,6 +78,6 @@ static void runUserInterface(void *activity) {
 }
 
 static void tearDownUserInterface(void *activity) {
-	printf("[userInterface] Tearing down...\n");
+	logInfo("[userInterface] Tearing down...");
 	destroyActivity(display);
 }

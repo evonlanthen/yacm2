@@ -29,22 +29,22 @@ ActivityDescriptor getServiceInterfaceDescriptor() {
 }
 
 static void setUpServiceInterface(void *activity) {
-	printf("[serviceInterface] Setting up...\n");
+	logInfo("[serviceInterface] Setting up...");
 }
 
 static void runServiceInterface(void *activity) {
-	printf("[serviceInterface] Running...\n");
+	logInfo("[serviceInterface] Running...");
 
 	while (TRUE) {
-		printf("[serviceInterface] Going to receive message...\n");
+		logInfo("[serviceInterface] Going to receive message...");
 		ServiceInterfaceMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("[serviceInterface] Message received - length: %ld, value: %d, message: %s\n",
+		logInfo("[serviceInterface] Message received - length: %ld, value: %d, message: %s",
 				messageLength, message.intValue, message.strValue);
 	}
 }
 
 static void tearDownServiceInterface(void *activity) {
-	printf("[serviceInterface] Tearing down...\n");
+	logInfo("[serviceInterface] Tearing down...");
 }
 

@@ -2,7 +2,7 @@
  * @brief	Data structures
  * @file    data.c
  * @version 1.0
- * @author  Elmar Vonlanthen (vonle1@bfh.ch)
+ * @authors	Toni Baumann (bauma12@bfh.ch), Ronny Stauffer (staur3@bfh.ch), Elmar Vonlanthen (vonle1@bfh.ch)
  * @date    Aug 15, 2011
  */
 

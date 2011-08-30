@@ -58,7 +58,7 @@ static void * runThread(void *argument) {
 
 	activity->descriptor->run(activity);
 
-	printf("Thread terminated.\n");
+	logInfo("[activity] Thread terminated.");
 
 	pthread_cleanup_pop(1);
 

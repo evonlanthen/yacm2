@@ -17,7 +17,7 @@
 #include "syslog.h"
 #include "device.h"
 
-int readBlockableDevice(char *deviceFifo) {
+int readBlockingDevice(char *deviceFifo) {
 	char input[2];
 	int ret, fd;
 	struct flock lock;
@@ -43,7 +43,7 @@ int readBlockableDevice(char *deviceFifo) {
 			if (listen_for[0].revents == POLLIN) {
 				ret = read(fd, input, 1);
 				if (ret < 0) perror("read");
-				printf("Value: %s\n", input);
+				logInfo("[device] Value: %s\n", input);
 				//strcpy(buf, input);
 		//lock.l_type = F_UNLCK;
 		//fcntl(fd, F_SETLKW, &lock);
@@ -51,14 +51,14 @@ int readBlockableDevice(char *deviceFifo) {
 		}
 		close(fd);
 		fd = open("test.fifo", O_RDONLY);
-		printf("looping\n");
+		logInfo("[device] looping");
 		//sleep(3);
 	}
 	close(fd);
 	return 0;
 }
 
-int readNonBlockableDevice(char *deviceFile) {
+int readNonBlockingDevice(char *deviceFile) {
 	char input[80];
 	int fd, i;
 	struct flock lock;
@@ -70,12 +70,12 @@ int readNonBlockableDevice(char *deviceFile) {
 	lock.l_whence = SEEK_SET;
 
 	if (fcntl(fd, F_SETLKW, &lock) < 0) {
-		logErr("fcntl: %s", strerror(errno));
+		logErr("[device] fcntl: %s", strerror(errno));
 	}
 	//lseek(fd, 0, SEEK_SET);
 	bytesRead = read(fd, input, 80);
 	if (bytesRead < 0) {
-		logErr("read: %s", strerror(errno));
+		logErr("[device] read: %s", strerror(errno));
 	}
 	lock.l_type = F_UNLCK;
 	fcntl(fd, F_SETLKW, &lock);
@@ -90,7 +90,7 @@ int readNonBlockableDevice(char *deviceFile) {
 	return atoi(input);
 }
 
-int writeNonBlockableDevice(char *deviceFile, char *str, WriteMode mode, int newLine) {
+int writeNonBlockingDevice(char *deviceFile, char *str, WriteMode mode, int newLine) {
 	int fd;
 	struct flock lock;
 	mode_t openMode = O_WRONLY;
@@ -101,24 +101,24 @@ int writeNonBlockableDevice(char *deviceFile, char *str, WriteMode mode, int new
 		openMode |= O_APPEND;
 	}
 	if ((fd = open(deviceFile, openMode)) < 0) {
-		logErr("open: %s", strerror(errno));
+		logErr("[blocking] open: %s", strerror(errno));
 		return bytesWritten;
 	}
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
 
 	if (fcntl(fd, F_SETLKW, &lock) < 0) {
-		logErr("fcntl: %s", strerror(errno));
+		logErr("[blocking] fcntl: %s", strerror(errno));
 		return bytesWritten;
 	}
 	bytesWritten = write(fd, str, strlen(str));
 	if (bytesWritten < 0) {
-		logErr("write: %s", strerror(errno));
+		logErr("[blocking] write: %s", strerror(errno));
 	}
 	if (newLine == TRUE) {
 		bytesWritten += write(fd, "\n", 1);
 		if (bytesWritten < 0) {
-			logErr("write: %s", strerror(errno));
+			logErr("[blocking] write: %s", strerror(errno));
 		}
 	}
 	lock.l_type = F_UNLCK;

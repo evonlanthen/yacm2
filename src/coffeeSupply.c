@@ -36,21 +36,21 @@ ActivityDescriptor getCoffeeSupplyDescriptor() {
 }
 
 static void setUpCoffeeSupply(void *activity) {
-	printf("[coffeeSupply] Setting up...\n");
+	logInfo("[coffeeSupply] Setting up...");
 }
 
 static void runCoffeeSupply(void *activity) {
-	printf("[coffeeSupply] Running...\n");
+	logInfo("[coffeeSupply] Running...");
 
 	while (TRUE) {
-		printf("[coffeeSupply] Going to receive message...\n");
+		logInfo("[coffeeSupply] Going to receive message...");
 		CoffeeSupplyMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		printf("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s\n",
+		logInfo("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s",
 				message.activity.name, messageLength, message.intValue, message.strValue);
 	}
 }
 
 static void tearDownCoffeeSupply(void *activity) {
-	printf("[coffee supply] Tearing down...\n");
+	logInfo("[coffee supply] Tearing down...");
 }

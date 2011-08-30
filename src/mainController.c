@@ -432,33 +432,33 @@ static StateMachine coffeeMakingProcessMachine = {
 
 
 static void setUpMainController(void *activity) {
-	printf("[mainController] Setting up...\n");
+	logInfo("[mainController] Setting up...");
 }
 
 static void runMainController(void *activity) {
 	MainControllerMessage message;
 	unsigned long messageLength;
-	printf("[mainController] Running...\n");
+	logInfo("[mainController] Running...");
 	setUpStateMachine(&stateMachine);
 	sleep(10);
 
-	printf("[mainController] Send message to coffee supply...\n");
-	printf("[mainController] Message size: %ld\n", sizeof(CoffeeSupplyMessage));
+	logInfo("[mainController] Send message to coffee supply...");
+	logInfo("[mainController] Message size: %ld", sizeof(CoffeeSupplyMessage));
 	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage){
 		.activity = getMainControllerDescriptor(),
 		.intValue = 123,
 		.strValue = "abc"
 		}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
-	printf("[mainController] ...done. (send message)\n");
+	logInfo("[mainController] ...done. (send message)");
 
-	printf("[mainController] Send message to water supply...\n");
+	logInfo("[mainController] Send message to water supply...");
 	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
 		.activity = getMainControllerDescriptor(),
 		.intValue = 1,
 		.strValue = "Start water supply",
 	}, sizeof(WaterSupplyMessage), messagePriority_medium);
 
-	printf("[mainController] Send message to user interface...\n");
+	logInfo("[mainController] Send message to user interface...");
 	sendMessage(getUserInterfaceDescriptor(), (char *)&(UserInterfaceMessage) {
 		.activity = getMainControllerDescriptor(),
 		.intValue = 2,
@@ -466,10 +466,10 @@ static void runMainController(void *activity) {
 	}, sizeof(UserInterfaceMessage), messagePriority_medium);
 
 	while(TRUE) {
-		printf("[mainController] Waiting for subsystem messages...\n");
+		logInfo("[mainController] Waiting for subsystem messages...");
 		messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
 		if (messageLength > 0) {
-			printf("[mainController] Message from %s (%ld): intVal=%d, strVal='%s'\n",
+			logInfo("[mainController] Message from %s (%ld): intVal=%d, strVal='%s'",
 					message.activity.name,
 					messageLength,
 					message.intValue,
@@ -479,5 +479,5 @@ static void runMainController(void *activity) {
 }
 
 static void tearDownMainController(void *activity) {
-	printf("[mainController] Tearing down...\n");
+	logInfo("[mainController] Tearing down...");
 }

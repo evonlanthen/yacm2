@@ -27,7 +27,7 @@ static void sigCtrlC(int sig)
 }
 
 int main(int argc, char **argv) {
-	printf("[init] Setting up subsystems...\n");
+	logInfo("[init] Setting up subsystems...");
 	setUpSyslog();
 	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor(), messageQueue_blocking);
 	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), messageQueue_nonBlocking);
@@ -41,14 +41,14 @@ int main(int argc, char **argv) {
 	/* wait for signal SIGINT: */
 	pause();
 
-	printf("[init] Tearing down subsystems...\n");
+	logInfo("[init] Tearing down subsystems...");
 	destroyActivity(mainController);
 	destroyActivity(serviceInterface);
 	destroyActivity(userInterface);
 	destroyActivity(milkSupply);
 	destroyActivity(waterSupply);
 	destroyActivity(coffeeSupply);
-	printf("[init] ...done. (tear down subsystems)\n");
+	logInfo("[init] ...done. (tear down subsystems)");
 	tearDownSyslog();
 	return 0;
 }
