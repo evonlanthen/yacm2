@@ -18,7 +18,7 @@
 typedef void (*ActivityRun)(void *activity);
 
 typedef struct {
-	char *name;
+	char *name[30];
 	ActivityRun setUp;
 	ActivityRun run;
 	ActivityRun tearDown;

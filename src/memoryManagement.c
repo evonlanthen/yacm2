@@ -6,6 +6,7 @@
  * @date    Aug 30, 2011
  */
 
+#include <string.h>
 #include "memoryManagement.h"
 
 /**
