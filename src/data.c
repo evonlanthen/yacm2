@@ -9,12 +9,14 @@
 #include "data.h"
 #include <pthread.h>
 
-
-typedef struct {
-	int milkMaxLacticAcid; // 0 - 14 ph
-	int coffeeMotorWarmUpPower; // %
-	int coffeeMotorWarmUpTime; // ms
-} OperationParameters;
+struct OperationParameters {
+	char *key;
+	int value;
+} operationParameters[] = {
+		{ "milkMaxLacticAcid", 3 },			// 0 - 14 ph
+		{ "coffeeMotorWarmUpPower", 50 },	// %
+		{ "coffeeMotorWarmUpTime", 100 },	// ms
+};
 
 typedef struct {
 	int cupFillLevel; // ml
@@ -35,11 +37,14 @@ typedef struct {
 	int event;
 } StatisticEntry;
 
+/*
 static OperationParameters operationParameters = {
 	.milkMaxLacticAcid = 3,
 	.coffeeMotorWarmUpPower = 50,
 	.coffeeMotorWarmUpTime = 100
 };
+*/
+
 static pthread_mutex_t operationParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
 static MainParameters mainParameters = {
