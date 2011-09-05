@@ -15,6 +15,7 @@
 #include "defines.h"
 #include "syslog.h"
 #include "device.h"
+#include "stateMachineEngine.h"
 #include "mainController.h"
 #include "waterSupply.h"
 
@@ -41,6 +42,8 @@ typedef enum {
 	devState_off = 0,
 	devState_on
 } deviceState;
+
+static StateMachine waterSupplyStateMachine;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -89,6 +92,7 @@ static int controlHeater(deviceState state) {
 }
 
 static void runWaterSupply(void *activity) {
+
 	waterSupplyState state = wsState_off;
 	int deliverWater = FALSE;
 	WaterSupplyMessage message;
@@ -169,6 +173,39 @@ static void runWaterSupply(void *activity) {
 		}
 		sleep(3);
 	}
+
+
+	/*
+	 ***************************************************************************
+	 * States and events
+	 ***************************************************************************
+	 */
+
+	/**
+	 * Represents a water supply state
+	 */
+	typedef enum {
+		waterSupplyState_switchedOff,
+		waterSupplyState_hasWater,
+		waterSupplyState_hasFlow,
+		waterSupplyState_temperatureReached
+	} MainControllerState;
+
+	/**
+	 * Represents a water supply event
+	 */
+	typedef enum {
+		waterSupplyEvent_initialize,
+		waterSupplyEvent_pumpOn,
+		waterSupplyEvent_heaterOn,
+		waterSupplyEvent_pumpOff,
+		waterSupplyEvent_heaterOff,
+		waterSupplyEvent_isWarmedUp,
+		waterSupplyEvent_switchOff,
+	} WaterSupplyEvent;
+
+
+
 }
 
 static void tearDownWaterSupply(void *activity) {
