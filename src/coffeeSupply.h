@@ -18,6 +18,25 @@ typedef struct {
 	char strValue[256];
 } CoffeeSupplyMessage;
 
+typedef struct {
+	ActivityDescriptor activity;
+	int intValue;
+	char strValue[256];
+} CoffeePowderDispenserMessage;
+
+typedef struct {
+	ActivityDescriptor activity;
+	int intValue;
+	char strValue[256];
+} FillStateMonitorMessage;
+
+typedef struct {
+	ActivityDescriptor activity;
+	int intValue;
+	char strValue[256];
+} MotorControllerMessage;
+
+
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
 
 #endif /* COFFEESUPPLY_H_ */
