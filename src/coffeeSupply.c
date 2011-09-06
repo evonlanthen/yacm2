@@ -19,6 +19,7 @@
 #include "device.h"
 #include "mainController.h"
 #include "coffeeSupply.h"
+#include "activity.h"
 
 static void setUpCoffeeSupply(void *activity);
 static void runCoffeeSupply(void *activity);
@@ -95,6 +96,13 @@ static void runCoffeeSupply(void *activity) {
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
 		logInfo("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s",
 				message.activity.name, messageLength, message.intValue, message.strValue);
+		logInfo("[coffeeSupply] Send message to coffeePowderDispenser...");
+		sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
+				.activity = getCoffeeSupplyDescriptor(),
+				.intValue = 123,
+				.strValue = "abc"
+				}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
+		logInfo("[coffeeSupply] ...done. (send message)");
 	}
 }
 
