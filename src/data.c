@@ -6,25 +6,33 @@
  * @date    Aug 15, 2011
  */
 
-#include "data.h"
+#include <string.h>
 #include <pthread.h>
+#include "data.h"
 
-struct OperationParameters {
+static struct OperationParameters {
 	char *key;
 	int value;
 } operationParameters[] = {
-		{ "milkMaxLacticAcid", 3 },			// 0 - 14 ph
-		{ "coffeeMotorWarmUpPower", 50 },	// %
-		{ "coffeeMotorWarmUpTime", 100 },	// ms
+	{ "milkMaxLacticAcid", 3 },			// 0; 0 - 14 [ph]
+	{ "coffeeMotorWarmUpPower", 50 },	// 1; [%]
+	{ "coffeeMotorWarmUpTime", 100 },	// 2; [ms]
 };
+static int operationParametersCount = 3;
+static pthread_mutex_t operationParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
-typedef struct {
-	int cupFillLevel; // ml
-	int coffeePowderAmountPerCup; // mg
-	int milkAmountPerCup; // %
-	int waterBrewTemperatur; // °C
-	int milkCoolingTemperatur; // °C
-} MainParameters;
+static struct MainParameters {
+	char *key;
+	int value;
+} mainParameters[] = {
+	{ "cupFillLevel", 200 },			// 0; [ml]
+	{ "coffeePowderAmountPerCup", 30 },	// 1; [mg]
+	{ "milkAmountPerCup", 10 },			// 2; [%]
+	{ "waterBrewTemperatur", 90 },		// 3; [°C]
+	{ "milkCoolingTemperatur", 5 },		// 4; [°C]
+};
+static int mainParametersCount = 5;
+static pthread_mutex_t mainParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct {
 	int numberOfProducts;
@@ -36,25 +44,6 @@ typedef struct {
 	unsigned long timestamp;
 	int event;
 } StatisticEntry;
-
-/*
-static OperationParameters operationParameters = {
-	.milkMaxLacticAcid = 3,
-	.coffeeMotorWarmUpPower = 50,
-	.coffeeMotorWarmUpTime = 100
-};
-*/
-
-static pthread_mutex_t operationParametersLock = PTHREAD_MUTEX_INITIALIZER;
-
-static MainParameters mainParameters = {
-	.cupFillLevel = 200,
-	.coffeePowderAmountPerCup = 30,
-	.milkAmountPerCup = 10,
-	.waterBrewTemperatur = 90,
-	.milkCoolingTemperatur = 5
-};
-static pthread_mutex_t mainParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
 static OperationData operationData = {
 	.numberOfProducts = 3,
@@ -78,59 +67,78 @@ void tearDownData() {
 }
 
 void setOperationParameter(char *name, int value) {
-	// TODO
 	// Critical section
 	pthread_mutex_lock(&operationParametersLock);
+	for (int i = 0; i < operationParametersCount; i++) {
+		if (strcmp(operationParameters[i].key, name) == 0) {
+			operationParameters[i].value = value;
+			break;
+		}
+	}
 	pthread_mutex_unlock(&operationParametersLock);
 }
 
 int getOperationParameter(char *name) {
-	// TODO
+	int value = -1;
 	// Critical section
 	pthread_mutex_lock(&operationParametersLock);
+	for (int i = 0; i < operationParametersCount; i++) {
+		if (strcmp(operationParameters[i].key, name) == 0) {
+			value = operationParameters[i].value;
+			break;
+		}
+	}
 	pthread_mutex_unlock(&operationParametersLock);
-	return 0;
+	return value;
 }
 
 void setMainParameter(char *name, int value) {
-	// TODO
 	// Critical section
 	pthread_mutex_lock(&mainParametersLock);
+	for (int i = 0; i < mainParametersCount; i++) {
+		if (strcmp(mainParameters[i].key, name) == 0) {
+			mainParameters[i].value = value;
+			break;
+		}
+	}
 	pthread_mutex_unlock(&mainParametersLock);
 }
 
 int getMainParameter(char *name) {
-	// TODO
+	int value = -1;
 	// Critical section
 	pthread_mutex_lock(&mainParametersLock);
+	for (int i = 0; i < operationParametersCount; i++) {
+		if (strcmp(mainParameters[i].key, name) == 0) {
+			value = mainParameters[i].value;
+			break;
+		}
+	}
 	pthread_mutex_unlock(&mainParametersLock);
 	return 0;
 }
 
 int getNumberOfProducts() {
-	// TODO
 	// Critical section
 	pthread_mutex_lock(&operationDataLock);
-
+	int numberOfProducts = operationData.numberOfProducts;
 	pthread_mutex_unlock(&operationDataLock);
-	return operationData.numberOfProducts;
+	return numberOfProducts;
 }
 
 void setMachineState(MachineState state) {
-	// TODO
 	// Critical section
 	pthread_mutex_lock(&operationDataLock);
-
+	operationData.machineState = state;
 	pthread_mutex_unlock(&operationDataLock);
-	return operationData.machineState;
 }
 
 MachineState getMachineState() {
-	// TODO
 	// Critical section
 	pthread_mutex_lock(&operationDataLock);
+	int state = operationData.machineState;
 	pthread_mutex_unlock(&operationDataLock);
-	return operationData.machineState;
+	return state;
 }
 
 void addStatisticEntry(int event) {
