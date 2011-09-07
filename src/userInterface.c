@@ -26,7 +26,7 @@ static void tearDownUserInterface(void *activity);
 
 static Activity *display;
 
-static ActivityDescriptor userInterface = {
+static ActivityDescriptor userInterfaceDescriptor = {
 	.name = "userInterface",
 	.setUp = setUpUserInterface,
 	.run = runUserInterface,
@@ -34,7 +34,7 @@ static ActivityDescriptor userInterface = {
 };
 
 ActivityDescriptor getUserInterfaceDescriptor() {
-	return userInterface;
+	return userInterfaceDescriptor;
 }
 
 static void setUpUserInterface(void *activity) {
@@ -43,37 +43,33 @@ static void setUpUserInterface(void *activity) {
 }
 
 static void runUserInterface(void *activity) {
-	UserInterfaceMessage uiMsg;
-	int msgLen;
-	MainControllerMessage mcMsg;
-	mcMsg.activity = getUserInterfaceDescriptor();
+	UserInterfaceMessage incomingMessage;
+	int incomingMessageLength;
+	MainControllerMessage mainControllerMessage;
+	mainControllerMessage.activity = getUserInterfaceDescriptor();
 
 	logInfo("[userInterface] Running...");
 
 	while (TRUE) {
-		logInfo("[userInterface] Going to receive message...");
-		msgLen = receiveMessage(activity, (char *)&uiMsg, sizeof(uiMsg));
-		logInfo("[userInterface] Message from %s (%d): intVal=%d, strVal='%s'",
-				uiMsg.activity.name,
-				msgLen,
-				uiMsg.intValue,
-				uiMsg.strValue);
-		if (strcmp(uiMsg.activity.name, "mainController") == 0) {
+		waitForEvent(activity, (char *)&incomingMessage, sizeof(incomingMessage), 100);
+
+		MESSAGE_SELECTOR_BEGIN
+		MESSAGE_SELECTOR(incomingMessage, mainController)
 			logInfo("[userInterface] Send message to display...");
 			sendMessage(getDisplayDescriptor(), (char *)&(DisplayMessage) {
 				.activity = getUserInterfaceDescriptor(),
 				.intValue = 2,
 				.strValue = "Show view 2",
 			}, sizeof(DisplayMessage), messagePriority_medium);
-		} else if (strcmp(uiMsg.activity.name, "display") == 0) {
-			logInfo("[userInterface] Send message to mainController (%d, %s)...", uiMsg.intValue, uiMsg.strValue);
-			mcMsg.intValue = uiMsg.intValue;
-			strcpy(mcMsg.strValue, uiMsg.strValue);
+		MESSAGE_SELECTOR(incomingMessage, display)
+			logInfo("[userInterface] Send message to mainController (%d, %s)...", incomingMessage.intValue, incomingMessage.strValue);
+			mainControllerMessage.intValue = incomingMessage.intValue;
+			strcpy(mainControllerMessage.strValue, incomingMessage.strValue);
 			sendMessage(getMainControllerDescriptor(),
-				(char *)&mcMsg,
-				sizeof(mcMsg),
+				(char *)&mainControllerMessage,
+				sizeof(mainControllerMessage),
 				messagePriority_medium);
-		}
+		MESSAGE_SELECTOR_END
 	}
 }
 

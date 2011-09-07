@@ -15,6 +15,15 @@
 #include <mqueue.h>
 #include <sys/stat.h>
 
+#define MESSAGE_SELECTOR_BEGIN \
+	if (0) {
+#define MESSAGE_SELECTOR(message, activityName) \
+	} else if (strcmp(message.activity.name, #activityName) == 0) {
+#define MESSAGE_SELECTOR_ANY \
+	} else {
+#define MESSAGE_SELECTOR_END \
+	}
+
 typedef void (*ActivityRun)(void *activity);
 
 typedef struct {
@@ -46,7 +55,8 @@ typedef enum {
 Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode messageQueueMode);
 void destroyActivity(Activity *activity);
 
-unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length);
+void waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
+long receiveMessage(void *_activity, char *buffer, unsigned long length);
 void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
 
 #endif /* ACTIVITY_H_ */

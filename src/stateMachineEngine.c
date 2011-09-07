@@ -11,7 +11,7 @@
 #include "stateMachineEngine.h"
 
 static Event activateState(StateMachine *stateMachine, State *nextState);
-//static Event runState(State *state);
+static Event runState(State *state);
 
 /**
  * @copydoc setUpStateMachine
@@ -29,7 +29,6 @@ void setUpStateMachine(StateMachine *stateMachine) {
 /**
  * @copydoc setUpStateMachine
  */
-/*
 void runStateMachine(StateMachine *stateMachine) {
 	if (!stateMachine->isInitialized) {
 		return;
@@ -40,7 +39,7 @@ void runStateMachine(StateMachine *stateMachine) {
 	if (event != NO_EVENT) {
 		processStateMachineEvent(stateMachine, event);
 	}
-}*/
+}
 
 /**
  * @copydoc abortStateMachine
@@ -84,7 +83,6 @@ void processStateMachineEvent(StateMachine *stateMachine, Event event) {
 /**
  * Heartbeat function for the state's 'do' action.
  */
-/*
 static Event runState(State *state) {
 	Event event = NO_EVENT;
 
@@ -94,7 +92,7 @@ static Event runState(State *state) {
 	}
 
 	return event;
-}*/
+}
 
 /**
  * Activates the given state.

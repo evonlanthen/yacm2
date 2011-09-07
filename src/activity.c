@@ -13,7 +13,7 @@
 #include "syslog.h"
 #include "activity.h"
 
-#define MSG_MAX_SIZE 300
+#define MSG_MAX_SIZE 400
 
 static char *createMessageQueueId(char *activityName) {
 	size_t idLength = strlen(activityName) + 2;
@@ -109,7 +109,18 @@ void destroyActivity(Activity *activity) {
 	free(activity);
 }
 
-unsigned long receiveMessage(void *_activity, char *buffer, unsigned long length) {
+void waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout) {
+	// (e)poll auf message queue mit timeout
+	long incomingMessageLength = receiveMessage(activity, buffer, length);
+	/*logInfo("[%s] Message from %s (%d): intVal=%d, strVal='%s'",
+		activity->descriptor.name,
+		buffer->activity.name,
+		incomingMessageLength,
+		buffer->intValue,
+		buffer->strValue);*/
+}
+
+long receiveMessage(void *_activity, char *buffer, unsigned long length) {
 	Activity *activity = (Activity *)_activity;
 
 	char receiveBuffer[MSG_MAX_SIZE+1];
@@ -132,13 +143,13 @@ void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length
 	mqd_t queue = mq_open(messageQueueId, O_WRONLY);
 	free(messageQueueId);
 	if (queue < 0) {
-		logErr("%s: Error opening message queue for sending, %s", activity.name, strerror(errno));
+		logErr("[%s] Error opening message queue for sending, %s", activity.name, strerror(errno));
 
 		return;
 	}
 
 	if (mq_send(queue, buffer, length, priority) < 0) {
-		logErr("%s: Error sending message, %s", activity.name, strerror(errno));
+		logErr("[%s] Error sending message, %s", activity.name, strerror(errno));
 	}
 	mq_close(queue);
 }

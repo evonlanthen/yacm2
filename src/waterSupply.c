@@ -173,7 +173,7 @@ static void runWaterSupply(void *activity) {
 		}
 		sleep(3);
 	}
-
+}
 
 	/*
 	 ***************************************************************************
@@ -181,32 +181,63 @@ static void runWaterSupply(void *activity) {
 	 ***************************************************************************
 	 */
 
+	// off:
+	// initializing: betriebsparameter
+	// idle: bereit; Wassersensor (bei reinit wieder ins initializing)
+	// supplying; alles einschalten (precondition: hasWater)
 	/**
 	 * Represents a water supply state
 	 */
 	typedef enum {
 		waterSupplyState_switchedOff,
-		waterSupplyState_hasWater,
-		waterSupplyState_hasFlow,
-		waterSupplyState_temperatureReached
-	} MainControllerState;
+		waterSupplyState_initializing,
+		waterSupplyState_idle,
+		waterSupplyState_supplying
+	} WaterSupplyState;
 
 	/**
 	 * Represents a water supply event
 	 */
 	typedef enum {
-		waterSupplyEvent_initialize,
-		waterSupplyEvent_pumpOn,
-		waterSupplyEvent_heaterOn,
-		waterSupplyEvent_pumpOff,
-		waterSupplyEvent_heaterOff,
-		waterSupplyEvent_isWarmedUp,
+		waterSupplyEvent_switchOn,
 		waterSupplyEvent_switchOff,
+		waterSupplyEvent_initialized,
+		waterSupplyEvent_startSupplying,
+		waterSupplyEvent_supplyingFinished,
+		waterSupplyEvent_reconfigure,
 	} WaterSupplyEvent;
 
+	/*
+	 ***************************************************************************
+	 * State transitions
+	 ***************************************************************************
+	 */
 
+	static void offStateEntryAction() {
+		; // TODO: Notify user interface
+	}
 
-}
+	static State offState = {
+		.stateIndex = waterSupplyState_switchedOff,
+		.entryAction = offStateEntryAction
+	};
+
+	static StateMachine stateMachine = {
+		.numberOfEvents = 7,
+		.initialState = &offState,
+		.transitions = {
+			/* waterSupplyState_switchedOff: */
+				/* waterSupplyEvent_initialize
+			/* waterSupplyState_hasWater: */
+
+			/* waterSupplyState_hasFlow: */
+
+			/* waterSupplyState_hasTemperature: */
+
+			/* waterSupplyState_error: */
+			}
+	};
+
 
 static void tearDownWaterSupply(void *activity) {
 	logInfo("[waterSupply] Tearing down...");

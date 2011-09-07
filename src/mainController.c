@@ -24,7 +24,7 @@ static void setUpMainController(void *activity);
 static void runMainController(void *activity);
 static void tearDownMainController(void *activity);
 
-static ActivityDescriptor mainController = {
+static ActivityDescriptor mainControllerDescriptor = {
 		.name = "mainController",
 		.setUp = setUpMainController,
 		.run = runMainController,
@@ -32,7 +32,7 @@ static ActivityDescriptor mainController = {
 };
 
 ActivityDescriptor getMainControllerDescriptor() {
-	return mainController;
+	return mainControllerDescriptor;
 }
 
 /**
