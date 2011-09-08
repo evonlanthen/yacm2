@@ -454,7 +454,7 @@ static void runMainController(void *activity) {
 	logInfo("[mainController] Send message to water supply...");
 	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
 		.activity = getMainControllerDescriptor(),
-		.intValue = 1,
+		.intValue = waterSupplyEvent_switchOn,
 		.strValue = "Start water supply",
 	}, sizeof(WaterSupplyMessage), messagePriority_medium);
 

@@ -28,8 +28,8 @@ static struct MainParameters {
 	{ "cupFillLevel", 200 },			// 0; [ml]
 	{ "coffeePowderAmountPerCup", 30 },	// 1; [mg]
 	{ "milkAmountPerCup", 10 },			// 2; [%]
-	{ "waterBrewTemperatur", 90 },		// 3; [°C]
-	{ "milkCoolingTemperatur", 5 },		// 4; [°C]
+	{ "waterBrewTemperature", 90 },		// 3; [°C]
+	{ "milkCoolingTemperature", 5 },	// 4; [°C]
 };
 static int mainParametersCount = 5;
 static pthread_mutex_t mainParametersLock = PTHREAD_MUTEX_INITIALIZER;

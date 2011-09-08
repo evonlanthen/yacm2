@@ -20,4 +20,16 @@ typedef struct {
 
 extern ActivityDescriptor getWaterSupplyDescriptor(void);
 
+/**
+ * Represents a water supply event
+ */
+typedef enum {
+	waterSupplyEvent_switchOn,
+	waterSupplyEvent_switchOff,
+	waterSupplyEvent_initialized,
+	waterSupplyEvent_startSupplying,
+	waterSupplyEvent_supplyingFinished,
+	waterSupplyEvent_reconfigure,
+} WaterSupplyEvent;
+
 #endif /* WATERSUPPLY_H_ */

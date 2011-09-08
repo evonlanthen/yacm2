@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 	logInfo("[init] Setting up subsystems...");
 	setUpSyslog();
 	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor(), messageQueue_blocking);
-	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), messageQueue_nonBlocking);
+	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), messageQueue_blocking);
 	Activity *milkSupply = createActivity(getMilkSupplyDescriptor(), messageQueue_blocking);
 	Activity *userInterface = createActivity(getUserInterfaceDescriptor(), messageQueue_blocking);
 	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor(), messageQueue_blocking);
