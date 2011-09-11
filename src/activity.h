@@ -11,9 +11,9 @@
 #ifndef ACTIVITY_H_
 #define ACTIVITY_H_
 
+#include <sys/stat.h>
 #include <pthread.h>
 #include <mqueue.h>
-#include <sys/stat.h>
 
 #define MESSAGE_SELECTOR_BEGIN \
 	if (0) {
@@ -28,7 +28,7 @@ typedef void (*ActivityRun)(void *activity);
 
 typedef struct {
 	unsigned int id;
-	char name[30];
+	char name[32];
 	ActivityRun setUp;
 	ActivityRun run;
 	ActivityRun tearDown;
@@ -55,8 +55,8 @@ typedef enum {
 Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode messageQueueMode);
 void destroyActivity(Activity *activity);
 
-void waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
-long receiveMessage(void *_activity, char *buffer, unsigned long length);
-void sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
+int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
+int receiveMessage(void *_activity, char *buffer, unsigned long length);
+int sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
 
 #endif /* ACTIVITY_H_ */

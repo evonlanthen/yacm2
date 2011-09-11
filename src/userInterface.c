@@ -51,25 +51,36 @@ static void runUserInterface(void *activity) {
 	logInfo("[userInterface] Running...");
 
 	while (TRUE) {
-		waitForEvent(activity, (char *)&incomingMessage, sizeof(incomingMessage), 100);
+		int result = waitForEvent(activity, (char *)&incomingMessage, sizeof(incomingMessage), 3000);
+		if (result < 0) {
+			sleep(10);
+			continue;
+		}
 
-		MESSAGE_SELECTOR_BEGIN
-		MESSAGE_SELECTOR(incomingMessage, mainController)
-			logInfo("[userInterface] Send message to display...");
-			sendMessage(getDisplayDescriptor(), (char *)&(DisplayMessage) {
-				.activity = getUserInterfaceDescriptor(),
-				.intValue = 2,
-				.strValue = "Show view 2",
-			}, sizeof(DisplayMessage), messagePriority_medium);
-		MESSAGE_SELECTOR(incomingMessage, display)
-			logInfo("[userInterface] Send message to mainController (%d, %s)...", incomingMessage.intValue, incomingMessage.strValue);
-			mainControllerMessage.intValue = incomingMessage.intValue;
-			strcpy(mainControllerMessage.strValue, incomingMessage.strValue);
-			sendMessage(getMainControllerDescriptor(),
-				(char *)&mainControllerMessage,
-				sizeof(mainControllerMessage),
-				messagePriority_medium);
-		MESSAGE_SELECTOR_END
+		// Check if there is an incoming message
+		if (result > 0) {
+			// Process incoming message
+			MESSAGE_SELECTOR_BEGIN
+			MESSAGE_SELECTOR(incomingMessage, mainController)
+				logInfo("[userInterface] Send message to display...");
+				sendMessage(getDisplayDescriptor(), (char *)&(DisplayMessage) {
+					.activity = getUserInterfaceDescriptor(),
+					.intValue = 2,
+					.strValue = "Show view 2",
+				}, sizeof(DisplayMessage), messagePriority_medium);
+			MESSAGE_SELECTOR(incomingMessage, display)
+				logInfo("[userInterface] Send message to mainController (%d, %s)...", incomingMessage.intValue, incomingMessage.strValue);
+				mainControllerMessage.intValue = incomingMessage.intValue;
+				strcpy(mainControllerMessage.strValue, incomingMessage.strValue);
+				sendMessage(getMainControllerDescriptor(),
+					(char *)&mainControllerMessage,
+					sizeof(mainControllerMessage),
+					messagePriority_medium);
+			MESSAGE_SELECTOR_END
+		}
+
+		// Perform heartbeat tasks
+		//...
 	}
 }
 
