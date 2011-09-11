@@ -1,8 +1,8 @@
 ifneq ($(KERNELRELEASE),)
-obj-m := hello.o
+obj-m := hello.o stroboscope.o
 
 else
-KDIR ?= /lib/modules/$(shell uname -r)/build
+KDIR ?= /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME 
 PWD  := $(shell pwd)
 
 all:

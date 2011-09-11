@@ -446,8 +446,8 @@ static void runMainController(void *activity) {
 	logInfo("[mainController] Message size: %ld", sizeof(CoffeeSupplyMessage));
 	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage){
 		.activity = getMainControllerDescriptor(),
-		.intValue = 123,
-		.strValue = "abc"
+		.intValue = coffeeSupplyEvent_init,
+		.strValue = "Turn on coffee supply"
 		}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
 	logInfo("[mainController] ...done. (send message)");
 
