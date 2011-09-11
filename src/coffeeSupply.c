@@ -20,6 +20,7 @@
 #include "mainController.h"
 #include "coffeeSupply.h"
 #include "activity.h"
+#include "stateMachineEngine.h"
 
 static void setUpCoffeeSupply(void *activity);
 static void runCoffeeSupply(void *activity);
@@ -33,10 +34,17 @@ static void tearDownFillStateMonitor(void *activity);
 static void setUpMotorController(void *activity);
 static void runMotorController(void *activity);
 static void tearDownMotorController(void *activity);
+ActivityDescriptor getCoffeePowderDispenser();
+
+static StateMachine coffeeSupplyStateMachine;
+static StateMachine coffeePowderDispenserStateMachine;
+static StateMachine FillStateMonitorStateMachine;
+static StateMachine MotorControllerStateMachine;
 
 static Activity *coffeePowderDispenser;
 static Activity *fillStateMonitor;
 static Activity *motorController;
+static Activity *coffeeSupply;
 
 static ActivityDescriptor coffeeSupplyDescriptor = {
 	.name = "coffeeSupply",
@@ -66,6 +74,195 @@ static ActivityDescriptor motorControllerDescriptor = {
 	.tearDown = tearDownMotorController
 };
 
+/*
+ ***************************************************************************
+ * States coffeeSupply
+ ***************************************************************************
+ */
+
+// off:
+// initializing:
+// idle: bereit;
+// supplying;
+/**
+ * Represents a coffee supply state
+ */
+typedef enum {
+	coffeeSupplyState_switchedOff,
+	coffeeSupplyState_initializing,
+	coffeeSupplyState_idle,
+	coffeeSupplyState_supplying
+} CoffeeSupplyState;
+
+/*
+ ***************************************************************************
+ * switchedOff state
+ ***************************************************************************
+ */
+
+static void coffeeSupplySwitchedOffStateEntryAction() {
+	logInfo("[coffeeSupply] Entered SwitchedOff State...");
+}
+
+static Event coffeeSupplySwitchedOffStateDoAction() {
+	logInfo("[coffeeSupply] Going to receive message...");
+	CoffeeSupplyMessage message;
+	unsigned long messageLength = receiveMessage(coffeeSupply, (char *)&message, sizeof(message));
+	if (messageLength > 0) {
+		logInfo("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s",
+				message.activity.name, messageLength, message.intValue, message.strValue);
+		return message.intValue;
+	}
+	return NO_EVENT;
+}
+
+static State coffeeSupplySwitchedOffState = {
+	.stateIndex = coffeeSupplyState_switchedOff,
+	.entryAction = coffeeSupplySwitchedOffStateEntryAction,
+	.doAction = coffeeSupplySwitchedOffStateDoAction
+};
+
+/*
+ ***************************************************************************
+ * initializing state
+ ***************************************************************************
+ */
+
+static void coffeeSupplyInitializingStateEntryAction() {
+	logInfo("[coffeeSupply] Send message to coffeePowderDispenser...");
+	sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
+			.activity = getCoffeeSupplyDescriptor(),
+			.intValue = 123,
+			.strValue = "abc"
+			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
+	logInfo("[coffeeSupply] ...done. (send message)");
+}
+
+static void coffeeSupplyInitializingStateDoAction() {
+	;
+}
+
+static State coffeeSupplyInitializingState = {
+	.stateIndex = coffeeSupplyState_initializing,
+	.entryAction = coffeeSupplyInitializingStateEntryAction,
+	.doAction = coffeeSupplyInitializingStateDoAction
+};
+
+/*
+ ***************************************************************************
+ * idle state
+ ***************************************************************************
+ */
+
+static void coffeeSupplyIdleStateEntryAction() {
+	;
+}
+
+static Event coffeeSupplyIdleStateDoAction() {
+	CoffeeSupplyMessage incomingMessage;
+	unsigned long incomingMessageLength;
+	logInfo("[coffeeSupply] IdleState: Going to receive message...");
+	incomingMessageLength = receiveMessage(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage));
+	if (incomingMessageLength > 0) {
+		logInfo("[coffeeSupply] IdleState: Message received from %s (length: %d): value: %d, message: %s",
+				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
+		return incomingMessage.intValue;
+	}
+	return NO_EVENT;
+}
+
+static State coffeeSupplyIdleState = {
+	.stateIndex = coffeeSupplyState_idle,
+	.entryAction = coffeeSupplyIdleStateEntryAction,
+	.doAction = coffeeSupplyIdleStateDoAction
+};
+
+/*
+ ***************************************************************************
+ * supplying state
+ ***************************************************************************
+ */
+
+static void coffeeSupplySupplyingStateEntryAction() {
+	// notifiy mainController:
+	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+		.activity = getCoffeeSupplyDescriptor(),
+		.intValue = 1,
+		.strValue = "coffee powder supplying started",
+	}, sizeof(MainControllerMessage), messagePriority_low);
+}
+
+static Event coffeeSupplySupplyingStateDoAction() {
+	unsigned long incomingMessageLength;
+	CoffeeSupplyMessage incomingMessage;
+	logInfo("[coffeeSupply] Going to receive message...");
+	incomingMessageLength = receiveMessage(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage));
+	if (incomingMessageLength > 0) {
+		logInfo("[coffeeSupply] SupplyState: Message received from %s (length: %d): value: %d, message: %s",
+				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
+		return incomingMessage.intValue;
+	}
+	return NO_EVENT;
+}
+
+static void coffeeSupplySupplyingStateExitAction() {
+
+	// notifiy mainController:
+	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+		.activity = getCoffeeSupplyDescriptor(),
+		.intValue = 1,
+		.strValue = "coffee powder supplying finished",
+	}, sizeof(MainControllerMessage), messagePriority_high);
+}
+
+static State coffeeSupplySupplyingState = {
+	.stateIndex = coffeeSupplyState_supplying,
+	.entryAction = coffeeSupplySupplyingStateEntryAction,
+	.doAction = coffeeSupplySupplyingStateDoAction,
+	.exitAction = coffeeSupplySupplyingStateExitAction
+};
+
+/*
+ ***************************************************************************
+ * State transitions
+ ***************************************************************************
+ */
+
+static StateMachine coffeeSupplyStateMachine = {
+	.numberOfEvents = 6,
+	.initialState = &coffeeSupplySwitchedOffState,
+	.transitions = {
+		/* coffeeSupplyState_switchedOff: */
+			/* coffeeSupplyEvent_init: */ &coffeeSupplyInitializingState,
+			/* coffeeSupplyEvent_switchOff: */ NULL,
+			/* coffeeSupplyEvent_initialized: */ NULL,
+			/* coffeeSupplyEvent_startSupplying: */ NULL,
+			/* coffeeSupplyEvent_supplyingFinished: */ NULL,
+			/* coffeeSupplyEvent_stop: */ NULL,
+		/* coffeeSupplyState_initializing: */
+			/* coffeeSupplyEvent_init: */ NULL,
+			/* coffeeSupplyEvent_switchOff: */ &coffeeSupplySwitchedOffState,
+			/* coffeeSupplyEvent_initialized: */ &coffeeSupplyIdleState,
+			/* coffeeSupplyEvent_startSupplying: */ NULL,
+			/* coffeeSupplyEvent_supplyingFinished: */ NULL,
+			/* coffeeSupplyEvent_stop: */ NULL,
+		/* coffeeSupplyState_idle: */
+			/* coffeeSupplyEvent_init: */ &coffeeSupplyInitializingState,
+			/* coffeeSupplyEvent_switchOff: */ &coffeeSupplySwitchedOffState,
+			/* coffeeSupplyEvent_initialized: */ NULL,
+			/* coffeeSupplyEvent_startSupplying: */ &coffeeSupplySupplyingState,
+			/* coffeeSupplyEvent_supplyingFinished: */ NULL,
+			/* coffeeSupplyEvent_stop: */ NULL,
+		/* coffeeSupplyState_supplying: */
+			/* coffeeSupplyEvent_init: */ NULL,
+			/* coffeeSupplyEvent_switchOff: */ &coffeeSupplySwitchedOffState,
+			/* coffeeSupplyEvent_initialized: */ NULL,
+			/* coffeeSupplyEvent_startSupplying: */ NULL,
+			/* coffeeSupplyEvent_supplyingFinished: */ &coffeeSupplyIdleState,
+			/* coffeeSupplyEvent_stop: */ &coffeeSupplyIdleState
+		}
+};
+
 ActivityDescriptor getCoffeeSupplyDescriptor() {
 	return coffeeSupplyDescriptor;
 }
@@ -82,27 +279,19 @@ ActivityDescriptor getMotorController() {
 	return motorControllerDescriptor;
 }
 
-static void setUpCoffeeSupply(void *activity) {
+static void setUpCoffeeSupply(void *activityarg) {
 	logInfo("[coffeeSupply] Setting up...");
 	coffeePowderDispenser = createActivity(getCoffeePowderDispenser(), messageQueue_blocking);
 }
 
-static void runCoffeeSupply(void *activity) {
+static void runCoffeeSupply(void *activityarg) {
 	logInfo("[coffeeSupply] Running...");
+	coffeeSupply = activityarg;
+	setUpStateMachine(&coffeeSupplyStateMachine);
 
 	while (TRUE) {
-		logInfo("[coffeeSupply] Going to receive message...");
-		CoffeeSupplyMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		logInfo("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s",
-				message.activity.name, messageLength, message.intValue, message.strValue);
-		logInfo("[coffeeSupply] Send message to coffeePowderDispenser...");
-		sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
-				.activity = getCoffeeSupplyDescriptor(),
-				.intValue = 123,
-				.strValue = "abc"
-				}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
-		logInfo("[coffeeSupply] ...done. (send message)");
+		// Run state machine
+		runStateMachine(&coffeeSupplyStateMachine);
 	}
 }
 

@@ -39,4 +39,17 @@ typedef struct {
 
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
 
+/**
+ * Represents a coffeeSupply event
+ */
+typedef enum {
+	coffeeSupplyEvent_init,
+	coffeeSupplyEvent_switchOff,
+	coffeeSupplyEvent_initialized,
+	coffeeSupplyEvent_startSupplying,
+	coffeeSupplyEvent_supplyingFinished,
+	coffeeSupplyEvent_stop,
+} CoffeeSupplyEvent;
+
+
 #endif /* COFFEESUPPLY_H_ */

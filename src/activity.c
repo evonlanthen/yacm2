@@ -124,7 +124,11 @@ long receiveMessage(void *_activity, char *buffer, unsigned long length) {
 	Activity *activity = (Activity *)_activity;
 
 	char receiveBuffer[MSG_MAX_SIZE+1];
-	ssize_t n;
+	ssize_t n = 0;
+	if (!activity) {
+		logErr("[activity.c] null pointer at receiveMessage");
+		return n;
+	}
 	if ((n = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
 		if (activity->messageQueueMode != messageQueue_nonBlocking) {
 			logErr("%s: Error receiving message, %s", activity->descriptor->name, strerror(errno));
