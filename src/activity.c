@@ -169,21 +169,17 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 }
 
 int receiveMessage(void *_activity, char *buffer, unsigned long length) {
+	if (!_activity) {
+		logErr("["__FILE__"] null pointer at receiveMessage(_activity, ...)");
+
+		return -EFAULT;
+	}
+
 	Activity *activity = (Activity *)_activity;
 
-<<<<<<< HEAD
 	char receiveBuffer[MAX_MESSAGE_LENGTH + 1];
 	ssize_t messageLength;
 	if ((messageLength = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
-=======
-	char receiveBuffer[MSG_MAX_SIZE+1];
-	ssize_t n = 0;
-	if (!activity) {
-		logErr("[activity.c] null pointer at receiveMessage");
-		return n;
-	}
-	if ((n = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
->>>>>>> 997fe27c7a8e8c7f9782acb78ab07cd07224dc00
 		if (activity->messageQueueMode != messageQueue_nonBlocking) {
 			logErr("[%s] Error receiving message: %s", activity->descriptor->name, strerror(errno));
 		}
