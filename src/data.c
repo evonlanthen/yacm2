@@ -8,8 +8,14 @@
 
 #include <string.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "data.h"
 
+/**
+ *******************************************************************************
+ * Operation parameters
+ *******************************************************************************
+ */
 static struct OperationParameters {
 	char *key;
 	int value;
@@ -21,6 +27,11 @@ static struct OperationParameters {
 static int operationParametersCount = 3;
 static pthread_mutex_t operationParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ *******************************************************************************
+ * Main parameters
+ *******************************************************************************
+ */
 static struct MainParameters {
 	char *key;
 	int value;
@@ -34,16 +45,17 @@ static struct MainParameters {
 static int mainParametersCount = 5;
 static pthread_mutex_t mainParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ *******************************************************************************
+ * Operation data
+ *******************************************************************************
+ */
+
 typedef struct {
 	int numberOfProducts;
 	MachineState machineState;
 	// TODO
 } OperationData;
-
-typedef struct {
-	unsigned long timestamp;
-	int event;
-} StatisticEntry;
 
 static OperationData operationData = {
 	.numberOfProducts = 3,
@@ -51,8 +63,26 @@ static OperationData operationData = {
 };
 static pthread_mutex_t operationDataLock = PTHREAD_MUTEX_INITIALIZER;
 
-static StatisticEntry statistic[1000];
-static pthread_mutex_t statisticsLock = PTHREAD_MUTEX_INITIALIZER;
+/**
+ *******************************************************************************
+ * Statistic
+ *******************************************************************************
+ */
+
+#define STATISTIC_MAX_ENTRIES 1000
+typedef struct {
+	unsigned long timestamp;
+	int event;
+} StatisticEntry;
+static StatisticEntry statistic[STATISTIC_MAX_ENTRIES];
+static int statisticCount = 0;
+static pthread_mutex_t statisticLock = PTHREAD_MUTEX_INITIALIZER;
+
+/**
+ *******************************************************************************
+ * Access functions
+ *******************************************************************************
+ */
 
 void setUpData() {
 	// TODO Read parameters from file
@@ -115,7 +145,7 @@ int getMainParameter(char *name) {
 		}
 	}
 	pthread_mutex_unlock(&mainParametersLock);
-	return 0;
+	return value;
 }
 
 int getNumberOfProducts() {
@@ -134,17 +164,24 @@ void setMachineState(MachineState state) {
 }
 
 MachineState getMachineState() {
+	int state = -1;
 	// Critical section
 	pthread_mutex_lock(&operationDataLock);
-	int state = operationData.machineState;
+	state = operationData.machineState;
 	pthread_mutex_unlock(&operationDataLock);
 	return state;
 }
 
 void addStatisticEntry(int event) {
-	// TODO
+	struct timeval timeValue;
 	// Critical section
-	pthread_mutex_lock(&statisticsLock);
-	pthread_mutex_unlock(&statisticsLock);
+	pthread_mutex_lock(&statisticLock);
+	// get time in seconds:
+	gettimeofday(&timeValue, NULL);
+	// add entry:
+	statistic[statisticCount].timestamp = timeValue.tv_sec;
+	statistic[statisticCount].event = event;
+	statisticCount++;
+	pthread_mutex_unlock(&statisticLock);
 }
 
