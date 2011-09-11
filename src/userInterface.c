@@ -44,7 +44,7 @@ static void setUpUserInterface(void *activity) {
 
 static void runUserInterface(void *activity) {
 	UserInterfaceMessage incomingMessage;
-	int incomingMessageLength;
+	//int incomingMessageLength;
 	MainControllerMessage mainControllerMessage;
 	mainControllerMessage.activity = getUserInterfaceDescriptor();
 
