@@ -12,6 +12,10 @@
 #include <mqueue.h>
 #include "activity.h"
 
+#define SUPPLY_WATER_COMMAND 3001
+#define WATER_AVAILABLE_NOTIFICATION 3301
+#define NO_WATER_AVAILABLE_ERROR 3401
+
 typedef struct {
 	ActivityDescriptor activity;
 	int intValue;

@@ -6,6 +6,7 @@
  * @date    Aug 15, 2011
  */
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -39,4 +39,11 @@
  */
 #define EOF (-1)
 
+#define INIT_COMMAND 1
+#define OFF_COMMAND 2
+#define ABORT_COMMAND 3
+#define OK_RESULT 101
+#define NOK_RESULT 201
+
+
 #endif /* DEFINES_H_ */
