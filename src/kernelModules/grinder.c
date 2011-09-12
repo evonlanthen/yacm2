@@ -98,7 +98,7 @@ static struct file_operations grinderFileOperations = {
 
 static struct miscdevice grinderDevice = {
         .minor   = MISC_DYNAMIC_MINOR,
-        .name    = "grinder",
+        .name    = "coffeeGrinderMotor",
         .fops    = &grinderFileOperations,
         .mode    = 00666
 };
