@@ -103,6 +103,13 @@ static struct miscdevice grinderDevice = {
         .mode    = 00666
 };
 
+static struct miscdevice grinderSPIDevice = {
+        .minor   = MISC_DYNAMIC_MINOR,
+        .name    = "coffeeGrinderSPI",
+        .fops    = &grinderFileOperations,
+        .mode    = 00666
+};
+
 /**
  *******************************************************************************
  * Helper functions
@@ -163,10 +170,22 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 	}
 	value = simple_strtol(data, NULL, 0);
 	kfree(data);
-	printk("grinderWrite: pwm3 value is '%d'\n", value);
-	/* set speed: */
-	if (value >= 0 && value < 100) {
-		PWMDCR3 = value;
+	if (strcmp(filePointer->f_path.dentry->d_name.name, "coffeeGrinderSPI") == 0) {
+		/* set flash duration: */
+		if (value >= 0 && value < 256) {
+			printk(KERN_INFO "grinderWrite: setting spi value to %d\n", value);
+			SSDR_P1 = value;
+		} else {
+			printk(KERN_WARNING "grinderWrite: spi value %d is invalid\n", value);
+		}
+	} else {
+		/* set speed: */
+		if (value >= 0 && value < 100) {
+			printk(KERN_INFO "grinderWrite: setting pwm3 value to %d\n", value);
+			PWMDCR3 = value;
+		} else {
+			printk(KERN_WARNING "grinderWrite: pwm3 value %d is invalid\n", value);
+		}
 	}
 
 	result = length;
@@ -189,17 +208,24 @@ int __init grinderInit(void) {
 	int result = 0, error;
 	unsigned long flags = 0;
 
-	/* craete device /dev/grinder: */
+	/* craete device /dev/coffeeGrinderMotor: */
 	if ((result = misc_register(&grinderDevice))) {
-		printk(KERN_WARNING "grinderInit: error registering device!\n");
+		printk(KERN_WARNING "grinderInit: error registering grinder motor device!\n");
 		goto out;
+	}
+
+	/* craete device /dev/coffeeGrinderSPI: */
+	if ((result = misc_register(&grinderSPIDevice))) {
+		printk(KERN_WARNING "grinderInit: error registering grinder SPI device!\n");
+		goto err_spi;
 	}
 
 	/* request gpios: */
 	error = gpio_request_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
 	if (error) {
+		printk(KERN_WARNING "grinderInit: error requesting gpio array!\n");
 	    result = error;
-	    goto err;
+	    goto err_gpio;
 	}
 
 	/* set alternate functions: */
@@ -238,14 +264,17 @@ int __init grinderInit(void) {
 			(void *)0);
 	if (error) {
 		result = error;
-		goto err;
+		goto err_gpio;
 	}
 
 	printk(KERN_INFO "grinderInit: device successfully registered!\n");
 	goto out;
 
-	err:
+	err_gpio:
 	  gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
+
+	err_spi:
+	  misc_deregister(&grinderDevice);
 
 	out:
 	  return result;
@@ -254,6 +283,7 @@ int __init grinderInit(void) {
 void __exit grinderExit(void) {
 	free_irq(gpio_to_irq(GPIO_INDEX), (void *)0);
 	gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
+	misc_deregister(&grinderSPIDevice);
 	misc_deregister(&grinderDevice);
 	printk(KERN_INFO "grinderExit: device unregistered!\n");
 }
