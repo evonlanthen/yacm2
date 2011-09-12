@@ -21,6 +21,11 @@
 #include "mainController.h"
 #include "waterSupply.h"
 
+typedef enum {
+	supplyResult_ok,
+	supplyResult_nok
+} SupplyResult;
+
 static void setUpWaterSupply(void *activity);
 static void runWaterSupply(void *activity);
 static void tearDownWaterSupply(void *activity);
@@ -32,19 +37,12 @@ static ActivityDescriptor waterSupply = {
 	.tearDown = tearDownWaterSupply
 };
 
-typedef enum {
-	deviceState_off = 0,
-	deviceState_on
-} DeviceState;
-
 static Activity *this;
 
 static StateMachine waterSupplyStateMachine;
 static int waterBrewTemperature = 0;
 //WaterSupplyMessage incomingMessage;
 //int incomingMessageLength;
-
-TIMER supplyingTimer;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -59,19 +57,22 @@ static int hasWater() {
 }
 
 static int hasFlow() {
-	return readNonBlockingDevice("./dev/waterFlowSensor");
+	if (readNonBlockingDevice("./dev/waterFlowSensor") > 0) {
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
-static int hasTemp() {
-	int curTemp = readNonBlockingDevice("./dev/waterTemperatureSensor");
-	return (curTemp >= waterBrewTemperature) ? TRUE : FALSE;
+static int getTemperature() {
+	return readNonBlockingDevice("./dev/waterTemperatureSensor");
 }
 
 static int lastHasWaterState = FALSE;
 static int checkWater() {
 	int hasWaterState = hasWater();
 	if (hasWaterState != lastHasWaterState) {
-		hasWaterState = lastHasWaterState;
+		lastHasWaterState = hasWaterState;
 
 		if (hasWaterState) {
 			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
@@ -89,6 +90,7 @@ static int checkWater() {
 	return hasWaterState;
 }
 
+/*
 static int checkSensors() {
 	if (hasWater() && hasFlow() && hasTemp()) {
 		return TRUE;
@@ -96,6 +98,7 @@ static int checkSensors() {
 		return FALSE;
 	}
 }
+*/
 
 static void controlPump(DeviceState state) {
 	switch(state) {
@@ -217,6 +220,10 @@ static State idleState = {
  ***************************************************************************
  */
 
+static int isSupplyInitialized;
+static SupplyResult supplyResult;
+static TIMER supplyInitializingTimer;
+static TIMER supplyingTimer;
 static void supplyingStateEntryAction() {
 	// set state to supplying:
 	//setMachineState(waterSupplyState_supplying);
@@ -246,11 +253,15 @@ static void supplyingStateEntryAction() {
 	}
 	*/
 
+	isSupplyInitialized = FALSE;
+	supplyResult = supplyResult_nok;
+
 	// Start pump and heater
 	controlPump(deviceState_on);
 	controlHeater(deviceState_on);
 
-	setUp(supplyingTimer, 3000);
+	supplyingTimer = setUpTimer(10000);
+	supplyInitializingTimer = setUpTimer(1000);
 }
 
 static Event supplyingStateDoAction() {
@@ -263,16 +274,31 @@ static Event supplyingStateDoAction() {
 		return incomingMessage.intValue;
 	}
 	*/
+
+	if (isTimerElapsed(supplyInitializingTimer)) {
+		supplyInitializingTimer = NULL;
+
+		isSupplyInitialized = TRUE;
+	}
+
+	// Check water
 	if (!checkWater()) {
 		return waterSupplyEvent_supplyingFinished;
 	}
 
-	//TODO Check flow and temperature
-
-	if (isTimerElapsed(supplyingTimer)) {
+	if (isSupplyInitialized
+			// Check flow and temperature
+			&& (!hasFlow() || getTemperature() < waterBrewTemperature)) {
 		return waterSupplyEvent_supplyingFinished;
 	}
 
+	if (isTimerElapsed(supplyingTimer)) {
+		supplyingTimer = NULL;
+
+		supplyResult = supplyResult_ok;
+
+		return waterSupplyEvent_supplyingFinished;
+	}
 
 	/*
 	if (!checkSensors()) {
@@ -296,14 +322,20 @@ static Event supplyingStateDoAction() {
 }
 
 static void supplyingStateExitAction() {
+	if (supplyInitializingTimer) {
+		abortTimer(supplyInitializingTimer);
+	}
+	if (supplyingTimer) {
+		abortTimer(supplyingTimer);
+	}
+
 	// Stop pump and heater
 	controlPump(deviceState_off);
 	controlHeater(deviceState_off);
 
-	// notifiy mainController:
 	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
 		.activity = *this->descriptor,
-		.intValue = OK_RESULT,
+		.intValue = (supplyResult == supplyResult_ok ? OK_RESULT : NOK_RESULT),
 		.strValue = "water supplying finished",
 	}, sizeof(MainControllerMessage), messagePriority_high);
 }
@@ -356,11 +388,6 @@ static StateMachine waterSupplyStateMachine = {
 		}
 };
 
-
-
-
-
-
 static void setUpWaterSupply(void *activity) {
 	logInfo("[waterSupply] Setting up...");
 
@@ -371,10 +398,14 @@ static void runWaterSupply(void *activity) {
 	logInfo("[waterSupply] Running...");
 
 	while(TRUE) {
+		// Wait for incoming message or time event
 		WaterSupplyMessage incomingMessage;
-		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 100);
+		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 1000);
 		if (result < 0) {
+			//TODO Implement apropriate error handling
 			sleep(10);
+
+			// Try to recover from error
 			continue;
 		}
 
