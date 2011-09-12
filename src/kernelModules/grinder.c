@@ -29,6 +29,9 @@ MODULE_DESCRIPTION("Grinder controlling device");
  *******************************************************************************
  */
 
+//#define TASKLET
+//#define KTHREAD
+
 /* No header files available for PWM registers: */
 #define PWMCR3		__REG(0x40C00010)	/* PWM control register 3 */
 #define PWMDCR3		__REG(0x40C00014)	/* PWM duty cycle register 3 [0-99] */
@@ -90,25 +93,33 @@ int grinderRelease(struct inode *inode, struct file *file);
 ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset);
 
 static struct file_operations grinderFileOperations = {
-        .owner   = THIS_MODULE,
-        .open    = grinderOpen,
-        .write   = grinderWrite,
-        .release = grinderRelease,
+	.owner   = THIS_MODULE,
+	.open    = grinderOpen,
+	.write   = grinderWrite,
+	.release = grinderRelease,
 };
 
 static struct miscdevice grinderDevice = {
-        .minor   = MISC_DYNAMIC_MINOR,
-        .name    = "coffeeGrinderMotor",
-        .fops    = &grinderFileOperations,
-        .mode    = 00666
+	.minor   = MISC_DYNAMIC_MINOR,
+	.name    = "coffeeGrinderMotor",
+	.fops    = &grinderFileOperations,
+	.mode    = 00666
 };
 
 static struct miscdevice grinderSPIDevice = {
-        .minor   = MISC_DYNAMIC_MINOR,
-        .name    = "coffeeGrinderSPI",
-        .fops    = &grinderFileOperations,
-        .mode    = 00666
+	.minor   = MISC_DYNAMIC_MINOR,
+	.name    = "coffeeGrinderSPI",
+	.fops    = &grinderFileOperations,
+	.mode    = 00666
 };
+
+#ifdef TASKLET
+static void taskletHandler(unsigned long data);
+static struct tasklet_struct grinderTasklet = {
+	.func = taskletHandler,
+	.data = 0
+};
+#endif
 
 /**
  *******************************************************************************
@@ -145,11 +156,33 @@ void __init gpio_fn_set(int gpio, int mode) {
  */
 
 static irqreturn_t interruptHandler(int irq, void *deviceId) {
-	//printk(KERN_INFO "grinder InterruptHandler\n");
+	//printk(KERN_INFO "grinder interrupt handler\n");
+#ifdef KTHREAD
+	return IRQ_WAKE_THREAD;
+#elif defined(TASKLET)
+	tasklet_schedule(&grinderTasklet);
+	return IRQ_HANDLED;
+#else
+	gpio_set_value(GPIO_TRIGGER, HIGH);
+	gpio_set_value(GPIO_TRIGGER, LOW);
+	return IRQ_HANDLED;
+#endif
+}
+
+#ifdef KTHREAD
+static irqreturn_t interruptThread(int irq, void *dev_id) {
+	//printk(KERN_INFO "grinder thread handler\n");
 	gpio_set_value(GPIO_TRIGGER, HIGH);
 	gpio_set_value(GPIO_TRIGGER, LOW);
 	return IRQ_HANDLED;
 }
+#elif defined(TASKLET)
+static void taskletHandler(unsigned long data) {
+	//printk(KERN_INFO "grinder tasklet handler\n");
+	gpio_set_value(GPIO_TRIGGER, HIGH);
+	gpio_set_value(GPIO_TRIGGER, LOW);
+}
+#endif
 
 ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset) {
 	ssize_t result = 0;
@@ -257,15 +290,28 @@ int __init grinderInit(void) {
 	  
 	local_irq_restore(flags);
 
+#ifdef KTHREAD
+    error = request_threaded_irq(gpio_to_irq(GPIO_INDEX),
+    		interruptHandler,
+    		interruptThread,
+    		IRQF_TRIGGER_RISING,
+    		"INDEX",
+			(void *)0);
+#else
 	error = request_irq(gpio_to_irq(GPIO_INDEX),
 			interruptHandler,
 			IRQF_TRIGGER_RISING,
 			"INDEX",
 			(void *)0);
+#endif
 	if (error) {
 		result = error;
 		goto err_gpio;
 	}
+
+#ifdef TASKLET
+	tasklet_init(&grinderTasklet, taskletHandler, 0);
+#endif
 
 	printk(KERN_INFO "grinderInit: device successfully registered!\n");
 	goto out;
@@ -281,6 +327,9 @@ int __init grinderInit(void) {
 }
 
 void __exit grinderExit(void) {
+#ifdef TASKLET
+	tasklet_kill(&grinderTasklet);
+#endif
 	free_irq(gpio_to_irq(GPIO_INDEX), (void *)0);
 	gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
 	misc_deregister(&grinderSPIDevice);
