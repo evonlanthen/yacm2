@@ -436,6 +436,29 @@ static void setUpMainController(void *activity) {
 }
 
 static void runMainController(void *activity) {
+	logInfo("[mainController] Running...");
+
+	// Water supply test
+	/*
+	sleep(1);
+
+	logInfo("Going to switch on water supply...");
+	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+		.activity = getMainControllerDescriptor(),
+		.intValue = INIT_COMMAND
+	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+
+	sleep(1);
+
+	logInfo("Going to supply water...");
+	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+		.activity = getMainControllerDescriptor(),
+		.intValue = SUPPLY_WATER_COMMAND
+	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+
+	while (TRUE);
+	*/
+
 	MainControllerMessage message;
 	unsigned long messageLength;
 	logInfo("[mainController] Running...");

@@ -8,6 +8,7 @@
  */
 
 #include "defines.h"
+#include "syslog.h"
 #include "stateMachineEngine.h"
 
 static Event activateState(StateMachine *stateMachine, State *nextState);
@@ -76,7 +77,11 @@ void processStateMachineEvent(StateMachine *stateMachine, Event event) {
 			if (event != NO_EVENT) {
 				processStateMachineEvent(stateMachine, event);
 			}
+		} else {
+			logWarn("[%s state machine] Precondition of state %d is not met!", stateMachine->name, nextState->stateIndex);
 		}
+	} else {
+		logWarn("[%s state machine] Ignoring event %d!", stateMachine->name, event);
 	}
 }
 

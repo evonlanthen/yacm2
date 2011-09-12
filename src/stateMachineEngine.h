@@ -50,6 +50,7 @@ typedef struct {
  * Represents a state machine definition.
  */
 typedef struct {
+	char *name; /**< The state machine's name. */
 	int isInitialized; /**< Is the state machine already initialized? */
 	unsigned int numberOfEvents; /**<  The number of defined events. */
 	State *initialState; /**< Defines the state machine's initial state. */

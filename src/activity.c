@@ -119,7 +119,7 @@ void destroyActivity(Activity *activity) {
 }
 
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout) {
-	logInfo("[%s] Going to wait for an event...", activity->descriptor->name);
+	//logInfo("[%s] Going to wait for an event...", activity->descriptor->name);
 
 	int polling;
 	if ((polling = epoll_create(1)) < 0) {
@@ -151,7 +151,7 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 
 		return -EFAULT;
 	} else if (numberOfFiredEvents == 1) {
-		logInfo("[%s] Message received!", activity->descriptor->name);
+		//logInfo("[%s] Message received!", activity->descriptor->name);
 
 		unsigned long incomingMessageLength = receiveMessage(activity, buffer, length);
 
@@ -166,7 +166,7 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 
 		return incomingMessageLength;
 	} else {
-		logInfo("[%s] Timeout occured!", activity->descriptor->name);
+		//logInfo("[%s] Timeout occured!", activity->descriptor->name);
 
 		return 0;
 	}
