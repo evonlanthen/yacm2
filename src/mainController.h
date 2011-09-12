@@ -12,6 +12,9 @@
 #include <mqueue.h>
 #include "activity.h"
 
+#define WASTE_BIN_FULL_ERROR 1401
+#define WASTE_BIN_CLEAR_NOTIFICATION 1301
+
 typedef struct {
 	ActivityDescriptor activity;
 	int intValue;

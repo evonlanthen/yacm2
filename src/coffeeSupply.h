@@ -12,6 +12,13 @@
 #include <mqueue.h>
 #include "activity.h"
 
+#define BEANS_AVAILABLE_NOTIFICATION 23301
+#define NO_BEANS_AVAILABLE_ERROR 23401
+#define MOTOR_START_COMMAND 22001
+#define MOTOR_STOP_COMMAND 22002
+#define SUPPLY_START_COMMAND 2001
+#define SUPPLY_STOP_COMMAND 2002
+
 typedef struct {
 	ActivityDescriptor activity;
 	int intValue;
