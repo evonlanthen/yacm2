@@ -39,10 +39,8 @@ static ActivityDescriptor waterSupply = {
 
 static Activity *this;
 
-static StateMachine waterSupplyStateMachine;
+static StateMachine stateMachine;
 static int waterBrewTemperature = 0;
-//WaterSupplyMessage incomingMessage;
-//int incomingMessageLength;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -68,9 +66,11 @@ static int getTemperature() {
 	return readNonBlockingDevice("./dev/waterTemperatureSensor");
 }
 
-static int lastHasWaterState = FALSE;
+static int hasWaterState = FALSE;
 static int checkWater() {
-	int hasWaterState = hasWater();
+	static int lastHasWaterState = FALSE;
+
+	hasWaterState = hasWater();
 	if (hasWaterState != lastHasWaterState) {
 		lastHasWaterState = hasWaterState;
 
@@ -90,34 +90,36 @@ static int checkWater() {
 	return hasWaterState;
 }
 
-/*
-static int checkSensors() {
-	if (hasWater() && hasFlow() && hasTemp()) {
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
-*/
-
 static void controlPump(DeviceState state) {
 	switch(state) {
-	case(deviceState_on):
+	case deviceState_on:
 		logInfo("[waterSupply] Water pump started");
+
+		writeNonBlockingDevice("./dev/waterPump", "1", wrm_replace, FALSE);
+
 		break;
-	case(deviceState_off):
+	case deviceState_off:
 		logInfo("[waterSupply] Water pump stopped");
+
+		writeNonBlockingDevice("./dev/waterPump", "0", wrm_replace, FALSE);
+
 		break;
 	}
 }
 
 static void controlHeater(DeviceState state) {
 	switch(state) {
-	case(deviceState_on):
+	case deviceState_on:
 		logInfo("[waterSupply] Water heater started");
+
+		writeNonBlockingDevice("./dev/waterHeater", "1", wrm_replace, FALSE);
+
 		break;
-	case(deviceState_off):
+	case deviceState_off:
 		logInfo("[waterSupply] Water heater stopped");
+
+		writeNonBlockingDevice("./dev/waterHeater", "1", wrm_replace, FALSE);
+
 		break;
 	}
 }
@@ -128,10 +130,6 @@ static void controlHeater(DeviceState state) {
  ***************************************************************************
  */
 
-// off:
-// initializing: betriebsparameter
-// idle: bereit; Wassersensor (bei reinit wieder ins initializing)
-// supplying; alles einschalten (precondition: hasWater)
 /**
  * Represents a water supply state
  */
@@ -144,31 +142,17 @@ typedef enum {
 
 /*
  ***************************************************************************
- * switchedOff state
+ * Switched off state
  ***************************************************************************
  */
 
-/*
-static Event switchedOffStateDoAction() {
-	logInfo("[waterSupply] Going to receive message...");
-	incomingMessageLength = receiveMessage(activity, (char *)&incomingMessage, sizeof(incomingMessage));
-	if (incomingMessageLength > 0) {
-		logInfo("[waterSupply] Message received from %s (length: %d): value: %d, message: %s",
-				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
-		return incomingMessage.intValue;
-	}
-	return NO_EVENT;
-}
-*/
-
 static State switchedOffState = {
 	.stateIndex = waterSupplyState_switchedOff,
-	//.doAction = switchedOffStateDoAction
 };
 
 /*
  ***************************************************************************
- * initializing state
+ * Initializing state
  ***************************************************************************
  */
 
@@ -176,33 +160,23 @@ static void initializingStateEntryAction() {
 	waterBrewTemperature = getMainParameter("waterBrewTemperature");
 }
 
+static Event initializingStateDoAction() {
+	return waterSupplyEvent_initialized;
+}
+
 static State initializingState = {
 	.stateIndex = waterSupplyState_initializing,
-	.entryAction = initializingStateEntryAction
+	.entryAction = initializingStateEntryAction,
+	.doAction = initializingStateDoAction
 };
 
 /*
  ***************************************************************************
- * idle state
+ * Idle state
  ***************************************************************************
  */
 
-/*
-static void idleStateEntryAction() {
-	setMachineState(waterSupplyState_idle);
-}
-*/
-
 static Event idleStateDoAction() {
-	/*
-	logInfo("[waterSupply] Going to receive message...");
-	incomingMessageLength = receiveMessage(activity, (char *)&incomingMessage, sizeof(incomingMessage));
-	if (incomingMessageLength > 0) {
-		logInfo("[waterSupply] Message received from %s (length: %d): value: %d, message: %s",
-				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
-		return incomingMessage.intValue;
-	}
-	*/
 	checkWater();
 
 	return NO_EVENT;
@@ -210,49 +184,24 @@ static Event idleStateDoAction() {
 
 static State idleState = {
 	.stateIndex = waterSupplyState_idle,
-	//.entryAction = idleStateEntryAction,
 	.doAction = idleStateDoAction
 };
 
 /*
  ***************************************************************************
- * supplying state
+ * Supplying state
  ***************************************************************************
  */
+
+static int supplyingStatePrecondition() {
+	return hasWaterState;
+}
 
 static int isSupplyInitialized;
 static SupplyResult supplyResult;
 static TIMER supplyInitializingTimer;
 static TIMER supplyingTimer;
 static void supplyingStateEntryAction() {
-	// set state to supplying:
-	//setMachineState(waterSupplyState_supplying);
-
-	/*
-	if (checkSensors()) {
-		// start pump and heater:
-		controlPump(devState_on);
-		controlHeater(devState_on);
-
-		// notifiy mainController:
-		sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-			.activity = getWaterSupplyDescriptor(),
-			.intValue = 1,
-			.strValue = "water supplying started",
-		}, sizeof(MainControllerMessage), messagePriority_low);
-	} else {
-		// notifiy mainController:
-		sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-			.activity = getWaterSupplyDescriptor(),
-			.intValue = 0,
-			.strValue = "could not start water supplying",
-		}, sizeof(MainControllerMessage), messagePriority_high);
-
-		// go back to idle state:
-		processStateMachineEvent(&waterSupplyStateMachine, waterSupplyEvent_supplyingFinished);
-	}
-	*/
-
 	isSupplyInitialized = FALSE;
 	supplyResult = supplyResult_nok;
 
@@ -265,16 +214,6 @@ static void supplyingStateEntryAction() {
 }
 
 static Event supplyingStateDoAction() {
-	/*
-	logInfo("[waterSupply] Going to receive message...");
-	incomingMessageLength = receiveMessage(activity, (char *)&incomingMessage, sizeof(incomingMessage));
-	if (incomingMessageLength > 0) {
-		logInfo("[waterSupply] Message received from %s (length: %d): value: %d, message: %s",
-				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
-		return incomingMessage.intValue;
-	}
-	*/
-
 	if (isTimerElapsed(supplyInitializingTimer)) {
 		supplyInitializingTimer = NULL;
 
@@ -300,24 +239,6 @@ static Event supplyingStateDoAction() {
 		return waterSupplyEvent_supplyingFinished;
 	}
 
-	/*
-	if (!checkSensors()) {
-		// Stop pump and heater:
-		controlPump(deviceState_off);
-		controlHeater(deviceState_off);
-
-		// notifiy mainController:
-		sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-			.activity = *this->descriptor,
-			.intValue = 0,
-			.strValue = "had to stop water supplying",
-		}, sizeof(MainControllerMessage), messagePriority_high);
-
-		// go back to idle state:
-		return waterSupplyEvent_supplyingFinished;
-	}
-	*/
-
 	return NO_EVENT;
 }
 
@@ -342,6 +263,7 @@ static void supplyingStateExitAction() {
 
 static State supplyingState = {
 	.stateIndex = waterSupplyState_supplying,
+	.precondition = supplyingStatePrecondition,
 	.entryAction = supplyingStateEntryAction,
 	.doAction = supplyingStateDoAction,
 	.exitAction = supplyingStateExitAction
@@ -353,7 +275,8 @@ static State supplyingState = {
  ***************************************************************************
  */
 
-static StateMachine waterSupplyStateMachine = {
+static StateMachine stateMachine = {
+	.name = "waterSupply",
 	.numberOfEvents = 6,
 	.initialState = &switchedOffState,
 	.transitions = {
@@ -392,15 +315,17 @@ static void setUpWaterSupply(void *activity) {
 	logInfo("[waterSupply] Setting up...");
 
 	this = (Activity *)activity;
+
+	setUpStateMachine(&stateMachine);
 }
 
 static void runWaterSupply(void *activity) {
 	logInfo("[waterSupply] Running...");
 
-	while(TRUE) {
+	while (TRUE) {
 		// Wait for incoming message or time event
 		WaterSupplyMessage incomingMessage;
-		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 1000);
+		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
 			//TODO Implement apropriate error handling
 			sleep(10);
@@ -414,29 +339,31 @@ static void runWaterSupply(void *activity) {
 			// Process incoming message
 			switch (incomingMessage.intValue) {
 			case INIT_COMMAND:
-				if (waterSupplyStateMachine.activeState == &switchedOffState) {
-					processStateMachineEvent(&waterSupplyStateMachine, waterSupplyEvent_switchOn);
+				if (stateMachine.activeState == &switchedOffState) {
+					processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOn);
 				} else {
-					processStateMachineEvent(&waterSupplyStateMachine, waterSupplyEvent_reconfigure);
+					processStateMachineEvent(&stateMachine, waterSupplyEvent_reconfigure);
 				}
 
 				break;
 			case OFF_COMMAND:
-				processStateMachineEvent(&waterSupplyStateMachine, waterSupplyEvent_switchOff);
+				processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOff);
 
 				break;
 			case SUPPLY_WATER_COMMAND:
-				processStateMachineEvent(&waterSupplyStateMachine, waterSupplyEvent_startSupplying);
+				processStateMachineEvent(&stateMachine, waterSupplyEvent_startSupplying);
 
 				break;
 			}
 		}
 
 		// Run state machine
-		runStateMachine(&waterSupplyStateMachine);
+		runStateMachine(&stateMachine);
 	}
 }
 
 static void tearDownWaterSupply(void *activity) {
 	logInfo("[waterSupply] Tearing down...");
+
+	abortStateMachine(&stateMachine);
 }
