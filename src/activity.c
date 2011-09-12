@@ -59,6 +59,7 @@ static void * runThread(void *argument) {
 
 	pthread_cleanup_push(activity->descriptor->tearDown, NULL);
 
+	// TODO: @Ronny: why NULL here? :-(
 	activity->descriptor->setUp(NULL);
 
 	activity->descriptor->run(activity);
