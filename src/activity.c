@@ -133,6 +133,8 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 	if (epoll_ctl(polling, EPOLL_CTL_ADD, messageQueueEventDescriptor.data.fd, &messageQueueEventDescriptor) < 0) {
 		logErr("[%s] Error registering message queue event source: %s", activity->descriptor->name, strerror(errno));
 
+		close(polling);
+
 		return -EFAULT;
 	}
 
