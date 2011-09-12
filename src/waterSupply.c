@@ -37,11 +37,14 @@ typedef enum {
 	deviceState_on
 } DeviceState;
 
+static Activity *this;
+
 static StateMachine waterSupplyStateMachine;
 static int waterBrewTemperature = 0;
 //WaterSupplyMessage incomingMessage;
-int incomingMessageLength;
-static Activity *this;
+//int incomingMessageLength;
+
+TIMER supplyingTimer;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -243,8 +246,11 @@ static void supplyingStateEntryAction() {
 	}
 	*/
 
+	// Start pump and heater
 	controlPump(deviceState_on);
 	controlHeater(deviceState_on);
+
+	setUp(supplyingTimer, 3000);
 }
 
 static Event supplyingStateDoAction() {
@@ -261,11 +267,16 @@ static Event supplyingStateDoAction() {
 		return waterSupplyEvent_supplyingFinished;
 	}
 
+	//TODO Check flow and temperature
+
+	if (isTimerElapsed(supplyingTimer)) {
+		return waterSupplyEvent_supplyingFinished;
+	}
 
 
-
+	/*
 	if (!checkSensors()) {
-		// stop pump and heater:
+		// Stop pump and heater:
 		controlPump(deviceState_off);
 		controlHeater(deviceState_off);
 
@@ -279,12 +290,13 @@ static Event supplyingStateDoAction() {
 		// go back to idle state:
 		return waterSupplyEvent_supplyingFinished;
 	}
+	*/
 
 	return NO_EVENT;
 }
 
 static void supplyingStateExitAction() {
-	// stop pump and heater:
+	// Stop pump and heater
 	controlPump(deviceState_off);
 	controlHeater(deviceState_off);
 
