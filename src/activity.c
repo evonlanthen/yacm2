@@ -6,6 +6,7 @@
  * @date    Aug 15, 2011
  */
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +61,7 @@ static void * runThread(void *argument) {
 	pthread_cleanup_push(activity->descriptor->tearDown, NULL);
 
 	// TODO: @Ronny: why NULL here? :-(
-	activity->descriptor->setUp(NULL);
+	activity->descriptor->setUp(activity);
 
 	activity->descriptor->run(activity);
 
@@ -133,6 +134,8 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 	};
 	if (epoll_ctl(polling, EPOLL_CTL_ADD, messageQueueEventDescriptor.data.fd, &messageQueueEventDescriptor) < 0) {
 		logErr("[%s] Error registering message queue event source: %s", activity->descriptor->name, strerror(errno));
+
+		close(polling);
 
 		return -EFAULT;
 	}

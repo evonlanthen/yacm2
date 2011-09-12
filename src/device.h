@@ -10,6 +10,11 @@
 #define DEVICE_H_
 
 typedef enum {
+	deviceState_off = 0,
+	deviceState_on = 1
+} DeviceState;
+
+typedef enum {
 	wrm_replace = 0,
 	wrm_append
 } WriteMode;
