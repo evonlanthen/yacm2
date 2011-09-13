@@ -16,6 +16,7 @@
 #include <linux/uaccess.h>
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
+#include <linux/mutex.h>
 #include <mach/pxa2xx-regs.h>
 //#include <mach/regs-ssp.h> // not available anymore
 
@@ -121,6 +122,8 @@ static struct tasklet_struct grinderTasklet = {
 };
 #endif
 
+struct mutex mutex;
+
 /**
  *******************************************************************************
  * Helper functions
@@ -203,6 +206,13 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 	}
 	value = simple_strtol(data, NULL, 0);
 	kfree(data);
+
+	/* enter critical section: */
+	if (mutex_lock_interruptible(&mutex)) {
+		result = -ERESTARTSYS;
+		goto out;
+	}
+
 	if (strcmp(filePointer->f_path.dentry->d_name.name, "coffeeGrinderSPI") == 0) {
 		/* set flash duration: */
 		if (value >= 0 && value < 256) {
@@ -220,6 +230,9 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 			printk(KERN_WARNING "grinderWrite: pwm3 value %d is invalid\n", value);
 		}
 	}
+
+	/* leave critical section: */
+	mutex_unlock(&mutex);
 
 	result = length;
 
@@ -240,6 +253,9 @@ int grinderRelease(struct inode *inode, struct file *file) {
 int __init grinderInit(void) {
 	int result = 0, error;
 	unsigned long flags = 0;
+
+	/* initialize mutex: */
+  	mutex_init(&mutex);
 
 	/* craete device /dev/coffeeGrinderMotor: */
 	if ((result = misc_register(&grinderDevice))) {
@@ -269,8 +285,10 @@ int __init grinderInit(void) {
 	gpio_fn_set(GPIO_SSPTXD, GPIO_ALT_FN_2_OUT);
 	gpio_fn_set(GPIO_SSPRXD, GPIO_ALT_FN_1_IN);
 
-	/* prevent race conditions: */
+	/* prevent race conditions with interrupts: */
 	local_irq_save(flags);
+	/* enter critical section (must not be interruptible, because we have disabled interrupts anyway: */
+	mutex_lock(&mutex);
 
 	/* set prescale value, periodic interval and speed for PWM3: */
 	PWMCR3 = 0x14;						/* divide 13MHz clock by 0x14 */
@@ -288,6 +306,8 @@ int __init grinderInit(void) {
 	SSCR0_P1 |= SSCR0_SSE;				/* enable synchronous serial */
 	SSDR_P1 = 50;						/* data register for flash time */
 	  
+	/* leave critical section: */
+	mutex_unlock(&mutex);
 	local_irq_restore(flags);
 
 #ifdef KTHREAD
