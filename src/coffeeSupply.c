@@ -14,6 +14,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include "defines.h"
 #include "syslog.h"
@@ -37,6 +38,7 @@ static void runMotorController(void *activity);
 static void tearDownMotorController(void *activity);
 ActivityDescriptor getCoffeePowderDispenser();
 ActivityDescriptor getFillStateMonitor();
+ActivityDescriptor getMotorController();
 
 static StateMachine coffeeSupplyStateMachine;
 static StateMachine coffeePowderDispenserStateMachine;
@@ -82,10 +84,18 @@ static int setMotor(int power) {
 	return writeNonBlockingDevice("/dev/coffeeGrinderMotor",level,wrm_replace,FALSE);
 }
 
+static int ejectWaste(void) {
+	return writeNonBlockingDevice("/dev/coffeeWasteEjector","1",wrm_replace,FALSE);
+}
+
 static int lastHasCoffeeWasteState = TRUE;
 
 static int hasCoffeeWaste(void) {
 	return readNonBlockingDevice("./dev/coffeeWasteSensor");
+}
+
+static int hasEnoughPowder(void) {
+	return readNonBlockingDevice("./dev/coffeePowderDispenser");
 }
 
 static int hasBeans(void) {
@@ -103,18 +113,199 @@ static int checkBeans(void) {
 		if (hasBeansState) {
 			sendMessage(getCoffeePowderDispenser(), (char *)&(FillStateMonitorMessage) {
 				.activity = getFillStateMonitor(),
-				.intValue = BEANS_AVAILABLE_NOTIFICATION,
+				.intValue = POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION,
 			}, sizeof(FillStateMonitorMessage), messagePriority_high);
 		} else {
 			sendMessage(getCoffeePowderDispenser(), (char *)&(FillStateMonitorMessage) {
 				.activity = getFillStateMonitor(),
-				.intValue = NO_BEANS_AVAILABLE_ERROR,
+				.intValue = POWDER_DISPENSER_NO_BEANS_ERROR,
 			}, sizeof(FillStateMonitorMessage), messagePriority_high);
 		}
 	}
 
 	return hasBeansState;
 }
+
+/*
+ ***************************************************************************
+ * States coffeePowderDispenser
+ ***************************************************************************
+ */
+
+// off:
+// initializing:
+// idle: bereit;
+// supplying;
+/**
+ * Represents a coffee powder dispenser state
+ */
+typedef enum {
+	coffeePowderDispenserState_switchedOff,
+	coffeePowderDispenserState_initializing,
+	coffeePowderDispenserState_idle,
+	coffeePowderDispenserState_supplying
+} CoffeePowderDispenserState;
+
+/*
+ ***************************************************************************
+ * switchedOff state powder dispenser
+ ***************************************************************************
+ */
+
+static void coffeePowderDispenserSwitchedOffStateEntryAction() {
+	logInfo("[coffeePowderDispenser] Entered SwitchedOff State...");
+}
+
+static Event coffeePowderDispenserSwitchedOffStateDoAction() {
+	return NO_EVENT;
+}
+
+static State coffeePowderDispenserSwitchedOffState = {
+	.stateIndex = coffeePowderDispenserState_switchedOff,
+	.entryAction = coffeePowderDispenserSwitchedOffStateEntryAction,
+	.doAction = coffeePowderDispenserSwitchedOffStateDoAction
+};
+
+
+/*
+ ***************************************************************************
+ * initializing state powder dispenser
+ ***************************************************************************
+ */
+
+static void coffeePowderDispenserInitializingStateEntryAction() {
+	// notifiy motorController:
+	sendMessage(getMotorController(), (char *)&(MotorControllerMessage) {
+		.activity = getCoffeePowderDispenser(),
+		.intValue = MOTOR_STOP_COMMAND,
+		.strValue = "stop motor",
+	}, sizeof(MotorControllerMessage), messagePriority_medium);
+}
+
+static Event coffeePowderDispenserInitializingStateDoAction() {
+	sleep(1);
+	return coffeePowderDispenserEvent_initialized;
+}
+
+
+static State coffeePowderDispenserInitializingState = {
+	.stateIndex = coffeePowderDispenserState_initializing,
+	.entryAction = coffeePowderDispenserInitializingStateEntryAction,
+	.doAction = coffeePowderDispenserInitializingStateDoAction
+};
+
+
+/*
+ ***************************************************************************
+ * idle state powder dispenser
+ ***************************************************************************
+ */
+
+static void coffeePowderDispenserIdleStateEntryAction() {
+	;
+}
+
+static Event coffeePowderDispenserIdleStateDoAction() {
+
+	return NO_EVENT;
+}
+
+static State coffeePowderDispenserIdleState = {
+	.stateIndex = coffeePowderDispenserState_idle,
+	.entryAction = coffeePowderDispenserIdleStateEntryAction,
+	.doAction = coffeePowderDispenserIdleStateDoAction
+};
+
+/*
+ ***************************************************************************
+ * supplying state powder dispenser
+ ***************************************************************************
+ */
+
+static void coffeePowderDispenserSupplyingStateEntryAction() {
+	// notifiy motorController:
+	sendMessage(getMotorController(), (char *)&(MotorControllerMessage) {
+		.activity = getCoffeePowderDispenser(),
+		.intValue = MOTOR_START_COMMAND,
+		.strValue = "start motor",
+	}, sizeof(MotorControllerMessage), messagePriority_medium);
+}
+
+static Event coffeePowderDispenserSupplyingStateDoAction() {
+	return NO_EVENT;
+}
+
+static void coffeePowderDispenserSupplyingStateExitAction() {
+	// notifiy motorController:
+	sendMessage(getMotorController(), (char *)&(MotorControllerMessage) {
+		.activity = getCoffeePowderDispenser(),
+		.intValue = MOTOR_STOP_COMMAND,
+		.strValue = "stop motor",
+	}, sizeof(MotorControllerMessage), messagePriority_medium);
+	// notifiy coffeeSupply:
+	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage) {
+		.activity = getCoffeePowderDispenser(),
+		.intValue = OK_RESULT,
+		.strValue = "grinding complete",
+	}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
+}
+
+static State coffeePowderDispenserSupplyingState = {
+	.stateIndex = coffeePowderDispenserState_supplying,
+	.entryAction = coffeePowderDispenserSupplyingStateEntryAction,
+	.doAction = coffeePowderDispenserSupplyingStateDoAction,
+	.exitAction = coffeePowderDispenserSupplyingStateExitAction
+};
+
+
+/*
+ ***************************************************************************
+ * State transitions powder dispenser
+ ***************************************************************************
+ */
+
+static StateMachine coffeePowderDispenserStateMachine = {
+	.numberOfEvents = 7,
+	.initialState = &coffeePowderDispenserSwitchedOffState,
+	.transitions = {
+		/* coffeePowderDispenserState_switchedOff: */
+			/* coffeePowderDispenserEvent_init: */ &coffeePowderDispenserInitializingState,
+			/* coffeePowderDispenserEvent_switchOff: */ NULL,
+			/* coffeePowderDispenserEvent_initialized: */ NULL,
+			/* coffeePowderDispenservent_startSupplying: */ NULL,
+			/* coffeePowderDispenserEvent_supplyingFinished: */ NULL,
+			/* coffeePowderDispenserEvent_stop: */ NULL,
+			/* coffeePowderDispenserEvent_noBeans: */ NULL,
+			/* coffeePowderDispenserEvent_beansAvailable: */ NULL,
+		/* coffeePowderDispenserState_initializing: */
+			/* coffeePowderDispenserEvent_init: */ NULL,
+			/* coffeePowderDispenserEvent_switchOff: */ &coffeePowderDispenserSwitchedOffState,
+			/* coffeePowderDispenserEvent_initialized: */ &coffeePowderDispenserIdleState,
+			/* coffeePowderDispenserEvent_startSupplying: */ NULL,
+			/* coffeePowderDispenserEvent_supplyingFinished: */ NULL,
+			/* coffeePowderDispenserEvent_stop: */ NULL,
+			/* coffeePowderDispenserEvent_noBeans: */ NULL,
+			/* coffeePowderDispenserEvent_beansAvailable: */ NULL,
+		/* coffeePowderDispenserState_idle: */
+			/* coffeePowderDispenserEvent_init: */ &coffeePowderDispenserInitializingState,
+			/* coffeePowderDispenserEvent_switchOff: */ &coffeePowderDispenserSwitchedOffState,
+			/* coffeePowderDispenserEvent_initialized: */ NULL,
+			/* coffeePowderDispenserEvent_startSupplying: */ &coffeePowderDispenserSupplyingState,
+			/* coffeePowderDispenserEvent_supplyingFinished: */ NULL,
+			/* coffeePowderDispenserEvent_stop: */ NULL,
+			/* coffeePowderDispenserEvent_noBeans: */ NULL,
+			/* coffeePowderDispenserEvent_beansAvailable: */ NULL,
+		/* coffeePowderDispenserState_supplying: */
+			/* coffeePowderDispenserEvent_init: */ NULL,
+			/* coffeePowderDispenserEvent_switchOff: */ &coffeePowderDispenserSwitchedOffState,
+			/* coffeePowderDispenserEvent_initialized: */ NULL,
+			/* coffeePowderDispenserEvent_startSupplying: */ NULL,
+			/* coffeePowderDispenserEvent_supplyingFinished: */ &coffeePowderDispenserIdleState,
+			/* coffeePowderDispenserEvent_stop: */ &coffeePowderDispenserIdleState,
+			/* coffeePowderDispenserEvent_noBeans: */ &coffeePowderDispenserIdleState,
+			/* coffeePowderDispenserEvent_beansAvailable: */ NULL
+		}
+};
 
 
 
@@ -149,14 +340,6 @@ static void coffeeSupplySwitchedOffStateEntryAction() {
 }
 
 static Event coffeeSupplySwitchedOffStateDoAction() {
-	logInfo("[coffeeSupply] Going to receive message...");
-	CoffeeSupplyMessage message;
-	unsigned long messageLength = receiveMessage(coffeeSupply, (char *)&message, sizeof(message));
-	if (messageLength > 0) {
-		logInfo("[coffeeSupply] Message received from %s (length: %ld): value: %d, message: %s",
-				message.activity.name, messageLength, message.intValue, message.strValue);
-		return message.intValue;
-	}
 	return NO_EVENT;
 }
 
@@ -174,6 +357,7 @@ static State coffeeSupplySwitchedOffState = {
 
 static void coffeeSupplyInitializingStateEntryAction() {
 	logInfo("[coffeeSupply] Send message to coffeePowderDispenser...");
+	//TODO: Send correct init message to powder dispenser
 	sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
 			.activity = getCoffeeSupplyDescriptor(),
 			.intValue = 123,
@@ -205,15 +389,7 @@ static void coffeeSupplyIdleStateEntryAction() {
 }
 
 static Event coffeeSupplyIdleStateDoAction() {
-	CoffeeSupplyMessage incomingMessage;
-	unsigned long incomingMessageLength;
-	logInfo("[coffeeSupply] IdleState: Going to receive message...");
-	incomingMessageLength = receiveMessage(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage));
-	if (incomingMessageLength > 0) {
-		logInfo("[coffeeSupply] IdleState: Message received from %s (length: %d): value: %d, message: %s",
-				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
-		return incomingMessage.intValue;
-	}
+
 	return NO_EVENT;
 }
 
@@ -239,24 +415,16 @@ static void coffeeSupplySupplyingStateEntryAction() {
 }
 
 static Event coffeeSupplySupplyingStateDoAction() {
-	unsigned long incomingMessageLength;
-	CoffeeSupplyMessage incomingMessage;
-	logInfo("[coffeeSupply] Going to receive message...");
-	incomingMessageLength = receiveMessage(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage));
-	if (incomingMessageLength > 0) {
-		logInfo("[coffeeSupply] SupplyState: Message received from %s (length: %d): value: %d, message: %s",
-				incomingMessage.activity.name, incomingMessageLength, incomingMessage.intValue, incomingMessage.strValue);
-		return incomingMessage.intValue;
-	}
 	return NO_EVENT;
 }
 
 static void coffeeSupplySupplyingStateExitAction() {
-
+	// eject Waste
+	ejectWaste();
 	// notifiy mainController:
 	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
 		.activity = getCoffeeSupplyDescriptor(),
-		.intValue = 1,
+		.intValue = OK_RESULT,
 		.strValue = "coffee powder supplying finished",
 	}, sizeof(MainControllerMessage), messagePriority_high);
 }
@@ -362,6 +530,12 @@ static void runCoffeeSupply(void *activityarg) {
 			case SUPPLY_STOP_COMMAND:
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_stop);
 				break;
+			case OK_RESULT:
+				MESSAGE_SELECTOR_BEGIN
+				MESSAGE_SELECTOR(incomingMessage, coffeePowderDispenser)
+					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_supplyingFinished);
+				MESSAGE_SELECTOR_END
+				break;
 			}
 		}
 		// Run state machine
@@ -393,26 +567,68 @@ static void tearDownCoffeeSupply(void *activity) {
 	destroyActivity(coffeePowderDispenser);
 }
 
-static void setUpCoffeePowderDispenser(void *activity) {
+static void setUpCoffeePowderDispenser(void *activityarg) {
 	logInfo("[coffeePowderDispenser] Setting up...");
+	coffeePowderDispenser = activityarg;
+	setUpStateMachine(&coffeePowderDispenserStateMachine);
 	fillStateMonitor = createActivity(getFillStateMonitor(), messageQueue_blocking);
 	motorController = createActivity(getMotorController(), messageQueue_blocking);
 }
 
 static void runCoffeePowderDispenser(void *activity) {
 	logInfo("[coffeePowderDispenser] Running...");
-
 	while (TRUE) {
-		logInfo("[coffeePowderDispenser] Going to receive message...");
-		CoffeePowderDispenserMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		logInfo("[coffeePowderDispenser] Message received from %s (length: %ld): value: %d, message: %s",
-				message.activity.name, messageLength, message.intValue, message.strValue);
+		// Wait for incoming message or time event
+		CoffeePowderDispenserMessage incomingMessage;
+		int result = waitForEvent(coffeePowderDispenser, (char *)&incomingMessage, sizeof(incomingMessage), 1000);
+		if (result < 0) {
+			//TODO Implement apropriate error handling
+			sleep(10);
+			// Try to recover from error
+			continue;
+		}
+
+		// Check if there is an incoming message
+		if (result > 0) {
+			// Process incoming message
+			switch (incomingMessage.intValue) {
+				case INIT_COMMAND:
+					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_init);
+					break;
+				case OFF_COMMAND:
+					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_switchOff);
+					break;
+				case POWDER_DISPENSER_START_COMMAND:
+					if (lastHasBeansState) {
+						processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_startSupplying);
+					}
+					break;
+				case POWDER_DISPENSER_STOP_COMMAND:
+					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_stop);
+					break;
+				case POWDER_DISPENSER_NO_BEANS_ERROR:
+					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_noBeans);
+					//TODO: Send message to coffeeSupply
+					break;
+				case POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION:
+					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_beansAvailable);
+					//TODO: Send message to coffeeSupply
+					break;
+			}
+		}
+	}
+	// Run state machine
+	runStateMachine(&coffeePowderDispenserStateMachine);
+	// enough Powder
+	if (hasEnoughPowder()) {
+		processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_supplyingFinished);
 	}
 }
 
 static void tearDownCoffeePowderDispenser(void *activity) {
 	logInfo("[coffeePowderDispenser] Tearing down...");
+	destroyActivity(fillStateMonitor);
+	destroyActivity(motorController);
 }
 
 static void setUpFillStateMonitor(void *activity) {
@@ -435,6 +651,7 @@ static void tearDownFillStateMonitor(void *activity) {
 
 static void setUpMotorController(void *activity) {
 	logInfo("[motorController] Setting up...");
+	setMotor(0);
 }
 
 static void runMotorController(void *activity) {

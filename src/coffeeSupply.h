@@ -12,8 +12,10 @@
 #include <mqueue.h>
 #include "activity.h"
 
-#define BEANS_AVAILABLE_NOTIFICATION 23301
-#define NO_BEANS_AVAILABLE_ERROR 23401
+#define POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION 21301
+#define POWDER_DISPENSER_NO_BEANS_ERROR 21401
+#define POWDER_DISPENSER_START_COMMAND 21001
+#define POWDER_DISPENSER_STOP_COMMAND 21002
 #define MOTOR_START_COMMAND 22001
 #define MOTOR_STOP_COMMAND 22002
 #define SUPPLY_START_COMMAND 2001
@@ -45,6 +47,20 @@ typedef struct {
 
 
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
+
+/**
+ * Represents a coffeePowderDispenser event
+ */
+typedef enum {
+	coffeePowderDispenserEvent_init,
+	coffeePowderDispenserEvent_switchOff,
+	coffeePowderDispenserEvent_initialized,
+	coffeePowderDispenserEvent_startSupplying,
+	coffeePowderDispenserEvent_supplyingFinished,
+	coffeePowderDispenserEvent_stop,
+	coffeePowderDispenserEvent_noBeans,
+	coffeePowderDispenserEvent_beansAvailable,
+} CoffeePowderDispenserEvent;
 
 /**
  * Represents a coffeeSupply event
