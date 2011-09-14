@@ -257,18 +257,6 @@ int __init grinderInit(void) {
 	/* initialize mutex: */
   	mutex_init(&mutex);
 
-	/* craete device /dev/coffeeGrinderMotor: */
-	if ((result = misc_register(&grinderDevice))) {
-		printk(KERN_WARNING "grinderInit: error registering grinder motor device!\n");
-		goto out;
-	}
-
-	/* craete device /dev/coffeeGrinderSPI: */
-	if ((result = misc_register(&grinderSPIDevice))) {
-		printk(KERN_WARNING "grinderInit: error registering grinder SPI device!\n");
-		goto err_spi;
-	}
-
 	/* request gpios: */
 	error = gpio_request_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
 	if (error) {
@@ -287,9 +275,8 @@ int __init grinderInit(void) {
 
 	/* prevent race conditions with interrupts: */
 	local_irq_save(flags);
-	/* enter critical section (must not be interruptible, because we have disabled interrupts anyway: */
-	mutex_lock(&mutex);
 
+	printk(KERN_INFO "grinderInit: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
 	/* set prescale value, periodic interval and speed for PWM3: */
 	PWMCR3 = 0x14;						/* divide 13MHz clock by 0x14 */
 	PWMDCR3 = 0;						/* initial speed is zero */
@@ -307,7 +294,6 @@ int __init grinderInit(void) {
 	SSDR_P1 = 50;						/* data register for flash time */
 	  
 	/* leave critical section: */
-	mutex_unlock(&mutex);
 	local_irq_restore(flags);
 
 #ifdef KTHREAD
@@ -332,28 +318,40 @@ int __init grinderInit(void) {
 #ifdef TASKLET
 	tasklet_init(&grinderTasklet, taskletHandler, 0);
 #endif
+	
+	/* craete device /dev/coffeeGrinderMotor: */
+	if ((result = misc_register(&grinderDevice))) {
+		printk(KERN_WARNING "grinderInit: error registering grinder motor device!\n");
+		goto err_gpio;
+	}
+
+	/* craete device /dev/coffeeGrinderSPI: */
+	if ((result = misc_register(&grinderSPIDevice))) {
+		printk(KERN_WARNING "grinderInit: error registering grinder SPI device!\n");
+		goto err_spi;
+	}
 
 	printk(KERN_INFO "grinderInit: device successfully registered!\n");
 	goto out;
 
-	err_gpio:
-	  gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
-
 	err_spi:
 	  misc_deregister(&grinderDevice);
+
+	err_gpio:
+	  gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
 
 	out:
 	  return result;
 }
 
 void __exit grinderExit(void) {
+	misc_deregister(&grinderSPIDevice);
+	misc_deregister(&grinderDevice);
 #ifdef TASKLET
 	tasklet_kill(&grinderTasklet);
 #endif
 	free_irq(gpio_to_irq(GPIO_INDEX), (void *)0);
 	gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
-	misc_deregister(&grinderSPIDevice);
-	misc_deregister(&grinderDevice);
 	printk(KERN_INFO "grinderExit: device unregistered!\n");
 }
 

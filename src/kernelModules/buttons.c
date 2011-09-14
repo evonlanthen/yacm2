@@ -8,12 +8,13 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/init.h>
 
 #include <linux/miscdevice.h>
 
 #include <linux/fs.h>
 
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 
 #include <linux/gpio.h>
 
@@ -22,16 +23,10 @@
 #include <linux/wait.h>
 
 #include <linux/bitops.h>
-//TODO Remove
-//#include <asm/atomic.h>
 
 #include "switches.h"
 #include "leds.h"
 #include "hmi.h"
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Toni Baumann, Ronny Stauffer, Elmar Vonlanthen");
-MODULE_DESCRIPTION("HMI device");
 
 static struct timer_list debounceButtonTimers[4];
 static volatile unsigned long debounceButtonFlags = 0;
@@ -58,15 +53,15 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 
 		unsigned char value = 0x30 + lastPressedButtonIndex;
 
+		// Close atomic context (by enabling interrupts)
+		spin_unlock_irqrestore(&spinlock, flags);
+
 		if (copy_to_user(buffer, &value, 1)) {
 			result = -EFAULT;
 		} else {
 			*offset = 1;
 			result = 1;
 		}
-
-		// Close atomic context (by enabling interrupts)
-		spin_unlock_irqrestore(&spinlock, flags);
 	} else {
 		result = /* EOF: */ 0;
 	}
@@ -86,15 +81,15 @@ static struct miscdevice buttonsDevice = {
 	.fops = &buttonsFileOperations,
 };
 
-static struct gpio enableGPIOs[] = {
-	{ 117, GPIOF_OUT_INIT_LOW, "Select_Input" },
-	{ 118, GPIOF_OUT_INIT_HIGH, "Select_Output" } };
+//static struct gpio enableGPIOs[] = {
+//	{ 117, GPIOF_OUT_INIT_LOW, "Select_Input" },
+//	{ 118, GPIOF_OUT_INIT_HIGH, "Select_Output" } };
 
 static struct gpio buttonGPIOs[] = {
-	{ 12, GPIOF_IN, "S5" },
-	{ 11, GPIOF_IN, "S6" },
-	{ 17, GPIOF_IN, "S7" },
-	{ 16, GPIOF_IN, "S8" }
+	{ 99, GPIOF_IN, "T0" },
+	{ 101, GPIOF_IN, "T1" },
+	{ 102, GPIOF_IN, "T2" },
+	{ 103, GPIOF_IN, "T3" }
 };
 
 static irqreturn_t handleButtonInterrupt(int irq, void *dev_id) {
@@ -152,22 +147,23 @@ int __init initHMI() {
 	// 1. Setup button device
 	// 1.1 Clear alternate GPIO functions
 	int i;
-	for (i = 0; i < ARRAY_SIZE(enableGPIOs); i++) {
-		clearGPIOMode(enableGPIOs[i].gpio);
-	}
-	for (i = 0; i < ARRAY_SIZE(buttonGPIOs); i++) {
-		clearGPIOMode(buttonGPIOs[i].gpio);
-	}
+	//for (i = 0; i < ARRAY_SIZE(enableGPIOs); i++) {
+	//	clearGPIOMode(enableGPIOs[i].gpio);
+	//}
+	//for (i = 0; i < ARRAY_SIZE(buttonGPIOs); i++) {
+	///	clearGPIOMode(buttonGPIOs[i].gpio);
+	//}
 
 	// 1.2 Claim GPIOs
 	int error;
-	if ((error = gpio_request_array(enableGPIOs, ARRAY_SIZE(enableGPIOs)))) {
-		result = error;
-		goto initHMI_error;
-	}
+	//if ((error = gpio_request_array(enableGPIOs, ARRAY_SIZE(enableGPIOs)))) {
+	//	result = error;
+	//	goto initHMI_error;
+	//}
 
 	if ((error = gpio_request_array(buttonGPIOs, ARRAY_SIZE(buttonGPIOs)))) {
 		result = error;
+		printk(KERN_WARNING "hmiInit: Error requesting gpio array!\n");
 		goto initHMI_error;
 	}
 
@@ -177,6 +173,7 @@ int __init initHMI() {
 		debounceButtonTimers[i].function = buttonDebounceTimerExpired;
 		debounceButtonTimers[i].data = i;
 	}
+	printk(KERN_INFO "After debounce\n");
 
 	// 1.4 Request interrupts
 	for (i = 0; i < ARRAY_SIZE(buttonGPIOs); i++) {
@@ -206,11 +203,13 @@ int __init initHMI() {
 
 		goto initHMI_error;
 	}
-
+	printk(KERN_INFO "After initializing buttons\n");
 	// 2. Setup switches device
 	if (result = initSwitches() < 0) {
 		goto initHMI_error;
 	}
+
+	printk(KERN_INFO "After initializing switches\n");
 
 	// 3. Setup LEDs device
 	if (result = initLEDs() < 0) {
@@ -248,7 +247,7 @@ void __exit exitHMI() {
 	}
 
 	gpio_free_array(buttonGPIOs, ARRAY_SIZE(buttonGPIOs));
-	gpio_free_array(enableGPIOs, ARRAY_SIZE(enableGPIOs));
+	//gpio_free_array(enableGPIOs, ARRAY_SIZE(enableGPIOs));
 
 	printk(KERN_INFO MODULE_LABEL "...done. (unloading)\n");
 }

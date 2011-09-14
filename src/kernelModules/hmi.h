@@ -9,6 +9,10 @@
 #ifndef HMI_H_
 #define HMI_H_
 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Toni Baumann, Ronny Stauffer, Elmar Vonlanthen");
+MODULE_DESCRIPTION("HMI device");
+
 #define MODULE_LABEL "hmi "
 
 /* CARME internal memory-mapped IO registers base address  */
