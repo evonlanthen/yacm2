@@ -89,3 +89,50 @@ static void tearDownUserInterface(void *activity) {
 	logInfo("[userInterface] Tearing down...");
 	destroyActivity(display);
 }
+
+/*
+int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout) {
+	//logInfo("[%s] Going to wait for an event...", activity->descriptor->name);
+
+	int polling;
+	if ((polling = epoll_create(1)) < 0) {
+		logErr("[%s] Error setting up event waiting: %s", activity->descriptor->name, strerror(errno));
+
+		return -EFAULT;
+	}
+
+	struct epoll_event messageQueueEventDescriptor = {
+			.events = EPOLLIN,
+			.data.fd = activity->messageQueue
+	};
+	if (epoll_ctl(polling, EPOLL_CTL_ADD, messageQueueEventDescriptor.data.fd, &messageQueueEventDescriptor) < 0) {
+		logErr("[%s] Error registering message queue event source: %s", activity->descriptor->name, strerror(errno));
+
+		close(polling);
+
+		return -EFAULT;
+	}
+
+	struct epoll_event firedEvents[1];
+	int numberOfFiredEvents;
+	numberOfFiredEvents = epoll_wait(polling, firedEvents, 1, timeout);
+
+	close(polling);
+
+	if (numberOfFiredEvents < 0) {
+		logErr("[%s] Error waiting for event: %s", activity->descriptor->name, strerror(errno));
+
+		return -EFAULT;
+	} else if (numberOfFiredEvents == 1) {
+		//logInfo("[%s] Message received!", activity->descriptor->name);
+
+		unsigned long incomingMessageLength = receiveMessage(activity, buffer, length);
+
+		return incomingMessageLength;
+	} else {
+		//logInfo("[%s] Timeout occured!", activity->descriptor->name);
+
+		return 0;
+	}
+}
+*/

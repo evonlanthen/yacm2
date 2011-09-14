@@ -53,7 +53,7 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 static ssize_t write(struct file *file, const char __user *buffer, size_t size, loff_t *offset) {
 	ssize_t result;
 
-	unsigned long value = simple_strtoul(buffer, NULL, 0);
+	long value = simple_strtol(buffer, NULL, 0);
 	if (!(value >= 0 && value <= 255)) {
 		return -ERANGE;
 	}
