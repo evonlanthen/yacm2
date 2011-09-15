@@ -18,7 +18,6 @@
 #include "device.h"
 #include "data.h"
 #include "stateMachineEngine.h"
-//#include "mainController.h"
 #include "waterSupply.h"
 
 typedef enum {
@@ -26,10 +25,12 @@ typedef enum {
 	supplyResult_nok
 } SupplyResult;
 
+// Activity handler prototypes
 static void setUpWaterSupply(void *activity);
 static void runWaterSupply(void *activity);
 static void tearDownWaterSupply(void *activity);
 
+// Activity descriptor
 static ActivityDescriptor waterSupply = {
 	.name = "waterSupply",
 	.setUp = setUpWaterSupply,

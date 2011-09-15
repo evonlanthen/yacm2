@@ -69,7 +69,7 @@ typedef struct {
 	ActivityDescriptor senderDescriptor; \
 	receiver##Message message; \
 	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message)); \
-	int error = result < 0 ? -result : 0;
+	int __attribute__((__unused__)) error = result < 0 ? -result : 0;
 
 #define receiveMessage_END \
 	}
@@ -79,7 +79,7 @@ typedef struct {
 	ActivityDescriptor senderDescriptor; \
 	receiver##Message message; \
 	int result = waitForEvent2(activity, &senderDescriptor, &message, sizeof(message), timeout); \
-	int error = result < 0 ? -result : 0;
+	int __attribute__((__unused__)) error = result < 0 ? -result : 0;
 
 #define waitForEvent_END receiveMessage_END
 
@@ -126,7 +126,7 @@ typedef struct {
 
 #define MESSAGE_BY_TYPE_SELECTOR(message, subsystem, _content) \
 	} else if (message.type == subsystem##_content##Type) { \
-		subsystem##_content##Content content = message.content.subsystem##_content;
+		subsystem##_content##Content __attribute__((__unused__)) content = message.content.subsystem##_content;
 
 #define MESSAGE_SELECTOR_ANY \
 	} else {

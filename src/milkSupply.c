@@ -20,13 +20,25 @@
 #include "defines.h"
 #include "syslog.h"
 #include "device.h"
-//#include "mainController.h"
 #include "milkSupply.h"
 
+// Message type for milk supply subsystems
+//TODO Implement
+MESSAGE_DEFINITION_BEGIN
+MESSAGE_DEFINITION_END(Subsystem)
+
+// Activity handler prototypes for milk supply
 static void setUpMilkSupply(void *activity);
 static void runMilkSupply(void *activity);
 static void tearDownMilkSupply(void *activity);
 
+// Activity handler prototype for milk supply subsystems
+//TODO Implement handlers for each subsystem
+static void setUpSubsystem(void *activity);
+static void runSubsystem(void *activity);
+static void tearDownSubsystem(void *activity);
+
+// Activity descriptors
 static ActivityDescriptor milkSupply = {
 	.name = "milkSupply",
 	.setUp = setUpMilkSupply,
@@ -34,7 +46,40 @@ static ActivityDescriptor milkSupply = {
 	.tearDown = tearDownMilkSupply
 };
 
+static ActivityDescriptor lacticAcidMonitorDescriptor = {
+	.name = "lacticAcidMonitor",
+	.setUp = setUpSubsystem,
+	.run = runSubsystem,
+	.tearDown = tearDownSubsystem
+};
+
+static ActivityDescriptor coolingDescriptor = {
+	.name = "cooling",
+	.setUp = setUpSubsystem,
+	.run = runSubsystem,
+	.tearDown = tearDownSubsystem
+};
+
+static ActivityDescriptor fillStateMonitorDescriptor = {
+	.name = "fillStateMonitor",
+	.setUp = setUpSubsystem,
+	.run = runSubsystem,
+	.tearDown = tearDownSubsystem
+};
+
+static ActivityDescriptor pipeFlushingDescriptor = {
+	.name = "pipeFlushing",
+	.setUp = setUpSubsystem,
+	.run = runSubsystem,
+	.tearDown = tearDownSubsystem
+};
+
 static Activity *this;
+
+static Activity *lacticAcidMonitor;
+static Activity *cooling;
+static Activity *fillStateMonitor;
+static Activity *pipeFlushing;
 
 MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, SupplyMilkCommand, 2)
@@ -48,6 +93,11 @@ static void setUpMilkSupply(void *activity) {
 	//logInfo("[milkSupply] Setting up...");
 
 	this = (Activity *)activity;
+
+	lacticAcidMonitor = createActivity(lacticAcidMonitorDescriptor, messageQueue_blocking);
+	cooling = createActivity(coolingDescriptor, messageQueue_blocking);
+	fillStateMonitor = createActivity(fillStateMonitorDescriptor, messageQueue_blocking);
+	pipeFlushing = createActivity(pipeFlushingDescriptor, messageQueue_blocking);
 }
 
 static void runMilkSupply(void *activity) {
@@ -80,4 +130,27 @@ static void runMilkSupply(void *activity) {
 
 static void tearDownMilkSupply(void *activity) {
 	//logInfo("[milkSupply] Tearing down...");
+
+	destroyActivity(pipeFlushing);
+	destroyActivity(fillStateMonitor);
+	destroyActivity(cooling);
+	destroyActivity(lacticAcidMonitor);
+}
+
+//TODO Implement
+static void setUpSubsystem(void *activity) {
+
+}
+
+//TODO Implement
+static void runSubsystem(void *activity) {
+	while (TRUE) {
+		receiveMessage_BEGIN(activity, Subsystem)
+		receiveMessage_END
+	}
+}
+
+//TODO Implement
+static void tearDownSubsystem(void *activity) {
+
 }

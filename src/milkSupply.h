@@ -33,8 +33,6 @@ MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MilkSupply, Status)
 MESSAGE_DEFINITION_END(MilkSupply)
 
-#define SUPPLY_MILK_COMMAND 1
-
 extern ActivityDescriptor getMilkSupplyDescriptor(void);
 
 #endif /* MILKSUPPLY_H_ */
