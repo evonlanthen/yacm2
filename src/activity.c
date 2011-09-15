@@ -24,8 +24,8 @@
 		.name = "<Unknown sender>" \
 	}
 
-MESSAGE_CONTENT_TYPE_MAPPING(InitCommand, 91)
-MESSAGE_CONTENT_TYPE_MAPPING(OffCommand, 92)
+//MESSAGE_CONTENT_TYPE_MAPPING(InitCommand, 91)
+//MESSAGE_CONTENT_TYPE_MAPPING(OffCommand, 92)
 
 static char *createMessageQueueId(char *activityName) {
 	size_t idLength = strlen(activityName) + 2;
@@ -70,12 +70,13 @@ static void * runThread(void *argument) {
 
 	pthread_cleanup_push(activity->descriptor->tearDown, NULL);
 
-	// TODO: @Ronny: why NULL here? :-(
+	logInfo("[%s] Launching...", activity->descriptor->name);
+
 	activity->descriptor->setUp(activity);
 
 	activity->descriptor->run(activity);
 
-	logInfo("[activity] Thread terminated.");
+	logInfo("[%s] Terminated.", activity->descriptor->name);
 
 	pthread_cleanup_pop(1);
 
@@ -129,7 +130,7 @@ void destroyActivity(Activity *activity) {
 }
 
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout) {
-	return waitForEvent(activity, NULL, buffer, length, timeout);
+	return waitForEvent2(activity, NULL, buffer, length, timeout);
 }
 
 int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length, unsigned int timeout) {
@@ -193,7 +194,7 @@ int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void 
 
 	Activity *receiver = (Activity *)_receiver;
 
-	logInfo("[%s] Going to receive message...", receiver->descriptor->name);
+	//logInfo("[%s] Going to receive message...", receiver->descriptor->name);
 
 	//char receiveBuffer[MAX_MESSAGE_LENGTH + 1];
 	void *receiveBuffer = NULL;
@@ -215,13 +216,13 @@ int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void 
 	}
 
 	// Check length of the receive message
-	if (!(messageLength >= length)) {
-		logErr("[%s] Error receiving message: Message shorter than expected!", receiver->descriptor->name);
-
-		result = -EFAULT;
-
-		goto receiveMessage2_out;
-	}
+//	if (!(messageLength >= length)) {
+//		logErr("[%s] Error receiving message: Message shorter than expected!", receiver->descriptor->name);
+//
+//		result = -EFAULT;
+//
+//		goto receiveMessage2_out;
+//	}
 
 	// Copy message
 	memcpy(buffer, receiveBuffer, length);
@@ -251,7 +252,7 @@ int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void 
 	//if (_senderName) {
 	if (_senderDescriptor) {
 		//logInfo("[%s] Message received from %s (message length: %u)...", receiver->descriptor->name, _senderName, length);
-		logInfo("[%s] Message received from %s (message length: %u)...", receiver->descriptor->name, _senderDescriptor->name, length);
+		//logInfo("[%s] Message received from %s (message length: %u)...", receiver->descriptor->name, _senderDescriptor->name, length);
 	} else {
 		//logInfo("[%s] Message received (message length: %u)...", receiver->descriptor->name, messageLength);
 	}
@@ -263,10 +264,10 @@ receiveMessage2_out:
 }
 
 int sendMessage(ActivityDescriptor receiverDescriptor, char *buffer, unsigned long length, MessagePriority priority) {
-	return sendMessage2(NULL, receiverDescriptor, buffer, length, priority);
+	return sendMessage2(NULL, receiverDescriptor, length, buffer, priority);
 }
 
-int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, void *buffer, unsigned long length, MessagePriority priority) {
+int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned long length, void *buffer, MessagePriority priority) {
 //	if (!_sender) {
 //		logErr("["__FILE__"] null pointer at senderMessage(_sender, ...)");
 //
@@ -298,7 +299,7 @@ int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, void *buf
 	}
 
 	if (sender) {
-		logInfo("[%s] Sending message to %s (message length: %u)...", sender->descriptor->name, receiverDescriptor.name, length);
+		//logInfo("[%s] Sending message to %s (message length: %u)...", sender->descriptor->name, receiverDescriptor.name, length);
 	} else {
 		//logInfo("[%s] Sending message to %s (message length: %u)...", "<Sender>", receiverDescriptor.name, length);
 	}

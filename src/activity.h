@@ -27,23 +27,31 @@ typedef struct {
 	char stringValue[128];
 } SimpleMessage;
 
-#define MESSAGE_CONTENT_DEFINITION_BEGIN(name) \
-	extern const Byte name##Type; \
-	struct name##Content {
+#define COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN MESSAGE_CONTENT_DEFINITION_BEGIN
 
-#define MESSAGE_CONTENT_DEFINITION_END \
-	};
+#define COMMON_MESSAGE_CONTENT_DEFINITION_END(name) MESSAGE_CONTENT_DEFINITION_END(Common, name)
 
-#define MESSAGE_CONTENT_TYPE_MAPPING(name, typeId) \
-	const Byte name##Type = typeId;
+#define MESSAGE_CONTENT_DEFINITION_BEGIN \
+	typedef struct {
+
+#define MESSAGE_CONTENT_DEFINITION_END(subsystem, name) \
+	} subsystem##name##Content; \
+	extern const Byte subsystem##name##Type;
+
+#define COMMON_MESSAGE_CONTENT_REDEFINITION(subsystem, name) \
+	typedef Common##name##Content subsystem##name##Content; \
+	extern const Byte subsystem##name##Type;
+
+#define MESSAGE_CONTENT_TYPE_MAPPING(subsystem, name, typeId) \
+	const Byte subsystem##name##Type = typeId;
 
 #define MESSAGE_DEFINITION_BEGIN \
 	typedef struct { \
 		Byte type; \
 		union {
 
-#define MESSAGE_CONTENT(name) \
-	struct name##Content name;
+#define MESSAGE_CONTENT(subsystem, name) \
+	subsystem##name##Content subsystem##name;
 
 #define MESSAGE_DEFINITION_END(name) \
 		} content; \
@@ -82,31 +90,29 @@ typedef struct {
 	});
 
 #define sendRequest_BEGIN(sender, receiver, _content) \
-	sendMessage2(sender, get##receiver##Descriptor(), &(receiver##Message) { \
-		.type = _content##Type, \
-		.content._content = {
+	sendMessage2(sender, get##receiver##Descriptor(), sizeof(receiver##Message), &(receiver##Message) { \
+		.type = receiver##_content##Type, \
+		.content.receiver##_content = {
 
-#define sendRequest_END(receiver) sendMessage_END(receiver)
+#define sendRequest_END sendMessage_END
 
 #define sendNotification_BEGIN(sender, notifier, receiver, _content) \
-	sendMessage2(sender, receiver, &(notifier##Message) { \
-		.type = _content##Type, \
-		.content._content = {
+	sendMessage2(sender, receiver, sizeof(notifier##Message), &(notifier##Message) { \
+		.type = notifier##_content##Type, \
+		.content.notifier##_content = {
 
-#define sendNotification_END(receiver) sendMessage_END(receiver)
+#define sendNotification_END sendMessage_END
 
 #define sendResponse_BEGIN(sender, responder, _content) \
-	sendMessage2(sender, senderDescriptor, &(responder##Message) { \
-		.type = _content##Type, \
-		.content._content = {
-
-#define sendResponse_END(receiver) sendMessage_END(receiver)
-
-#define sendMessage_END(receiver) \
-		} \
-	}, sizeof(receiver##Message), messagePriority_medium);
+	sendMessage2(sender, senderDescriptor, sizeof(responder##Message), &(responder##Message) { \
+		.type = responder##_content##Type, \
+		.content.responder##_content = {
 
 #define sendResponse_END sendMessage_END
+
+#define sendMessage_END \
+		} \
+	}, messagePriority_medium);
 
 #define MESSAGE_SELECTOR_BEGIN \
 	if (0) {
@@ -118,9 +124,9 @@ typedef struct {
 #define MESSAGE_BY_SENDER_SELECTOR(sender) \
 	} else if (strcmp(senderDescriptor.name, get##sender##Descriptor().name) == 0) {
 
-#define MESSAGE_BY_TYPE_SELECTOR(message, messageType) \
-	} else if (message.type == messageType##Type) { \
-		struct messageType##Content content = message.content.messageType;
+#define MESSAGE_BY_TYPE_SELECTOR(message, subsystem, _content) \
+	} else if (message.type == subsystem##_content##Type) { \
+		subsystem##_content##Content content = message.content.subsystem##_content;
 
 #define MESSAGE_SELECTOR_ANY \
 	} else {
@@ -160,24 +166,24 @@ Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode message
 void destroyActivity(Activity *activity);
 
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
-int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, char *buffer, unsigned long length, unsigned int timeout);
+int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length, unsigned int timeout);
 int receiveMessage(void *_receiver, char *buffer, unsigned long length);
 //int receiveMessage2(void *_receiver, char *senderName, char *buffer, unsigned long length);
 int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length);
 int sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
-int sendMessage2(void *_sender, ActivityDescriptor activity, void *buffer, unsigned long length, MessagePriority priority);
+int sendMessage2(void *_sender, ActivityDescriptor activity, unsigned long length, void *buffer, MessagePriority priority);
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(InitCommand)
-MESSAGE_CONTENT_DEFINITION_END
+COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN
+COMMON_MESSAGE_CONTENT_DEFINITION_END(InitCommand)
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(OffCommand)
-MESSAGE_CONTENT_DEFINITION_END
+COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN
+COMMON_MESSAGE_CONTENT_DEFINITION_END(OffCommand)
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(AbortCommand)
-MESSAGE_CONTENT_DEFINITION_END
+COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN
+COMMON_MESSAGE_CONTENT_DEFINITION_END(AbortCommand)
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(Result)
+COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN
 	Byte code;
-MESSAGE_CONTENT_DEFINITION_END
+COMMON_MESSAGE_CONTENT_DEFINITION_END(Result)
 
 #endif /* ACTIVITY_H_ */

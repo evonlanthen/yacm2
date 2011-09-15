@@ -36,9 +36,8 @@ static ActivityDescriptor milkSupply = {
 
 static Activity *this;
 
-MESSAGE_CONTENT_TYPE_MAPPING(MilkSupplyCommand, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(MilkSupplySupplyMilkCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(MilkSupplyStatus, 9)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, SupplyMilkCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, Status, 9)
 
 ActivityDescriptor getMilkSupplyDescriptor() {
 	return milkSupply;
@@ -67,12 +66,12 @@ static void runMilkSupply(void *activity) {
 				MESSAGE_SELECTOR_ANY
 				//MESSAGE_BY_SENDER_SELECTOR(MainController)
 					MESSAGE_SELECTOR_BEGIN
-						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplySupplyMilkCommand)
+						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, SupplyMilkCommand)
 							logInfo("[milkSupply] Supply milk command received!");
-							sendResponse_BEGIN(this, MilkSupply, MilkSupplyStatus)
+							sendResponse_BEGIN(this, MilkSupply, Status)
 								.code = 254
-							sendMessage_END(MilkSupply)
-						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyStatus)
+							sendResponse_END
+						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, Status)
 							logInfo("[milkSupply] Status received!");
 							logInfo("[milkSupply] \tCode: %u", /* message.content.MilkSupplyStatus. */ content.code);
 							logInfo("[milkSupply] \tMessage: %s", /* message.content.MilkSupplyStatus. */ content.message);

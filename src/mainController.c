@@ -6,8 +6,9 @@
  * @date    Aug 15, 2011
  */
 
-#include <stdio.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 #include "defines.h"
 #include "data.h"
 #include "device.h"
@@ -438,28 +439,48 @@ static void runMainController(void *activity) {
 
 	// Water supply test
 	///*
-	sleep(1);
+	{
+		sleep(1);
 
-	logInfo("[mainController] Going to switch on water supply...");
-//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-//		.activity = getMainControllerDescriptor(),
-//		.intValue = INIT_COMMAND
-//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
-	sendRequest_BEGIN(this, WaterSupply, InitCommand)
-	sendRequest_END(WaterSupply)
+		logInfo("[mainController] Going to switch on water supply...");
+	//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+	//		.activity = getMainControllerDescriptor(),
+	//		.intValue = INIT_COMMAND
+	//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+		sendRequest_BEGIN(this, WaterSupply, InitCommand)
+		sendRequest_END
 
-	sleep(1);
+		sleep(1);
 
-	logInfo("[mainController] Going to supply water...");
-//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-//		.activity = getMainControllerDescriptor(),
-//		.intValue = SUPPLY_WATER_COMMAND
-//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
-	sendRequest_BEGIN(this, WaterSupply, WaterSupplySupplyWaterCommand)
-		.waterAmount = 1000
-	sendRequest_END(WaterSupply)
+		logInfo("[mainController] Going to supply water...");
+	//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+	//		.activity = getMainControllerDescriptor(),
+	//		.intValue = SUPPLY_WATER_COMMAND
+	//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+		sendRequest_BEGIN(this, WaterSupply, SupplyWaterCommand)
+			.waterAmount = 200
+		sendRequest_END
 
-	while (TRUE);
+		while (TRUE) {
+			ActivityDescriptor senderDescriptor;
+			Byte message[400];
+			int result = receiveMessage2(this, &senderDescriptor, &message, 400);
+			if (result > 0) {
+				MESSAGE_SELECTOR_BEGIN
+					MESSAGE_BY_SENDER_SELECTOR(WaterSupply)
+						WaterSupplyMessage *waterSupplyMessage = (WaterSupplyMessage *)&message;
+						MESSAGE_SELECTOR_BEGIN
+							MESSAGE_BY_TYPE_SELECTOR((*waterSupplyMessage), WaterSupply, Result)
+								logInfo("[mainController] Result from water supply received: %u", content.code);
+							MESSAGE_SELECTOR_ANY
+								logWarn("[mainController] Unexpected message %u from water supply received!", waterSupplyMessage->type);
+						MESSAGE_SELECTOR_END
+					MESSAGE_SELECTOR_ANY
+						logWarn("[mainController] Unexpected message from %s received!", senderDescriptor.name);
+				MESSAGE_SELECTOR_END
+			}
+		}
+	}
 	//*/
 
 	// coffee supply test

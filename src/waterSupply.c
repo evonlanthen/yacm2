@@ -18,7 +18,7 @@
 #include "device.h"
 #include "data.h"
 #include "stateMachineEngine.h"
-#include "mainController.h"
+//#include "mainController.h"
 #include "waterSupply.h"
 
 typedef enum {
@@ -37,15 +37,20 @@ static ActivityDescriptor waterSupply = {
 	.tearDown = tearDownWaterSupply
 };
 
-MESSAGE_CONTENT_TYPE_MAPPING(WaterSupplySupplyWaterCommand, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(WaterSupplyStatus, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, InitCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, OffCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, SupplyWaterCommand, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, Result, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, Status, 5)
 
 static Activity *this;
 
 static StateMachine stateMachine;
 static int waterBrewTemperature = 0;
+static unsigned waterAmountToSupply = 0;
 
 static ActivityDescriptor clientDescriptor;
+static ActivityDescriptor callerDescriptor;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -84,9 +89,9 @@ static int checkWater() {
 //				.activity = *this->descriptor,
 //				.intValue = WATER_AVAILABLE_NOTIFICATION,
 //			}, sizeof(MainControllerMessage), messagePriority_high);
-			sendNotification_BEGIN(this, WaterSupply, /* getMainControllerDescriptor() */ clientDescriptor, WaterSupplyStatus)
+			sendNotification_BEGIN(this, WaterSupply, /* getMainControllerDescriptor() */ clientDescriptor, Status)
 				.availability = hasWaterState ? available : notAvailable
-			sendNotification_END(WaterSupply)
+			sendNotification_END
 //		} else {
 //			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
 //				.activity = *this->descriptor,
@@ -210,6 +215,8 @@ static SupplyResult supplyResult;
 static TIMER supplyInitializingTimer;
 static TIMER supplyingTimer;
 static void supplyingStateEntryAction() {
+	logInfo("[waterSupply] Going to supply %u ml water...", waterAmountToSupply);
+
 	isSupplyInitialized = FALSE;
 	supplyResult = supplyResult_nok;
 
@@ -217,7 +224,7 @@ static void supplyingStateEntryAction() {
 	controlPump(deviceState_on);
 	controlHeater(deviceState_on);
 
-	supplyingTimer = setUpTimer(10000);
+	supplyingTimer = setUpTimer(1000 + (100 * waterAmountToSupply));
 	supplyInitializingTimer = setUpTimer(1000);
 }
 
@@ -262,11 +269,14 @@ static void supplyingStateExitAction() {
 	controlPump(deviceState_off);
 	controlHeater(deviceState_off);
 
-	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-		.activity = *this->descriptor,
-		.intValue = (supplyResult == supplyResult_ok ? OK_RESULT : NOK_RESULT),
-		.strValue = "water supplying finished",
-	}, sizeof(MainControllerMessage), messagePriority_high);
+//	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+//		.activity = *this->descriptor,
+//		.intValue = (supplyResult == supplyResult_ok ? OK_RESULT : NOK_RESULT),
+//		.strValue = "water supplying finished",
+//	}, sizeof(MainControllerMessage), messagePriority_high);
+	sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
+		.code = OK_RESULT
+	sendNotification_END
 }
 
 static State supplyingState = {
@@ -320,7 +330,7 @@ static StateMachine stateMachine = {
 };
 
 static void setUpWaterSupply(void *activity) {
-	logInfo("[waterSupply] Setting up...");
+	//logInfo("[waterSupply] Setting up...");
 
 	this = (Activity *)activity;
 
@@ -328,7 +338,7 @@ static void setUpWaterSupply(void *activity) {
 }
 
 static void runWaterSupply(void *activity) {
-	logInfo("[waterSupply] Running...");
+	//logInfo("[waterSupply] Running...");
 
 	while (TRUE) {
 //		// Wait for incoming message or time event
@@ -364,8 +374,41 @@ static void runWaterSupply(void *activity) {
 //				break;
 //			}
 //		}
+		waitForEvent_BEGIN(this, WaterSupply, 100)
+			if (error) {
+				//TODO Implement appropriate error handling
+				sleep(10);
 
+				// Try again
+				continue;
+			}
+			if (result > 0) {
+				MESSAGE_SELECTOR_BEGIN
+					MESSAGE_BY_TYPE_SELECTOR(message, WaterSupply, InitCommand)
+						clientDescriptor = senderDescriptor;
 
+						if (stateMachine.activeState == &switchedOffState) {
+							processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOn);
+						} else {
+							processStateMachineEvent(&stateMachine, waterSupplyEvent_reconfigure);
+						}
+					MESSAGE_BY_TYPE_SELECTOR(message, WaterSupply, OffCommand)
+						processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOff);
+					MESSAGE_BY_TYPE_SELECTOR(message, WaterSupply, SupplyWaterCommand)
+						if (stateMachine.activeState == &idleState) {
+							callerDescriptor = senderDescriptor;
+
+							waterAmountToSupply = content.waterAmount;
+
+							processStateMachineEvent(&stateMachine, waterSupplyEvent_startSupplying);
+						} else {
+							sendResponse_BEGIN(this, WaterSupply, Result)
+								.code = NOK_RESULT
+							sendResponse_END
+						}
+				MESSAGE_SELECTOR_END
+			}
+		waitForEvent_END
 
 		// Run state machine
 		runStateMachine(&stateMachine);

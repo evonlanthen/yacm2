@@ -23,20 +23,26 @@
 //	char strValue[256];
 //} WaterSupplyMessage;
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(WaterSupplySupplyWaterCommand)
-	unsigned int waterAmount;
-MESSAGE_CONTENT_DEFINITION_END
+COMMON_MESSAGE_CONTENT_REDEFINITION(WaterSupply, InitCommand)
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(WaterSupplyStatus)
+COMMON_MESSAGE_CONTENT_REDEFINITION(WaterSupply, OffCommand)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	unsigned int waterAmount; // [ml]
+MESSAGE_CONTENT_DEFINITION_END(WaterSupply, SupplyWaterCommand)
+
+COMMON_MESSAGE_CONTENT_REDEFINITION(WaterSupply, Result)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
 	Availability availability;
-MESSAGE_CONTENT_DEFINITION_END
+MESSAGE_CONTENT_DEFINITION_END(WaterSupply, Status)
 
 MESSAGE_DEFINITION_BEGIN
-	MESSAGE_CONTENT(InitCommand)
-	MESSAGE_CONTENT(OffCommand)
-	MESSAGE_CONTENT(WaterSupplySupplyWaterCommand)
-	MESSAGE_CONTENT(Result)
-	MESSAGE_CONTENT(WaterSupplyStatus)
+	MESSAGE_CONTENT(WaterSupply, InitCommand)
+	MESSAGE_CONTENT(WaterSupply, OffCommand)
+	MESSAGE_CONTENT(WaterSupply, SupplyWaterCommand)
+	MESSAGE_CONTENT(WaterSupply, Result)
+	MESSAGE_CONTENT(WaterSupply, Status)
 MESSAGE_DEFINITION_END(WaterSupply)
 
 extern ActivityDescriptor getWaterSupplyDescriptor(void);

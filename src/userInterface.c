@@ -29,15 +29,19 @@ static void setUpUserInterface(void *activity);
 static void runUserInterface(void *activity);
 static void tearDownUserInterface(void *activity);
 
-static Activity *display;
-static Activity *this;
-
 static ActivityDescriptor userInterfaceDescriptor = {
 	.name = "userInterface",
 	.setUp = setUpUserInterface,
 	.run = runUserInterface,
 	.tearDown = tearDownUserInterface
 };
+
+MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, Command, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, ChangeViewCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, Status, 3)
+
+static Activity *this;
+static Activity *display;
 
 ActivityDescriptor getUserInterfaceDescriptor() {
 	return userInterfaceDescriptor;
@@ -112,13 +116,13 @@ static void runUserInterface(void *activity) {
 						}
 						logInfo("[%s] Message received from %s (message length: %u)", (*this->descriptor).name, senderDescriptor.name, result);
 						MESSAGE_SELECTOR_BEGIN
-						MESSAGE_BY_TYPE_SELECTOR(message, UserInterfaceCommand)
+						MESSAGE_BY_TYPE_SELECTOR(message, UserInterface, Command)
 							logInfo("[%s] User interface command received!", (*this->descriptor).name);
 							logInfo("[%s] \tCommand: %u", (*this->descriptor).name, /* message.content.UserInterfaceCommand. */ content.command);
-							sendResponse_BEGIN(this, UserInterface, UserInterfaceStatus)
+							sendResponse_BEGIN(this, UserInterface, Status)
 										.code = 254
-							sendResponse_END(UserInterface)
-						MESSAGE_BY_TYPE_SELECTOR(message, UserInterfaceStatus)
+							sendResponse_END
+						MESSAGE_BY_TYPE_SELECTOR(message, UserInterface, Status)
 							logInfo("[%s] User interface status received!");
 							logInfo("[%s] \tCode: %u", (*this->descriptor).name, /* message.content.UserInterfaceStatus. */ content.code);
 							logInfo("[%s] \tMessage: %s", (*this->descriptor).name, /* message.content.UserInterfaceStatus. */ content.message);
