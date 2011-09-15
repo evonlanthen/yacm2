@@ -457,6 +457,28 @@ static void runMainController(void *activity) {
 	while (TRUE);
 	*/
 
+	// coffee supply test
+
+	/*
+	sleep(1);
+
+	logInfo("[mainController] Going to switch on coffee supply...");
+	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage) {
+		.activity = getMainControllerDescriptor(),
+		.intValue = INIT_COMMAND
+	}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
+
+	sleep(1);
+
+	logInfo("[mainController] Going to grind beans...");
+	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage) {
+		.activity = getMainControllerDescriptor(),
+		.intValue = SUPPLY_START_COMMAND
+	}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
+
+	while (TRUE);
+
+	*/
 	// Milk supply test
 	/*
 	sleep(1);
