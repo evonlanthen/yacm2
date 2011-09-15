@@ -12,11 +12,19 @@
 #include <mqueue.h>
 #include "activity.h"
 
-typedef struct {
-	ActivityDescriptor activity;
-	int intValue;
-	char strValue[256];
-} UserInterfaceMessage;
+MESSAGE_CONTENT_DEFINITION_BEGIN(UserInterfaceStatus)
+	Byte code;
+	char message[128];
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(UserInterfaceCommand)
+	Byte command;
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(UserInterfaceCommand)
+	MESSAGE_CONTENT(UserInterfaceStatus)
+MESSAGE_DEFINITION_END(UserInterface)
 
 extern ActivityDescriptor getUserInterfaceDescriptor(void);
 
