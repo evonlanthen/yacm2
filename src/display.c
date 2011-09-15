@@ -39,6 +39,7 @@ static void runDisplay(void *activity) {
 	DisplayMessage displayMessage;
 	int messageLength;
 	UserInterfaceMessage userInterfaceMessage;
+	/*
 	userInterfaceMessage.activity = getDisplayDescriptor();
 
 	logInfo("[display] Running...");
@@ -65,7 +66,7 @@ static void runDisplay(void *activity) {
 					sizeof(userInterfaceMessage),
 					messagePriority_low);
 		}
-	}
+	} */
 }
 
 static void tearDownDisplay(void *activity) {

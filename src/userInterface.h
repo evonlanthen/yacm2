@@ -21,10 +21,17 @@ MESSAGE_CONTENT_DEFINITION_BEGIN(UserInterfaceCommand)
 	Byte command;
 MESSAGE_CONTENT_DEFINITION_END
 
+MESSAGE_CONTENT_DEFINITION_BEGIN(UserInterfaceChangeViewCommand)
+	unsigned int viewType;
+MESSAGE_CONTENT_DEFINITION_END
+
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(UserInterfaceCommand)
+	MESSAGE_CONTENT(UserInterfaceChangeViewCommand)
 	MESSAGE_CONTENT(UserInterfaceStatus)
 MESSAGE_DEFINITION_END(UserInterface)
+
+#define CHANGE_VIEW_COMMAND 1
 
 extern ActivityDescriptor getUserInterfaceDescriptor(void);
 

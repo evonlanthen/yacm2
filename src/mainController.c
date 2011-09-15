@@ -520,11 +520,12 @@ static void runMainController(void *activity) {
 	}, sizeof(WaterSupplyMessage), messagePriority_medium);
 
 	logInfo("[mainController] Send message to user interface...");
+	/*
 	sendMessage(getUserInterfaceDescriptor(), (char *)&(UserInterfaceMessage) {
 		.activity = getMainControllerDescriptor(),
 		.intValue = 2,
 		.strValue = "Show view 2",
-	}, sizeof(UserInterfaceMessage), messagePriority_medium);
+	}, sizeof(UserInterfaceMessage), messagePriority_medium); */
 
 	while(TRUE) {
 		logInfo("[mainController] Waiting for subsystem messages...");
