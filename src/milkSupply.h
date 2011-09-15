@@ -12,23 +12,27 @@
 #include <mqueue.h>
 #include "activity.h"
 
-typedef unsigned char Byte;
-typedef unsigned short Word;
-typedef unsigned int DWord;
-
-MESSAGE_CONTENT_DEFINITION_BEGIN(999, MilkSupplyStatus)
+MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplyStatus)
 	Byte code;
+	Byte milkTemperature;
 	char message[128];
 MESSAGE_CONTENT_DEFINITION_END
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(999, MilkSupplyCommand)
+MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplyCommand)
 	Byte command;
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplySupplyMilkCommand)
+	unsigned int milkAmount;
 MESSAGE_CONTENT_DEFINITION_END
 
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MilkSupplyCommand)
+	MESSAGE_CONTENT(MilkSupplySupplyMilkCommand)
 	MESSAGE_CONTENT(MilkSupplyStatus)
 MESSAGE_DEFINITION_END(MilkSupply)
+
+#define SUPPLY_MILK_COMMAND 1
 
 extern ActivityDescriptor getMilkSupplyDescriptor(void);
 

@@ -461,16 +461,16 @@ static void runMainController(void *activity) {
 	/*
 	sleep(1);
 
-	sendMessage_BEGIN(this, MilkSupply, MilkSupplyCommand)
-		.command = 123,
-	sendMessage_END(MilkSupply)
+	sendRequest_BEGIN(this, MilkSupply, MilkSupplySupplyMilkCommand)
+		.milkAmount = 1000
+	sendRequest_END(MilkSupply)
 
 	sleep(1);
 
-	sendMessage_BEGIN(this, MilkSupply, MilkSupplyStatus)
+	sendRequest_BEGIN(this, MilkSupply, MilkSupplyStatus)
 		.code = 1,
 		.message = "Everything okay!"
-	sendMessage_END(MilkSupply)
+	sendRequest_END(MilkSupply)
 
 	while (TRUE);
 	*/

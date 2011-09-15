@@ -17,7 +17,17 @@
 
 #define MAX_ACTIVITY_NAME_LENGTH 32
 
-#define MESSAGE_CONTENT_DEFINITION_BEGIN(typeId, name) \
+typedef unsigned char Byte;
+typedef unsigned short Word;
+typedef unsigned int DWord;
+
+// Old
+typedef struct {
+	int intValue;
+	char stringValue[128];
+} SimpleMessage;
+
+#define MESSAGE_CONTENT_DEFINITION_BEGIN(name) \
 	extern const Byte name##Type; \
 	struct name##Content {
 
@@ -39,6 +49,13 @@
 		} content; \
 	} name##Message;
 
+// Old
+#define receiveSimpleMessage_BEGIN(activity) \
+	{ \
+	ActivityDescriptor senderDescriptor; \
+	SimpleMessage message; \
+	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message));
+
 #define receiveMessage_BEGIN(activity, receiver) \
 	{ \
 	ActivityDescriptor senderDescriptor; \
@@ -48,13 +65,26 @@
 #define receiveMessage_END \
 	}
 
-#define sendMessage_BEGIN(sender, receiver, _content) \
+// Old
+#define sendSimpleMessage(sender, receiver, _intValue) \
+	sendMessage2(sender, receiver, &(SimpleMessage) { \
+		.intValue = _intValue \
+	});
+
+#define sendRequest_BEGIN(sender, receiver, _content) \
 	sendMessage2(sender, get##receiver##Descriptor(), &(receiver##Message) { \
 		.type = _content##Type, \
 		.content._content = {
 
-#define sendResponse_BEGIN(sender, sender2, _content) \
-	sendMessage2(sender, senderDescriptor, &(sender2##Message) { \
+#define sendRequest_END sendMessage_END
+
+#define sendNotification_BEGIN(sender, notifier, receiver, _content) \
+	sendMessage2(sender, receiver, &(notifier##Message) { \
+		.type = _content##Type, \
+		.content._content = {
+
+#define sendResponse_BEGIN(sender, responder, _content) \
+	sendMessage2(sender, senderDescriptor, &(responder##Message) { \
 		.type = _content##Type, \
 		.content._content = {
 
@@ -73,7 +103,8 @@
 	} else if (strcmp(senderDescriptor.name, get##sender##Descriptor().name) == 0) {
 
 #define MESSAGE_BY_TYPE_SELECTOR(message, messageType) \
-	} else if (message.type == messageType##Type) {
+	} else if (message.type == messageType##Type) { \
+		struct messageType##Content content = message.content.messageType;
 
 #define MESSAGE_SELECTOR_ANY \
 	} else {
