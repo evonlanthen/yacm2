@@ -437,25 +437,30 @@ static void runMainController(void *activity) {
 	logInfo("[mainController] Running...");
 
 	// Water supply test
-	/*
+	///*
 	sleep(1);
 
 	logInfo("[mainController] Going to switch on water supply...");
-	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-		.activity = getMainControllerDescriptor(),
-		.intValue = INIT_COMMAND
-	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+//		.activity = getMainControllerDescriptor(),
+//		.intValue = INIT_COMMAND
+//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+	sendRequest_BEGIN(this, WaterSupply, InitCommand)
+	sendRequest_END(WaterSupply)
 
 	sleep(1);
 
 	logInfo("[mainController] Going to supply water...");
-	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-		.activity = getMainControllerDescriptor(),
-		.intValue = SUPPLY_WATER_COMMAND
-	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+//		.activity = getMainControllerDescriptor(),
+//		.intValue = SUPPLY_WATER_COMMAND
+//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+	sendRequest_BEGIN(this, WaterSupply, WaterSupplySupplyWaterCommand)
+		.waterAmount = 1000
+	sendRequest_END(WaterSupply)
 
 	while (TRUE);
-	*/
+	//*/
 
 	// Milk supply test
 	/*
@@ -490,12 +495,12 @@ static void runMainController(void *activity) {
 		}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
 	logInfo("[mainController] ...done. (send message)");
 
-	logInfo("[mainController] Send message to water supply...");
-	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-		.activity = getMainControllerDescriptor(),
-		.intValue = waterSupplyEvent_switchOn,
-		.strValue = "Start water supply",
-	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+//	logInfo("[mainController] Send message to water supply...");
+//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
+//		.activity = getMainControllerDescriptor(),
+//		.intValue = waterSupplyEvent_switchOn,
+//		.strValue = "Start water supply",
+//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
 
 	logInfo("[mainController] Send message to user interface...");
 	sendMessage(getUserInterfaceDescriptor(), (char *)&(UserInterfaceMessage) {

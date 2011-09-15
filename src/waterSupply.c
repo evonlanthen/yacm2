@@ -37,10 +37,15 @@ static ActivityDescriptor waterSupply = {
 	.tearDown = tearDownWaterSupply
 };
 
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupplySupplyWaterCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupplyStatus, 2)
+
 static Activity *this;
 
 static StateMachine stateMachine;
 static int waterBrewTemperature = 0;
+
+static ActivityDescriptor clientDescriptor;
 
 ActivityDescriptor getWaterSupplyDescriptor() {
 	return waterSupply;
@@ -74,17 +79,20 @@ static int checkWater() {
 	if (hasWaterState != lastHasWaterState) {
 		lastHasWaterState = hasWaterState;
 
-		if (hasWaterState) {
-			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-				.activity = *this->descriptor,
-				.intValue = WATER_AVAILABLE_NOTIFICATION,
-			}, sizeof(MainControllerMessage), messagePriority_high);
-		} else {
-			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-				.activity = *this->descriptor,
-				.intValue = NO_WATER_AVAILABLE_ERROR
-			}, sizeof(MainControllerMessage), messagePriority_high);
-		}
+//		if (hasWaterState) {
+//			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+//				.activity = *this->descriptor,
+//				.intValue = WATER_AVAILABLE_NOTIFICATION,
+//			}, sizeof(MainControllerMessage), messagePriority_high);
+			sendNotification_BEGIN(this, WaterSupply, /* getMainControllerDescriptor() */ clientDescriptor, WaterSupplyStatus)
+				.availability = hasWaterState ? available : notAvailable
+			sendNotification_END(WaterSupply)
+//		} else {
+//			sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+//				.activity = *this->descriptor,
+//				.intValue = NO_WATER_AVAILABLE_ERROR
+//			}, sizeof(MainControllerMessage), messagePriority_high);
+//		}
 	}
 
 	return hasWaterState;
@@ -323,39 +331,41 @@ static void runWaterSupply(void *activity) {
 	logInfo("[waterSupply] Running...");
 
 	while (TRUE) {
-		// Wait for incoming message or time event
-		WaterSupplyMessage incomingMessage;
-		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 100);
-		if (result < 0) {
-			//TODO Implement appropriate error handling
-			sleep(10);
+//		// Wait for incoming message or time event
+//		WaterSupplyMessage incomingMessage;
+//		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 100);
+//		if (result < 0) {
+//			//TODO Implement appropriate error handling
+//			sleep(10);
+//
+//			// Try again
+//			continue;
+//		}
+//
+//		// Check if there is an incoming message
+//		if (result > 0) {
+//			// Process incoming message
+//			switch (0 /* incomingMessage.intValue */) {
+//			case INIT_COMMAND:
+//				if (stateMachine.activeState == &switchedOffState) {
+//					processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOn);
+//				} else {
+//					processStateMachineEvent(&stateMachine, waterSupplyEvent_reconfigure);
+//				}
+//
+//				break;
+//			case OFF_COMMAND:
+//				processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOff);
+//
+//				break;
+//			case SUPPLY_WATER_COMMAND:
+//				processStateMachineEvent(&stateMachine, waterSupplyEvent_startSupplying);
+//
+//				break;
+//			}
+//		}
 
-			// Try again
-			continue;
-		}
 
-		// Check if there is an incoming message
-		if (result > 0) {
-			// Process incoming message
-			switch (incomingMessage.intValue) {
-			case INIT_COMMAND:
-				if (stateMachine.activeState == &switchedOffState) {
-					processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOn);
-				} else {
-					processStateMachineEvent(&stateMachine, waterSupplyEvent_reconfigure);
-				}
-
-				break;
-			case OFF_COMMAND:
-				processStateMachineEvent(&stateMachine, waterSupplyEvent_switchOff);
-
-				break;
-			case SUPPLY_WATER_COMMAND:
-				processStateMachineEvent(&stateMachine, waterSupplyEvent_startSupplying);
-
-				break;
-			}
-		}
 
 		// Run state machine
 		runStateMachine(&stateMachine);

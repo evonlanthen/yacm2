@@ -60,10 +60,20 @@ typedef struct {
 	{ \
 	ActivityDescriptor senderDescriptor; \
 	receiver##Message message; \
-	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message));
+	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message)); \
+	int error = result < 0 ? -result : 0;
 
 #define receiveMessage_END \
 	}
+
+#define waitForEvent_BEGIN(activity, receiver, timeout) \
+	{ \
+	ActivityDescriptor senderDescriptor; \
+	receiver##Message message; \
+	int result = waitForEvent2(activity, &senderDescriptor, &message, sizeof(message), timeout); \
+	int error = result < 0 ? -result : 0;
+
+#define waitForEvent_END receiveMessage_END
 
 // Old
 #define sendSimpleMessage(sender, receiver, _intValue) \
@@ -76,17 +86,21 @@ typedef struct {
 		.type = _content##Type, \
 		.content._content = {
 
-#define sendRequest_END sendMessage_END
+#define sendRequest_END(receiver) sendMessage_END(receiver)
 
 #define sendNotification_BEGIN(sender, notifier, receiver, _content) \
 	sendMessage2(sender, receiver, &(notifier##Message) { \
 		.type = _content##Type, \
 		.content._content = {
 
+#define sendNotification_END(receiver) sendMessage_END(receiver)
+
 #define sendResponse_BEGIN(sender, responder, _content) \
 	sendMessage2(sender, senderDescriptor, &(responder##Message) { \
 		.type = _content##Type, \
 		.content._content = {
+
+#define sendResponse_END(receiver) sendMessage_END(receiver)
 
 #define sendMessage_END(receiver) \
 		} \
@@ -144,10 +158,24 @@ Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode message
 void destroyActivity(Activity *activity);
 
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
+int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, char *buffer, unsigned long length, unsigned int timeout);
 int receiveMessage(void *_receiver, char *buffer, unsigned long length);
 //int receiveMessage2(void *_receiver, char *senderName, char *buffer, unsigned long length);
 int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length);
 int sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
 int sendMessage2(void *_sender, ActivityDescriptor activity, void *buffer, unsigned long length, MessagePriority priority);
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(InitCommand)
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(OffCommand)
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(AbortCommand)
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(Result)
+	Byte code;
+MESSAGE_CONTENT_DEFINITION_END
 
 #endif /* ACTIVITY_H_ */

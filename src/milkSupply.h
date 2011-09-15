@@ -12,22 +12,17 @@
 #include <mqueue.h>
 #include "activity.h"
 
-MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplyStatus)
-	Byte code;
-	Byte milkTemperature;
-	char message[128];
-MESSAGE_CONTENT_DEFINITION_END
-
-MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplyCommand)
-	Byte command;
-MESSAGE_CONTENT_DEFINITION_END
-
 MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplySupplyMilkCommand)
 	unsigned int milkAmount;
 MESSAGE_CONTENT_DEFINITION_END
 
+MESSAGE_CONTENT_DEFINITION_BEGIN(MilkSupplyStatus)
+	Byte code;
+	int milkTemperature;
+	char message[128];
+MESSAGE_CONTENT_DEFINITION_END
+
 MESSAGE_DEFINITION_BEGIN
-	MESSAGE_CONTENT(MilkSupplyCommand)
 	MESSAGE_CONTENT(MilkSupplySupplyMilkCommand)
 	MESSAGE_CONTENT(MilkSupplyStatus)
 MESSAGE_DEFINITION_END(MilkSupply)

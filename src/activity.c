@@ -24,6 +24,9 @@
 		.name = "<Unknown sender>" \
 	}
 
+MESSAGE_CONTENT_TYPE_MAPPING(InitCommand, 91)
+MESSAGE_CONTENT_TYPE_MAPPING(OffCommand, 92)
+
 static char *createMessageQueueId(char *activityName) {
 	size_t idLength = strlen(activityName) + 2;
 	char *id = (char *) malloc(idLength);
@@ -126,6 +129,10 @@ void destroyActivity(Activity *activity) {
 }
 
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout) {
+	return waitForEvent(activity, NULL, buffer, length, timeout);
+}
+
+int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length, unsigned int timeout) {
 	//logInfo("[%s] Going to wait for an event...", activity->descriptor->name);
 
 	int polling;
@@ -160,16 +167,7 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 	} else if (numberOfFiredEvents == 1) {
 		//logInfo("[%s] Message received!", activity->descriptor->name);
 
-		unsigned long incomingMessageLength = receiveMessage(activity, buffer, length);
-
-		/*
-		from %s (%d): intVal=%d, strVal='%s'",
-		activity->descriptor.name,
-		buffer->activity.name,
-		incomingMessageLength,
-		buffer->intValue,
-		buffer->strValue);
-		*/
+		unsigned long incomingMessageLength = receiveMessage2(activity, senderDescriptor, buffer, length);
 
 		return incomingMessageLength;
 	} else {

@@ -67,14 +67,13 @@ static void runMilkSupply(void *activity) {
 				MESSAGE_SELECTOR_ANY
 				//MESSAGE_BY_SENDER_SELECTOR(MainController)
 					MESSAGE_SELECTOR_BEGIN
-						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyCommand)
-							logInfo("[milkSupply] Milk supply command received!");
-							logInfo("[milkSupply] \tCommand: %u", /* message.content.MilkSupplyCommand. */ content.command);
+						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplySupplyMilkCommand)
+							logInfo("[milkSupply] Supply milk command received!");
 							sendResponse_BEGIN(this, MilkSupply, MilkSupplyStatus)
 								.code = 254
 							sendMessage_END(MilkSupply)
 						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyStatus)
-							logInfo("[milkSupply] Milk supply status received!");
+							logInfo("[milkSupply] Status received!");
 							logInfo("[milkSupply] \tCode: %u", /* message.content.MilkSupplyStatus. */ content.code);
 							logInfo("[milkSupply] \tMessage: %s", /* message.content.MilkSupplyStatus. */ content.message);
 					MESSAGE_SELECTOR_END
