@@ -36,53 +36,48 @@ static ActivityDescriptor milkSupply = {
 
 static Activity *this;
 
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, SupplyMilkCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, Status, 9)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, Result, 3)
 
 ActivityDescriptor getMilkSupplyDescriptor() {
 	return milkSupply;
 }
 
 static void setUpMilkSupply(void *activity) {
-	logInfo("[milkSupply] Setting up...");
+	//logInfo("[milkSupply] Setting up...");
 
 	this = (Activity *)activity;
 }
 
 static void runMilkSupply(void *activity) {
-	logInfo("[milkSupply] Running...");
+	//logInfo("[milkSupply] Running...");
 
 	while (TRUE) {
 		receiveMessage_BEGIN(this, MilkSupply)
-			if (result < 0) {
+			if (error) {
 				//TODO Implement appropriate error handling
 				sleep(10);
 
 				// Try again
 				continue;
 			}
-			logInfo("[milkSupply] Message received from %s (message length: %u)", senderDescriptor.name, result);
-			MESSAGE_SELECTOR_BEGIN
-				MESSAGE_SELECTOR_ANY
-				//MESSAGE_BY_SENDER_SELECTOR(MainController)
-					MESSAGE_SELECTOR_BEGIN
-						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, SupplyMilkCommand)
-							logInfo("[milkSupply] Supply milk command received!");
-							sendResponse_BEGIN(this, MilkSupply, Status)
-								.code = 254
-							sendResponse_END
-						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, Status)
-							logInfo("[milkSupply] Status received!");
-							logInfo("[milkSupply] \tCode: %u", /* message.content.MilkSupplyStatus. */ content.code);
-							logInfo("[milkSupply] \tMessage: %s", /* message.content.MilkSupplyStatus. */ content.message);
-					MESSAGE_SELECTOR_END
-				//MESSAGE_SELECTOR_ANY
-					//logWarn("[milkSupply] Unexpected message!");
-			MESSAGE_SELECTOR_END
+			if (result > 0) {
+				MESSAGE_SELECTOR_BEGIN
+					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, InitCommand)
+
+					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, SupplyMilkCommand)
+						logInfo("[milkSupply] Supplying %u ml milk...", content.milkAmount);
+						logInfo("[milkSupply] ...done.");
+						sendResponse_BEGIN(this, MilkSupply, Result)
+							.code = OK_RESULT
+						sendResponse_END
+				MESSAGE_SELECTOR_END
+			}
 		receiveMessage_END
 	}
 }
 
 static void tearDownMilkSupply(void *activity) {
-	logInfo("[milkSupply] Tearing down...");
+	//logInfo("[milkSupply] Tearing down...");
 }

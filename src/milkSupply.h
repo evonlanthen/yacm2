@@ -12,9 +12,13 @@
 #include <mqueue.h>
 #include "activity.h"
 
+COMMON_MESSAGE_CONTENT_REDEFINITION(MilkSupply, InitCommand)
+
 MESSAGE_CONTENT_DEFINITION_BEGIN
-	unsigned int milkAmount;
+	unsigned int milkAmount; // [ml]
 MESSAGE_CONTENT_DEFINITION_END(MilkSupply, SupplyMilkCommand)
+
+COMMON_MESSAGE_CONTENT_REDEFINITION(MilkSupply, Result)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	Byte code;
@@ -23,7 +27,9 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 MESSAGE_CONTENT_DEFINITION_END(MilkSupply, Status)
 
 MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(MilkSupply, InitCommand)
 	MESSAGE_CONTENT(MilkSupply, SupplyMilkCommand)
+	MESSAGE_CONTENT(MilkSupply, Result)
 	MESSAGE_CONTENT(MilkSupply, Status)
 MESSAGE_DEFINITION_END(MilkSupply)
 

@@ -438,25 +438,17 @@ static void runMainController(void *activity) {
 	logInfo("[mainController] Running...");
 
 	// Water supply test
-	///*
+	/*
 	{
 		sleep(1);
 
 		logInfo("[mainController] Going to switch on water supply...");
-	//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-	//		.activity = getMainControllerDescriptor(),
-	//		.intValue = INIT_COMMAND
-	//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
 		sendRequest_BEGIN(this, WaterSupply, InitCommand)
 		sendRequest_END
 
 		sleep(1);
 
 		logInfo("[mainController] Going to supply water...");
-	//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-	//		.activity = getMainControllerDescriptor(),
-	//		.intValue = SUPPLY_WATER_COMMAND
-	//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
 		sendRequest_BEGIN(this, WaterSupply, SupplyWaterCommand)
 			.waterAmount = 200
 		sendRequest_END
@@ -481,10 +473,9 @@ static void runMainController(void *activity) {
 			}
 		}
 	}
-	//*/
+	*/
 
-	// coffee supply test
-
+	// Coffee supply test
 	/*
 	sleep(1);
 
@@ -503,31 +494,25 @@ static void runMainController(void *activity) {
 	}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
 
 	while (TRUE);
-
 	*/
+
 	// Milk supply test
 	/*
 	sleep(1);
 
-	sendRequest_BEGIN(this, MilkSupply, MilkSupplySupplyMilkCommand)
-		.milkAmount = 1000
-	sendRequest_END(MilkSupply)
-
-	sleep(1);
-
-	sendRequest_BEGIN(this, MilkSupply, MilkSupplyStatus)
-		.code = 1,
-		.message = "Everything okay!"
-	sendRequest_END(MilkSupply)
+	sendRequest_BEGIN(this, MilkSupply, SupplyMilkCommand)
+		.milkAmount = 20
+	sendRequest_END
 
 	while (TRUE);
 	*/
 
+	setUpStateMachine(&stateMachine);
+
+	sleep(10);
+
 	MainControllerMessage message;
 	unsigned long messageLength;
-	logInfo("[mainController] Running...");
-	setUpStateMachine(&stateMachine);
-	sleep(10);
 
 	logInfo("[mainController] Send message to coffee supply...");
 	logInfo("[mainController] Message size: %ld", sizeof(CoffeeSupplyMessage));
