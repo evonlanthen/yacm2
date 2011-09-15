@@ -17,6 +17,10 @@
 #include "syslog.h"
 #include "device.h"
 
+int getFileDescriptor(char *deviceName, int flags) {
+	return open(deviceName, flags);
+}
+
 int readBlockingDevice(char *deviceFifo) {
 	char input[2];
 	int ret, fd;

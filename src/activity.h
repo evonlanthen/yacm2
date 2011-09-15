@@ -106,6 +106,8 @@ typedef struct {
 		} \
 	}, sizeof(receiver##Message), messagePriority_medium);
 
+#define sendResponse_END sendMessage_END
+
 #define MESSAGE_SELECTOR_BEGIN \
 	if (0) {
 
