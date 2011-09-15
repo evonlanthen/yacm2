@@ -53,8 +53,8 @@
 		.type = _content##Type, \
 		.content._content = {
 
-#define sendResponse_BEGIN(sender, receiver, _content) \
-	sendMessage2(sender, receiver, &(receiver##Message) { \
+#define sendResponse_BEGIN(sender, sender2, _content) \
+	sendMessage2(sender, senderDescriptor, &(sender2##Message) { \
 		.type = _content##Type, \
 		.content._content = {
 

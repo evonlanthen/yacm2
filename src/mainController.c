@@ -440,7 +440,7 @@ static void runMainController(void *activity) {
 	/*
 	sleep(1);
 
-	logInfo("Going to switch on water supply...");
+	logInfo("[mainController] Going to switch on water supply...");
 	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
 		.activity = getMainControllerDescriptor(),
 		.intValue = INIT_COMMAND
@@ -448,7 +448,7 @@ static void runMainController(void *activity) {
 
 	sleep(1);
 
-	logInfo("Going to supply water...");
+	logInfo("[mainController] Going to supply water...");
 	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
 		.activity = getMainControllerDescriptor(),
 		.intValue = SUPPLY_WATER_COMMAND
@@ -461,26 +461,11 @@ static void runMainController(void *activity) {
 	/*
 	sleep(1);
 
-//	sendMessage(getMilkSupplyDescriptor(), (char *)&(MilkSupplyMessage) {
-//		.type = MilkSupplyCommandType,
-//		.content.MilkSupplyCommand.command = 123,
-//	}, sizeof(MilkSupplyMessage), messagePriority_medium);
-
 	sendMessage_BEGIN(this, MilkSupply, MilkSupplyCommand)
 		.command = 123,
 	sendMessage_END(MilkSupply)
 
 	sleep(1);
-
-//	sendMessage(getMilkSupplyDescriptor(), (char *)&(MilkSupplyMessage) {
-//		.type = MilkSupplyStatusType,
-//		//.content.MilkSupplyStatus.code = 1,
-//		//.content.MilkSupplyStatus.message = "Everything okay!",
-//		.content.MilkSupplyStatus = {
-//				.code = 1,
-//				.message = "Everything okay!",
-//		}
-//	}, sizeof(MilkSupplyMessage), messagePriority_medium);
 
 	sendMessage_BEGIN(this, MilkSupply, MilkSupplyStatus)
 		.code = 1,

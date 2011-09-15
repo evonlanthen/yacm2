@@ -68,6 +68,9 @@ static void runMilkSupply(void *activity) {
 						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyCommand)
 							logInfo("[milkSupply] Milk supply command received!");
 							logInfo("[milkSupply] \tCommand: %u", message.content.MilkSupplyCommand.command);
+							sendResponse_BEGIN(this, MilkSupply, MilkSupplyStatus)
+								.code = 456
+							sendMessage_END(MilkSupply)
 						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyStatus)
 							logInfo("[milkSupply] Milk supply status received!");
 							logInfo("[milkSupply] \tCode: %u", message.content.MilkSupplyStatus.code);
