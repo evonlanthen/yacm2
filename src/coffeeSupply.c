@@ -279,13 +279,18 @@ static void runCoffeeSupply(void *activityarg) {
 				// notifiy mainController:
 				sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
 					.activity = getCoffeeSupplyDescriptor(),
-					.intValue = OK_RESULT,
-					.strValue = "coffee powder supplying finished",
+					.intValue = SUPPLY_NO_BEANS_ERROR,
+					.strValue = "no beans",
 				}, sizeof(MainControllerMessage), messagePriority_high);
 				lastHasBeans = FALSE;
 				break;
 			case SUPPLY_BEANS_AVAILABLE_NOTIFICATION:
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_beansAvailable);
+				sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
+					.activity = getCoffeeSupplyDescriptor(),
+					.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
+					.strValue = "beans available",
+				}, sizeof(MainControllerMessage), messagePriority_high);
 				lastHasBeans = TRUE;
 				break;
 			case OK_RESULT:
