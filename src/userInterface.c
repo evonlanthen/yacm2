@@ -13,6 +13,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/epoll.h>
@@ -49,15 +50,14 @@ static void setUpUserInterface(void *activity) {
 }
 
 static void runUserInterface(void *activity) {
-	int polling, value, fd, i;
+	int polling, value, fd, i, result;
 	struct epoll_event firedEvents[100];
 	int numberOfFiredEvents;
 	char buffer[3];
-	static char buttonsDevice[] = "./dev/buttons";
-	static int buttonsFileDescriptor;
-	static char switchesDevice[] = "./dev/switches";
-	static int switchesFileDescriptor;
-	UserInterfaceMessage incomingMessage;
+	char buttonsDevice[] = "./dev/buttons";
+	int buttonsFileDescriptor;
+	char switchesDevice[] = "./dev/switches";
+	int switchesFileDescriptor;
 	MainControllerMessage mainControllerMessage;
 	mainControllerMessage.activity = getUserInterfaceDescriptor();
 
@@ -125,17 +125,17 @@ static void runUserInterface(void *activity) {
 						MESSAGE_SELECTOR_END
 					receiveMessage_END
 					break;
-				case buttonsFileDescriptor:
-					buffer = read(fd, buttonsFileDescriptor, 3);
-					if (buffer < 0) {
+				case 1: //buttonsFileDescriptor:
+					result = read(buttonsFileDescriptor, buffer, 3);
+					if (result < 0) {
 						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
 					}
 					value = atoi(buffer);
 					// TODO: Update display and send command
 					break;
-				case switchesFileDesciptor:
-					buffer = read(fd, switchesFileDescriptor, 3);
-					if (buffer < 0) {
+				case 2: //switchesFileDescriptor:
+					result = read(switchesFileDescriptor, buffer, 3);
+					if (result < 0) {
 						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
 					}
 					value = atoi(buffer);
