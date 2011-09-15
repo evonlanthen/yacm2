@@ -31,6 +31,8 @@ static ActivityDescriptor mainControllerDescriptor = {
 		.tearDown = tearDownMainController
 };
 
+static Activity *this;
+
 ActivityDescriptor getMainControllerDescriptor() {
 	return mainControllerDescriptor;
 }
@@ -425,14 +427,10 @@ static StateMachine coffeeMakingProcessMachine = {
 		}
 };
 
-
-
-
-
-
-
 static void setUpMainController(void *activity) {
 	logInfo("[mainController] Setting up...");
+
+	this = (Activity *)activity;
 }
 
 static void runMainController(void *activity) {
@@ -455,6 +453,39 @@ static void runMainController(void *activity) {
 		.activity = getMainControllerDescriptor(),
 		.intValue = SUPPLY_WATER_COMMAND
 	}, sizeof(WaterSupplyMessage), messagePriority_medium);
+
+	while (TRUE);
+	*/
+
+	// Milk supply test
+	/*
+	sleep(1);
+
+//	sendMessage(getMilkSupplyDescriptor(), (char *)&(MilkSupplyMessage) {
+//		.type = MilkSupplyCommandType,
+//		.content.MilkSupplyCommand.command = 123,
+//	}, sizeof(MilkSupplyMessage), messagePriority_medium);
+
+	sendMessage_BEGIN(this, MilkSupply, MilkSupplyCommand)
+		.command = 123,
+	sendMessage_END(MilkSupply)
+
+	sleep(1);
+
+//	sendMessage(getMilkSupplyDescriptor(), (char *)&(MilkSupplyMessage) {
+//		.type = MilkSupplyStatusType,
+//		//.content.MilkSupplyStatus.code = 1,
+//		//.content.MilkSupplyStatus.message = "Everything okay!",
+//		.content.MilkSupplyStatus = {
+//				.code = 1,
+//				.message = "Everything okay!",
+//		}
+//	}, sizeof(MilkSupplyMessage), messagePriority_medium);
+
+	sendMessage_BEGIN(this, MilkSupply, MilkSupplyStatus)
+		.code = 1,
+		.message = "Everything okay!"
+	sendMessage_END(MilkSupply)
 
 	while (TRUE);
 	*/

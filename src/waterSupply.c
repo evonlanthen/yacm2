@@ -327,10 +327,10 @@ static void runWaterSupply(void *activity) {
 		WaterSupplyMessage incomingMessage;
 		int result = waitForEvent(this, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
-			//TODO Implement apropriate error handling
+			//TODO Implement appropriate error handling
 			sleep(10);
 
-			// Try to recover from error
+			// Try again
 			continue;
 		}
 

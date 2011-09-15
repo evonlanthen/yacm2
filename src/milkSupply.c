@@ -14,7 +14,9 @@
  * Leitungsspuehlung: PipeFlushing
  */
 
+#include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include "defines.h"
 #include "syslog.h"
 #include "device.h"
@@ -32,23 +34,49 @@ static ActivityDescriptor milkSupply = {
 	.tearDown = tearDownMilkSupply
 };
 
+static Activity *this;
+
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupplyCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupplyStatus, 9)
+
 ActivityDescriptor getMilkSupplyDescriptor() {
 	return milkSupply;
 }
 
 static void setUpMilkSupply(void *activity) {
 	logInfo("[milkSupply] Setting up...");
+
+	this = (Activity *)activity;
 }
 
 static void runMilkSupply(void *activity) {
 	logInfo("[milkSupply] Running...");
 
 	while (TRUE) {
-		logInfo("[milkSupply] Going to receive message...");
-		MilkSupplyMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		logInfo("[milkSupply] Message received - length: %ld, value: %d, message: %s",
-				messageLength, message.intValue, message.strValue);
+		receiveMessage_BEGIN(this, MilkSupply)
+			if (result < 0) {
+				//TODO Implement appropriate error handling
+				sleep(10);
+
+				// Try again
+				continue;
+			}
+			logInfo("[milkSupply] Message received from %s (message length: %u)", senderDescriptor.name, result);
+			MESSAGE_SELECTOR_BEGIN
+				MESSAGE_BY_SENDER_SELECTOR(MainController)
+					MESSAGE_SELECTOR_BEGIN
+						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyCommand)
+							logInfo("[milkSupply] Milk supply command received!");
+							logInfo("[milkSupply] \tCommand: %u", message.content.MilkSupplyCommand.command);
+						MESSAGE_BY_TYPE_SELECTOR(message, MilkSupplyStatus)
+							logInfo("[milkSupply] Milk supply status received!");
+							logInfo("[milkSupply] \tCode: %u", message.content.MilkSupplyStatus.code);
+							logInfo("[milkSupply] \tMessage: %s", message.content.MilkSupplyStatus.message);
+					MESSAGE_SELECTOR_END
+				MESSAGE_SELECTOR_ANY
+					logWarn("[milkSupply] Unexpected message!");
+			MESSAGE_SELECTOR_END
+		receiveMessage_END
 	}
 }
 

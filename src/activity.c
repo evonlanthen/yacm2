@@ -17,6 +17,13 @@
 
 #define MAX_MESSAGE_LENGTH 400
 
+//#define UNKNOWN_SENDER_NAME "<Unknown sender>"
+
+#define UNKNOWN_SENDER_DESCRIPTOR \
+	&(ActivityDescriptor) { \
+		.name = "<Unknown sender>" \
+	}
+
 static char *createMessageQueueId(char *activityName) {
 	size_t idLength = strlen(activityName) + 2;
 	char *id = (char *) malloc(idLength);
@@ -172,33 +179,114 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 	}
 }
 
-int receiveMessage(void *_activity, char *buffer, unsigned long length) {
-	if (!_activity) {
-		logErr("["__FILE__"] null pointer at receiveMessage(_activity, ...)");
+int receiveMessage(void *_receiver, char *buffer, unsigned long length) {
+	return receiveMessage2(_receiver, NULL, buffer, length);
+}
+
+//int receiveMessage2(void *_receiver, char *senderName, char *buffer, unsigned long length) {
+int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length) {
+	if (!_receiver) {
+		logErr("["__FILE__"] null pointer at receiveMessage(_receiver, ...)");
 
 		return -EFAULT;
 	}
 
-	Activity *activity = (Activity *)_activity;
+	int result = 0;
 
-	char receiveBuffer[MAX_MESSAGE_LENGTH + 1];
+	Activity *receiver = (Activity *)_receiver;
+
+	logInfo("[%s] Going to receive message...", receiver->descriptor->name);
+
+	//char receiveBuffer[MAX_MESSAGE_LENGTH + 1];
+	void *receiveBuffer = NULL;
+	if (!(receiveBuffer = malloc(MAX_MESSAGE_LENGTH + 1))) {
+		logErr("[%s] Error allocating receiver buffer: %s", receiver->descriptor->name, strerror(errno));
+
+		return -EFAULT;
+	}
+
 	ssize_t messageLength;
-	if ((messageLength = mq_receive(activity->messageQueue, receiveBuffer, sizeof(receiveBuffer), NULL)) < 0) {
-		if (activity->messageQueueMode != messageQueue_nonBlocking) {
-			logErr("[%s] Error receiving message: %s", activity->descriptor->name, strerror(errno));
+	if ((messageLength = mq_receive(receiver->messageQueue, receiveBuffer, /* sizeof(receiveBuffer) */ MAX_MESSAGE_LENGTH + 1, NULL)) < 0) {
+		if (receiver->messageQueueMode != messageQueue_nonBlocking) {
+			logErr("[%s] Error receiving message: %s", receiver->descriptor->name, strerror(errno));
+
+			result = -EFAULT;
+
+			goto receiveMessage2_out;
 		}
 	}
-	if (messageLength > length) {
-		return -EFAULT;
-	}
-	memcpy(buffer, receiveBuffer, messageLength);
 
-	return messageLength;
+	// Check length of the receive message
+	if (!(messageLength >= length)) {
+		logErr("[%s] Error receiving message: Message shorter than expected!", receiver->descriptor->name);
+
+		result = -EFAULT;
+
+		goto receiveMessage2_out;
+	}
+
+	// Copy message
+	memcpy(buffer, receiveBuffer, length);
+	result = length;
+
+	//char *_senderName = NULL;
+	ActivityDescriptor *_senderDescriptor = NULL;
+	if (messageLength > length) {
+		//_senderName = receiveBuffer + length;
+		_senderDescriptor = receiveBuffer + length;
+	}
+
+	//if (senderName) {
+	if (_senderDescriptor) {
+		// Copy sender name
+		//if (_senderName) {
+		if (senderDescriptor) {
+			//memcpy(senderName, _senderName, MAX_ACTIVITY_NAME_LENGTH);
+			memcpy(senderDescriptor, _senderDescriptor, sizeof(ActivityDescriptor));
+		} else {
+			//senderName[0] = '\0';
+			//memcpy(senderName, UNKNOWN_SENDER_NAME, strlen(UNKNOWN_SENDER_NAME) + 1);
+			memcpy(senderDescriptor, UNKNOWN_SENDER_DESCRIPTOR, sizeof(ActivityDescriptor));
+		}
+	}
+
+	//if (_senderName) {
+	if (_senderDescriptor) {
+		//logInfo("[%s] Message received from %s (message length: %u)...", receiver->descriptor->name, _senderName, length);
+		logInfo("[%s] Message received from %s (message length: %u)...", receiver->descriptor->name, _senderDescriptor->name, length);
+	} else {
+		//logInfo("[%s] Message received (message length: %u)...", receiver->descriptor->name, messageLength);
+	}
+
+receiveMessage2_out:
+	free(receiveBuffer);
+
+	return result;
 }
 
 int sendMessage(ActivityDescriptor receiverDescriptor, char *buffer, unsigned long length, MessagePriority priority) {
-	if (length > MAX_MESSAGE_LENGTH) {
-		return -EFAULT;
+	return sendMessage2(NULL, receiverDescriptor, buffer, length, priority);
+}
+
+int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, void *buffer, unsigned long length, MessagePriority priority) {
+//	if (!_sender) {
+//		logErr("["__FILE__"] null pointer at senderMessage(_sender, ...)");
+//
+//		return -EFAULT;
+//	}
+
+	int result = 0;
+
+	Activity *sender = (Activity *)_sender;
+
+	if (sender) {
+		if (length > MAX_MESSAGE_LENGTH - MAX_ACTIVITY_NAME_LENGTH) {
+			return -EFAULT;
+		}
+	} else {
+		if (length > MAX_MESSAGE_LENGTH) {
+			return -EFAULT;
+		}
 	}
 
 	char *receiverMessageQueueId = createMessageQueueId(receiverDescriptor.name);
@@ -211,15 +299,50 @@ int sendMessage(ActivityDescriptor receiverDescriptor, char *buffer, unsigned lo
 		return -EFAULT;
 	}
 
-	//logInfo("[%s] Sending message (message length: %u)...", "<Sender>", length);
-
-	if (mq_send(receiverQueue, buffer, length, priority) < 0) {
-		logErr("[%s] Error sending message: %s", "<Sender>", strerror(errno));
-
-		return -EFAULT;
+	if (sender) {
+		logInfo("[%s] Sending message to %s (message length: %u)...", sender->descriptor->name, receiverDescriptor.name, length);
+	} else {
+		//logInfo("[%s] Sending message to %s (message length: %u)...", "<Sender>", receiverDescriptor.name, length);
 	}
+
+	void *sendBuffer = 0;
+	if (sender) {
+		//if (!(sendBuffer = malloc(MAX_ACTIVITY_NAME_LENGTH + length))) {
+		if (!(sendBuffer = malloc(sizeof(ActivityDescriptor) + length))) {
+			logErr("[%s] Error allocating send buffer: %s", sender->descriptor->name, strerror(errno));
+
+			result = -EFAULT;
+
+			goto sendMessage2_out;
+		}
+		// Copy message
+		memcpy(sendBuffer, buffer, length);
+		// Copy sender name
+		//memcpy(sendBuffer + length, sender->descriptor->name, MAX_ACTIVITY_NAME_LENGTH);
+		// copy sender descriptor
+		memcpy(sendBuffer + length, sender->descriptor, sizeof(ActivityDescriptor));
+		//if (mq_send(receiverQueue, sendBuffer, MAX_ACTIVITY_NAME_LENGTH + length, priority) < 0) {
+		if (mq_send(receiverQueue, sendBuffer, sizeof(ActivityDescriptor) + length, priority) < 0) {
+			logErr("[%s] Error sending message: %s", sender->descriptor->name, strerror(errno));
+
+			result = -EFAULT;
+
+			goto sendMessage2_out;
+		}
+	} else {
+		if (mq_send(receiverQueue, buffer, length, priority) < 0) {
+			logErr("[%s] Error sending message: %s", "<Sender>", strerror(errno));
+
+			result = -EFAULT;
+
+			goto sendMessage2_out;
+		}
+	}
+
+sendMessage2_out:
+	free(sendBuffer);
 
 	mq_close(receiverQueue);
 
-	return 0;
+	return result;
 }

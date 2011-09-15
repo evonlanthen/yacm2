@@ -12,11 +12,23 @@
 #include <mqueue.h>
 #include "activity.h"
 
-typedef struct {
-	ActivityDescriptor activity;
-	int intValue;
-	char strValue[256];
-} MilkSupplyMessage;
+typedef unsigned char Byte;
+typedef unsigned short Word;
+typedef unsigned int DWord;
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(999, MilkSupplyStatus)
+	Byte code;
+	char message[128];
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_CONTENT_DEFINITION_BEGIN(999, MilkSupplyCommand)
+	Byte command;
+MESSAGE_CONTENT_DEFINITION_END
+
+MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(MilkSupplyCommand)
+	MESSAGE_CONTENT(MilkSupplyStatus)
+MESSAGE_DEFINITION_END(MilkSupply)
 
 extern ActivityDescriptor getMilkSupplyDescriptor(void);
 
