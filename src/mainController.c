@@ -524,7 +524,7 @@ static void runMainController(void *activity) {
 
 	setUpStateMachine(&stateMachine);
 
-	sleep(10);
+	while (TRUE);
 }
 
 static void tearDownMainController(void *activity) {

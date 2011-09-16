@@ -106,31 +106,38 @@ static void runUserInterface(void *activity) {
 				fd = firedEvents[i].data.fd;
 				switch(fd) {
 				case 0: //*this->messageQueue:
-					receiveMessage_BEGIN(this, UserInterface)
-						if (result < 0) {
+					//receiveMessage_BEGIN(this, UserInterface)
+					receiveGenericMessage_BEGIN(this)
+						if (error) {
 							//TODO Implement appropriate error handling
 							sleep(10);
 
 							// Try again
 							continue;
 						}
-						logInfo("[%s] Message received from %s (message length: %u)", (*this->descriptor).name, senderDescriptor.name, result);
+						logInfo("[%s] Message received from %s (message length: %u)", this->descriptor->name, senderDescriptor.name, result);
 						MESSAGE_SELECTOR_BEGIN
-						MESSAGE_BY_TYPE_SELECTOR(message, UserInterface, Command)
-							logInfo("[%s] User interface command received!", (*this->descriptor).name);
-							logInfo("[%s] \tCommand: %u", (*this->descriptor).name, /* message.content.UserInterfaceCommand. */ content.command);
-							sendResponse_BEGIN(this, UserInterface, Status)
-										.code = 254
-							sendResponse_END
-						MESSAGE_BY_TYPE_SELECTOR(message, UserInterface, Status)
-							logInfo("[%s] User interface status received!");
-							logInfo("[%s] \tCode: %u", (*this->descriptor).name, /* message.content.UserInterfaceStatus. */ content.code);
-							logInfo("[%s] \tMessage: %s", (*this->descriptor).name, /* message.content.UserInterfaceStatus. */ content.message);
-						//MESSAGE_BY_TYPE_SELECTOR(message, MainController, MachineStateChangedNotification)
-							// Process received machine state and update display
-							//MachineState state = content.state;
+							MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, UserInterface)
+								MESSAGE_SELECTOR_BEGIN
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, UserInterface, Command)
+										logInfo("[%s] User interface command received!", this->descriptor->name);
+										logInfo("[%s] \tCommand: %u", this->descriptor->name, /* message.content.UserInterfaceCommand. */ content.command);
+										sendResponse_BEGIN(this, UserInterface, Status)
+													.code = 254
+										sendResponse_END
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, UserInterface, Status)
+										logInfo("[%s] User interface status received!");
+										logInfo("[%s] \tCode: %u", this->descriptor->name, /* message.content.UserInterfaceStatus. */ content.code);
+										logInfo("[%s] \tMessage: %s", this->descriptor->name, /* message.content.UserInterfaceStatus. */ content.message);
+								MESSAGE_SELECTOR_END
+							MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, MainController)
+								MESSAGE_SELECTOR_BEGIN
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, MachineStateChangedNotification)
+										// Process received machine state and update display
+										MachineState state = content.state;
+								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
-					receiveMessage_END
+					receiveGenericMessage_END
 					break;
 				case 1: //buttonsFileDescriptor:
 					result = read(buttonsFileDescriptor, buffer, 3);

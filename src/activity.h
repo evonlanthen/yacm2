@@ -70,7 +70,8 @@ typedef struct {
 	{ \
 		ActivityDescriptor senderDescriptor; \
 		Byte message[MAX_MESSAGE_LENGTH]; \
-		int result = receiveMessage2(activity, &senderDescriptor, &message, MAX_MESSAGE_LENGTH);
+		int result = receiveMessage2(activity, &senderDescriptor, &message, MAX_MESSAGE_LENGTH); \
+		int __attribute__((__unused__)) error = result < 0 ? -result : 0;
 
 #define receiveGenericMessage_END receiveMessage_END
 
