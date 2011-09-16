@@ -342,6 +342,8 @@ static void warmingUpActivityEntryAction() {
 }
 
 static Event warmingUpActivityDoAction() {
+	sleep(1);
+
 	return coffeeMakingEvent_isWarmedUp;
 }
 

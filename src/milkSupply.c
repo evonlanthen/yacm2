@@ -126,6 +126,7 @@ static void runMilkSupply(void *activity) {
 						logInfo("[milkSupply] Switched off.");
 					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, SupplyMilkCommand)
 						logInfo("[milkSupply] Supplying %u ml milk...", content.milkAmount);
+						sleep(2);
 						logInfo("[milkSupply] ...done.");
 						sendResponse_BEGIN(this, MilkSupply, Result)
 							.code = OK_RESULT
