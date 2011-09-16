@@ -23,9 +23,8 @@ MESSAGE_CONTENT_DEFINITION_END(MilkSupply, SupplyMilkCommand)
 COMMON_MESSAGE_CONTENT_REDEFINITION(MilkSupply, Result)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
-	Byte code;
+	Availability availability;
 	int milkTemperature;
-	char message[128];
 MESSAGE_CONTENT_DEFINITION_END(MilkSupply, Status)
 
 MESSAGE_DEFINITION_BEGIN

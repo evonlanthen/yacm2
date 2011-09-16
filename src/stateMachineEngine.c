@@ -82,7 +82,7 @@ void processStateMachineEvent(StateMachine *stateMachine, Event event) {
 				processStateMachineEvent(stateMachine, event);
 			}
 		} else {
-			logWarn("[%s state machine] Precondition of state %d is not met!", stateMachine->name, nextState->stateIndex);
+			logWarn("[%s state machine] Precondition for state %d is not met!", stateMachine->name, nextState->stateIndex);
 		}
 	} else {
 		logWarn("[%s state machine] Ignoring event %d!", stateMachine->name, event);

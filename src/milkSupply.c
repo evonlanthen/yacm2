@@ -115,8 +115,12 @@ static void runMilkSupply(void *activity) {
 				continue;
 			}
 			if (result > 0) {
+				//TODO Implement business logic
 				MESSAGE_SELECTOR_BEGIN
 					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, InitCommand)
+						sendResponse_BEGIN(this, MilkSupply, Status)
+							.availability = available
+						sendResponse_END
 						logInfo("[milkSupply] Switched on.");
 					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, OffCommand)
 						logInfo("[milkSupply] Switched off.");

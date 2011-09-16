@@ -205,7 +205,7 @@ static SupplyResult supplyResult;
 static TIMER supplyInitializingTimer;
 static TIMER supplyingTimer;
 static void supplyingStateEntryAction() {
-	logInfo("[waterSupply] Going to supply %u ml water...", waterAmountToSupply);
+	logInfo("[waterSupply] Going to supply %u ml water with a temperature of %d °C...", waterAmountToSupply, waterBrewTemperature);
 
 	isSupplyInitialized = FALSE;
 	supplyResult = supplyResult_nok;

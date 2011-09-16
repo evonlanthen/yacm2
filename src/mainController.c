@@ -42,17 +42,11 @@ static Activity *this;
 static unsigned productToProduceIndex = 0;
 static unsigned int produceWithMilk = FALSE;
 
+static ActivityDescriptor clientDescriptor;
+
 ActivityDescriptor getMainControllerDescriptor() {
 	return mainControllerDescriptor;
 }
-
-/**
- * Represents the milk preselection state.
- */
-typedef enum {
-  milkPreselection_off,
-  milkPreselection_on
-} MilkPreselectionState;
 
 /**
  * Represents an activity (= state) within the coffee making process.
@@ -85,9 +79,12 @@ typedef struct {
 typedef struct {
 	MachineState state; /**< The coffee maker's state. */
 	//Coffee coffee; /**< The coffee ingredient. */
+	Availability isCoffeeAvailable;
+	//Water water; /**< The water ingredient. */
+	Availability isWaterAvailable;
 	//Milk milk; /**< The milk ingredient. */
+	Availability isMilkAvailable;
 	//ProductListElement *products; /**< The product definition collection. */
-	MilkPreselectionState milkPreselectionState; /**< The milk preselection state. */
 	MakeCoffeeProcessInstance *ongoingCoffeeMaking; /**< A possibly ongoing coffee making process instance. */
 } CoffeeMaker;
 
@@ -96,11 +93,9 @@ typedef struct {
  */
 static CoffeeMaker coffeeMaker = {
 		.state = machineState_off,
-		//.coffee.isAvailable = TRUE,
-		//.coffee.emptyTankSensorId = SENSOR_1,
-		//.milk.isAvailable = TRUE,
-		//.milk.emptyTankSensorId = SENSOR_2,
-		.milkPreselectionState = milkPreselection_off
+		.isCoffeeAvailable = notAvailable,
+		.isWaterAvailable = notAvailable,
+		.isMilkAvailable = notAvailable,
 };
 
 // =============================================================================
@@ -116,19 +111,6 @@ static StateMachine coffeeMakingProcessMachine;
 // -----------------------------------------------------------------------------
 // Events
 // -----------------------------------------------------------------------------
-
-/**
- * Represents a coffee maker event.
- */
-typedef enum {
-	state_switchedOn,
-	state_switchedOff,
-	state_isInitialized,
-	state_productSelected,
-	state_productionProcessAborted,
-	state_productionProcessIsFinished,
-	state_ingredientTankIsEmpty
-} MainControllerState;
 
 /**
  * Represents a coffee maker event.
@@ -172,7 +154,11 @@ static State offState = {
 
 static void initializingStateEntryAction() {
 	setMachineState(machineState_initializing);
-	// TODO: Notify user interface
+
+	// Notifiy client
+	sendNotification_BEGIN(this, MainController, clientDescriptor, MachineStateChangedNotification)
+		.state = machineState_initializing
+	sendNotification_END
 
 	// Switch on coffee supply
 	// ...
@@ -202,7 +188,11 @@ static void idleStateEntryAction() {
 	logInfo("[mainController] Idle... awaiting command...");
 
 	setMachineState(machineState_idle);
-	// TODO: Notify user interface
+
+	// Notifiy client
+	sendNotification_BEGIN(this, MainController, clientDescriptor, MachineStateChangedNotification)
+		.state = machineState_idle
+	sendNotification_END
 }
 
 static State idleState = {
@@ -214,19 +204,21 @@ static State idleState = {
 // Producing state
 // -----------------------------------------------------------------------------
 
-/*
-static int producingStatePrecondition()coffeeMakingProcessMachine {
+static int producingStatePrecondition() {
 	// Only start production if...
-	// - no coffee making process is already running
-	// - coffee is available (coffee tank is not empty)
-	// - milk preselection is off or
-	//   milk is available (milk tank is not emtpy)
+	// - no coffee making process is already running (Paranoia)
+	// - coffee is available
+	// - water is available
+	// - milk is not required or
+	//     milk is available
 	// - selected product is defined
 	return !coffeeMaker.ongoingCoffeeMaking
-		&& coffeeMaker.coffee.isAvailable
-		&& (coffeeMaker.milkPreselectionState != milkPreselection_on || coffeeMaker.milk.isAvailable)
-		&& selectedProductIndex < getNumberOfProducts();
-}*/
+		//TODO Activate these conditions
+		//&& coffeeMaker.isCoffeeAvailable == available
+		//&& coffeeMaker.isWaterAvailable == available
+		//&& (!produceWithMilk || (coffeeMaker.isMilkAvailable == available))
+		&& productToProduceIndex < getNumberOfProducts();
+}
 
 static void startMakeCoffeeProcess(unsigned int productIndex) {
 	coffeeMaker.ongoingCoffeeMaking = newObject(&(MakeCoffeeProcessInstance) {
@@ -238,9 +230,14 @@ static void startMakeCoffeeProcess(unsigned int productIndex) {
 }
 
 static void producingStateEntryAction() {
-	startMakeCoffeeProcess(productToProduceIndex);
 	setMachineState(machineState_producing);
-	// TODO: Notify user interface
+
+	// Notifiy client
+	sendNotification_BEGIN(this, MainController, clientDescriptor, MachineStateChangedNotification)
+		.state = machineState_producing
+	sendNotification_END
+
+	startMakeCoffeeProcess(productToProduceIndex);
 }
 
 static void abortMakeCoffeeProcessInstance() {
@@ -254,12 +251,11 @@ static void abortMakeCoffeeProcessInstance() {
 
 static void producingStateExitAction() {
 	abortMakeCoffeeProcessInstance();
-	// TODO: Notify user interface
 }
 
 static State producingState = {
 	.stateIndex = machineState_producing,
-	//.precondition = producingStatePrecondition,
+	.precondition = producingStatePrecondition,
 	.entryAction = producingStateEntryAction,
 	.exitAction = producingStateExitAction
 };
@@ -514,7 +510,7 @@ static void errorStateEntryAction() {
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_error;
 
-	processStateMachineEvent(&stateMachine, state_productionProcessAborted);
+	processStateMachineEvent(&stateMachine, event_productionProcessAborted);
 }
 
 static State errorState = {
@@ -755,7 +751,7 @@ static void runMainController(void *activity) {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
 								}
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Status)
-
+								coffeeMaker.isWaterAvailable = content.availability;
 							MESSAGE_SELECTOR_ANY
 
 						MESSAGE_SELECTOR_END
@@ -768,7 +764,7 @@ static void runMainController(void *activity) {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
 								}
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MilkSupply, Status)
-
+								coffeeMaker.isMilkAvailable = content.availability;
 							MESSAGE_SELECTOR_ANY
 
 						MESSAGE_SELECTOR_END
@@ -777,6 +773,8 @@ static void runMainController(void *activity) {
 						MESSAGE_SELECTOR_BEGIN
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, InitCommand)
 								logInfo("[mainController] Going to switch on...");
+
+								clientDescriptor = senderDescriptor;
 
 								processStateMachineEvent(&stateMachine, event_switchedOn);
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, OffCommand)

@@ -53,14 +53,13 @@ static pthread_mutex_t mainParametersLock = PTHREAD_MUTEX_INITIALIZER;
  */
 
 typedef struct {
-	int numberOfProducts;
 	MachineState machineState;
-	// TODO
+	//TODO Add product catalog
+	//ProductDefinition products;
 } OperationData;
 
 static OperationData operationData = {
-	.numberOfProducts = 3,
-	.machineState = 0
+	.machineState = machineState_off
 };
 static pthread_mutex_t operationDataLock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -139,7 +138,7 @@ int getMainParameter(char *name) {
 	int value = -1;
 	// Critical section
 	pthread_mutex_lock(&mainParametersLock);
-	for (int i = 0; i < operationParametersCount; i++) {
+	for (int i = 0; i < mainParametersCount; i++) {
 		if (strcmp(mainParameters[i].key, name) == 0) {
 			value = mainParameters[i].value;
 			break;
@@ -152,7 +151,8 @@ int getMainParameter(char *name) {
 int getNumberOfProducts() {
 	// Critical section
 	pthread_mutex_lock(&operationDataLock);
-	int numberOfProducts = operationData.numberOfProducts;
+	//TODO Determine the number of products on the basis of the product catalog
+	int numberOfProducts = 3;
 	pthread_mutex_unlock(&operationDataLock);
 	return numberOfProducts;
 }
