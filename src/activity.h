@@ -17,6 +17,8 @@
 
 #define MAX_ACTIVITY_NAME_LENGTH 32
 
+#define MAX_MESSAGE_LENGTH 400
+
 typedef unsigned char Byte;
 typedef unsigned short Word;
 typedef unsigned int DWord;
@@ -64,22 +66,30 @@ typedef struct {
 	SimpleMessage message; \
 	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message));
 
+#define receiveGenericMessage_BEGIN(activity) \
+	{ \
+		ActivityDescriptor senderDescriptor; \
+		Byte message[MAX_MESSAGE_LENGTH]; \
+		int result = receiveMessage2(activity, &senderDescriptor, &message, MAX_MESSAGE_LENGTH);
+
+#define receiveGenericMessage_END receiveMessage_END
+
 #define receiveMessage_BEGIN(activity, receiver) \
 	{ \
-	ActivityDescriptor senderDescriptor; \
-	receiver##Message message; \
-	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message)); \
-	int __attribute__((__unused__)) error = result < 0 ? -result : 0;
+		ActivityDescriptor senderDescriptor; \
+		receiver##Message message; \
+		int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message)); \
+		int __attribute__((__unused__)) error = result < 0 ? -result : 0;
 
 #define receiveMessage_END \
 	}
 
 #define waitForEvent_BEGIN(activity, receiver, timeout) \
 	{ \
-	ActivityDescriptor senderDescriptor; \
-	receiver##Message message; \
-	int result = waitForEvent2(activity, &senderDescriptor, &message, sizeof(message), timeout); \
-	int __attribute__((__unused__)) error = result < 0 ? -result : 0;
+		ActivityDescriptor senderDescriptor; \
+		receiver##Message message; \
+		int result = waitForEvent2(activity, &senderDescriptor, &message, sizeof(message), timeout); \
+		int __attribute__((__unused__)) error = result < 0 ? -result : 0;
 
 #define waitForEvent_END receiveMessage_END
 
@@ -121,12 +131,13 @@ typedef struct {
 #define MESSAGE_SELECTOR(message, activityName) \
 	} else if (strcmp(message.activity.name, #activityName) == 0) {
 
-#define MESSAGE_BY_SENDER_SELECTOR(sender) \
-	} else if (strcmp(senderDescriptor.name, get##sender##Descriptor().name) == 0) {
+#define MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, sender) \
+	} else if (strcmp(senderDescriptor.name, get##sender##Descriptor().name) == 0) { \
+		sender##Message *specificMessage = (sender##Message *)&message;
 
 #define MESSAGE_BY_TYPE_SELECTOR(message, subsystem, _content) \
-	} else if (message.type == subsystem##_content##Type) { \
-		subsystem##_content##Content __attribute__((__unused__)) content = message.content.subsystem##_content;
+	} else if ((message).type == subsystem##_content##Type) { \
+		subsystem##_content##Content __attribute__((__unused__)) content = (message).content.subsystem##_content;
 
 #define MESSAGE_SELECTOR_ANY \
 	} else {
@@ -162,15 +173,19 @@ typedef enum {
 	messagePriority_high,
 } MessagePriority;
 
+// Activity creation/destruction API
 Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode messageQueueMode);
 void destroyActivity(Activity *activity);
 
+// Old messaging API
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
-int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length, unsigned int timeout);
 int receiveMessage(void *_receiver, char *buffer, unsigned long length);
+int sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
+
+// New messaging API
+int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length, unsigned int timeout);
 //int receiveMessage2(void *_receiver, char *senderName, char *buffer, unsigned long length);
 int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length);
-int sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
 int sendMessage2(void *_sender, ActivityDescriptor activity, unsigned long length, void *buffer, MessagePriority priority);
 
 COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN

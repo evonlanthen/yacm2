@@ -28,9 +28,14 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 	int withMilk;
 MESSAGE_CONTENT_DEFINITION_END(MainController, ProduceProductCommand)
 
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	MachineState state;
+MESSAGE_CONTENT_DEFINITION_END(MainController, MachineStateChangedNotification)
+
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MainController, InitCommand)
 	MESSAGE_CONTENT(MainController, ProduceProductCommand)
+	MESSAGE_CONTENT(MainController, MachineStateChangedNotification)
 MESSAGE_DEFINITION_END(MainController)
 
 extern ActivityDescriptor getMainControllerDescriptor(void);

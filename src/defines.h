@@ -39,10 +39,23 @@
  */
 #define EOF (-1)
 
+/**
+ * Represents an availability (e.g. of coffee, water, milk, ...).
+ */
 typedef enum {
 	notAvailable,
 	available
 } Availability;
+
+/**
+ * Represents the coffee maker state.
+ */
+typedef enum {
+	machineState_off,
+	machineState_initializing,
+	machineState_idle,
+	machineState_producing
+} MachineState;
 
 // Old
 #define INIT_COMMAND 1

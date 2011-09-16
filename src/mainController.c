@@ -34,6 +34,7 @@ static ActivityDescriptor mainControllerDescriptor = {
 
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 3)
 
 static Activity *this;
 
@@ -457,23 +458,34 @@ static void runMainController(void *activity) {
 		sendRequest_END
 
 		while (TRUE) {
-			ActivityDescriptor senderDescriptor;
-			Byte message[400];
-			int result = receiveMessage2(this, &senderDescriptor, &message, 400);
-			if (result > 0) {
-				MESSAGE_SELECTOR_BEGIN
-					MESSAGE_BY_SENDER_SELECTOR(WaterSupply)
-						WaterSupplyMessage *waterSupplyMessage = (WaterSupplyMessage *)&message;
-						MESSAGE_SELECTOR_BEGIN
-							MESSAGE_BY_TYPE_SELECTOR((*waterSupplyMessage), WaterSupply, Result)
-								logInfo("[mainController] Result from water supply received: %u", content.code);
-							MESSAGE_SELECTOR_ANY
-								logWarn("[mainController] Unexpected message %u from water supply received!", waterSupplyMessage->type);
-						MESSAGE_SELECTOR_END
-					MESSAGE_SELECTOR_ANY
-						logWarn("[mainController] Unexpected message from %s received!", senderDescriptor.name);
-				MESSAGE_SELECTOR_END
-			}
+			//ActivityDescriptor senderDescriptor;
+			//Byte message[400];
+			//int result = receiveMessage2(this, &senderDescriptor, &message, 400);
+			receiveGenericMessage_BEGIN(this)
+				if (result > 0) {
+					MESSAGE_SELECTOR_BEGIN
+						MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, WaterSupply)
+							MESSAGE_SELECTOR_BEGIN
+								MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Result)
+									if (content.code == OK_RESULT) {
+										logInfo("[mainController] OK Result from water supply received!");
+									} else {
+										logInfo("[mainController] Unexpected result from water supply received: %u", content.code);
+									}
+								MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Status)
+									if (content.availability == available) {
+										logInfo("[mainController] 'Water available' status from water supply received!");
+									} else {
+										logInfo("[mainController] 'Water not available' status from water supply received!");
+									}
+								MESSAGE_SELECTOR_ANY
+									logWarn("[mainController] Irrelevant message with content id %u from water supply received!", specificMessage->type);
+							MESSAGE_SELECTOR_END
+						MESSAGE_SELECTOR_ANY
+							logWarn("[mainController] Irrelevant message from %s received!", senderDescriptor.name);
+					MESSAGE_SELECTOR_END
+				}
+			receiveGenericMessage_END
 		}
 	}
 	*/

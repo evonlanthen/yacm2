@@ -9,16 +9,6 @@
 #ifndef DATA_H_
 #define DATA_H_
 
-/**
- * Represents the coffee maker state.
- */
-typedef enum {
-	machineState_off,
-	machineState_initializing,
-	machineState_idle,
-	machineState_producing
-} MachineState;
-
 void setUpData();
 void tearDownData();
 

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include "defines.h"
 #include "data.h"
 
 /**

@@ -15,8 +15,6 @@
 #include "syslog.h"
 #include "activity.h"
 
-#define MAX_MESSAGE_LENGTH 400
-
 //#define UNKNOWN_SENDER_NAME "<Unknown sender>"
 
 #define UNKNOWN_SENDER_DESCRIPTOR \
@@ -204,8 +202,8 @@ int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void 
 		return -EFAULT;
 	}
 
-	ssize_t messageLength;
-	if ((messageLength = mq_receive(receiver->messageQueue, receiveBuffer, /* sizeof(receiveBuffer) */ MAX_MESSAGE_LENGTH + 1, NULL)) < 0) {
+	ssize_t receiveLength;
+	if ((receiveLength = mq_receive(receiver->messageQueue, receiveBuffer, /* sizeof(receiveBuffer) */ MAX_MESSAGE_LENGTH + 1, NULL)) < 0) {
 		if (receiver->messageQueueMode != messageQueue_nonBlocking) {
 			logErr("[%s] Error receiving message: %s", receiver->descriptor->name, strerror(errno));
 
@@ -215,31 +213,35 @@ int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void 
 		}
 	}
 
+	// Copy message length
+	unsigned long messageLength;
+	memcpy(&messageLength, receiveBuffer, sizeof(unsigned long));
+
 	// Check length of the receive message
-//	if (!(messageLength >= length)) {
-//		logErr("[%s] Error receiving message: Message shorter than expected!", receiver->descriptor->name);
-//
-//		result = -EFAULT;
-//
-//		goto receiveMessage2_out;
-//	}
+	if (messageLength > length) {
+		logErr("[%s] Error receiving message: Message longer than expected!", receiver->descriptor->name);
+
+		result = -EFAULT;
+
+		goto receiveMessage2_out;
+	}
 
 	// Copy message
-	memcpy(buffer, receiveBuffer, length);
-	result = length;
+	memcpy(buffer, receiveBuffer + sizeof(unsigned long), messageLength);
+	result = messageLength;
 
 	//char *_senderName = NULL;
 	ActivityDescriptor *_senderDescriptor = NULL;
-	if (messageLength > length) {
+	if (receiveLength > sizeof(unsigned long) + messageLength) {
 		//_senderName = receiveBuffer + length;
-		_senderDescriptor = receiveBuffer + length;
+		_senderDescriptor = receiveBuffer + sizeof(unsigned long) + messageLength;
 	}
 
 	//if (senderName) {
-	if (_senderDescriptor) {
+	if (senderDescriptor) {
 		// Copy sender name
 		//if (_senderName) {
-		if (senderDescriptor) {
+		if (_senderDescriptor) {
 			//memcpy(senderName, _senderName, MAX_ACTIVITY_NAME_LENGTH);
 			memcpy(senderDescriptor, _senderDescriptor, sizeof(ActivityDescriptor));
 		} else {
@@ -278,14 +280,18 @@ int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned 
 
 	Activity *sender = (Activity *)_sender;
 
+	unsigned long sendLength;
+
 	if (sender) {
-		if (length > MAX_MESSAGE_LENGTH - MAX_ACTIVITY_NAME_LENGTH) {
-			return -EFAULT;
-		}
+		sendLength = sizeof(ActivityDescriptor) + sizeof(length) + length;
 	} else {
-		if (length > MAX_MESSAGE_LENGTH) {
-			return -EFAULT;
-		}
+		sendLength = sizeof(length) + length;
+	}
+
+	if (sendLength > MAX_MESSAGE_LENGTH) {
+		logErr("[%s] Error sending message: Message too long!", "<Sender>");
+
+		return -EFAULT;
 	}
 
 	char *receiverMessageQueueId = createMessageQueueId(receiverDescriptor.name);
@@ -305,23 +311,27 @@ int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned 
 	}
 
 	void *sendBuffer = 0;
+	//if (!(sendBuffer = malloc(MAX_ACTIVITY_NAME_LENGTH + length))) {
+	if (!(sendBuffer = malloc(sendLength))) {
+		logErr("[%s] Error allocating send buffer: %s", sender->descriptor->name, strerror(errno));
+
+		result = -EFAULT;
+
+		goto sendMessage2_out;
+	}
+
+	// Copy message length
+	memcpy(sendBuffer, &length, sizeof(length));
+	// Copy message
+	memcpy(sendBuffer + sizeof(length), buffer, length);
+
 	if (sender) {
-		//if (!(sendBuffer = malloc(MAX_ACTIVITY_NAME_LENGTH + length))) {
-		if (!(sendBuffer = malloc(sizeof(ActivityDescriptor) + length))) {
-			logErr("[%s] Error allocating send buffer: %s", sender->descriptor->name, strerror(errno));
-
-			result = -EFAULT;
-
-			goto sendMessage2_out;
-		}
-		// Copy message
-		memcpy(sendBuffer, buffer, length);
 		// Copy sender name
 		//memcpy(sendBuffer + length, sender->descriptor->name, MAX_ACTIVITY_NAME_LENGTH);
 		// copy sender descriptor
-		memcpy(sendBuffer + length, sender->descriptor, sizeof(ActivityDescriptor));
+		memcpy(sendBuffer + sizeof(length) + length, sender->descriptor, sizeof(ActivityDescriptor));
 		//if (mq_send(receiverQueue, sendBuffer, MAX_ACTIVITY_NAME_LENGTH + length, priority) < 0) {
-		if (mq_send(receiverQueue, sendBuffer, sizeof(ActivityDescriptor) + length, priority) < 0) {
+		if (mq_send(receiverQueue, sendBuffer, sendLength, priority) < 0) {
 			logErr("[%s] Error sending message: %s", sender->descriptor->name, strerror(errno));
 
 			result = -EFAULT;
@@ -329,7 +339,7 @@ int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned 
 			goto sendMessage2_out;
 		}
 	} else {
-		if (mq_send(receiverQueue, buffer, length, priority) < 0) {
+		if (mq_send(receiverQueue, sendBuffer, sendLength, priority) < 0) {
 			logErr("[%s] Error sending message: %s", "<Sender>", strerror(errno));
 
 			result = -EFAULT;

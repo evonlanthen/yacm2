@@ -126,6 +126,9 @@ static void runUserInterface(void *activity) {
 							logInfo("[%s] User interface status received!");
 							logInfo("[%s] \tCode: %u", (*this->descriptor).name, /* message.content.UserInterfaceStatus. */ content.code);
 							logInfo("[%s] \tMessage: %s", (*this->descriptor).name, /* message.content.UserInterfaceStatus. */ content.message);
+						//MESSAGE_BY_TYPE_SELECTOR(message, MainController, MachineStateChangedNotification)
+							// Process received machine state and update display
+							//MachineState state = content.state;
 						MESSAGE_SELECTOR_END
 					receiveMessage_END
 					break;
