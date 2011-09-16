@@ -98,7 +98,7 @@ static irqreturn_t handleButtonInterrupt(int irq, void *dev_id) {
 	printk(KERN_INFO "Interrupt for button %d (button GPIO %d) occured!\n", index, buttonGPIOs[index].gpio);
 
 	if (test_and_set_bit(index, &debounceButtonFlags)) {
-		printk(KERN_INFO "Ignoring interrupt for GPIO %d\n", buttonGPIOs[index].gpio);
+		printk(KERN_INFO "Ignoring interrupt for GPIO %d.\n", buttonGPIOs[index].gpio);
 		return IRQ_HANDLED;
 	}
 

@@ -12,12 +12,15 @@
 
 #include <linux/fs.h>
 
-#include <asm/uaccess.h>
+#include <linux/slab.h>
+
+#include <linux/uaccess.h>
 
 #include <linux/io.h>
 #include <linux/ioport.h>
 
 #include "hmi.h"
+#include "helpers.h"
 #include "leds.h"
 
 static struct resource *ledsResource = NULL;
@@ -26,22 +29,23 @@ static char *ledsIOBase = NULL;
 static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t *offset) {
 	ssize_t result;
 
-	if (size < 3) {
-		return -EFAULT;
-	}
-
 	if (*offset == 0) {
-		unsigned char value = ioread8(ledsIOBase);
+		if (size >= 3) {
+			unsigned char value = ioread8(ledsIOBase);
 
-		char valueAsString[4];
-		memset(valueAsString, 0, 4);
-		sprintf(valueAsString, "%u", value);
-		size_t valueAsStringLength = strlen(valueAsString);
-		if (copy_to_user(buffer, valueAsString, valueAsStringLength)) {
-			result = -EFAULT;
+			char valueAsString[4];
+			//memset(valueAsString, 0, 4);
+			//sprintf(valueAsString, "%u", value);
+			//size_t valueAsStringLength = strlen(valueAsString);
+			size_t valueAsStringLength = toString(valueAsString, 4, value);
+			if (!copy_to_user(buffer, valueAsString, valueAsStringLength)) {
+				*offset = valueAsStringLength;
+				result = valueAsStringLength;
+			} else {
+				result = /* Error copying data! */ -EFAULT;
+			}
 		} else {
-			*offset = valueAsStringLength;
-			result = valueAsStringLength;
+			result = /* Buffer to short! */ -EFAULT;
 		}
 	} else {
 		result = /* EOF: */ 0;
@@ -53,13 +57,26 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 static ssize_t write(struct file *file, const char __user *buffer, size_t size, loff_t *offset) {
 	ssize_t result;
 
-	long value = simple_strtol(buffer, NULL, 0);
-	if (!(value >= 0 && value <= 255)) {
-		return -ERANGE;
+	char *valueAsString;
+	if (!(valueAsString = kzalloc(size + 1, GFP_KERNEL))) {
+		return -ENOMEM;
 	}
-	result = size;
 
-	iowrite8((unsigned char)value, ledsIOBase);
+	if (!copy_from_user(valueAsString, buffer, size)) {
+		//unsigned long value = simple_strtoul(buffer, NULL, 0);
+		unsigned long value = toInteger(buffer);
+
+		if (!(value >= 0 && value <= 255)) {
+			return -ERANGE;
+		}
+
+		iowrite8((unsigned char)value, ledsIOBase);
+		result = size;
+	} else {
+		result = /* Error copying data! */ -EFAULT;
+	}
+
+	kfree(valueAsString);
 
 	return result;
 }
