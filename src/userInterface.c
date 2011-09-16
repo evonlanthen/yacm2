@@ -62,8 +62,8 @@ static void runUserInterface(void *activity) {
 	int buttonsFileDescriptor;
 	char switchesDevice[] = "./dev/switches";
 	int switchesFileDescriptor;
-	MainControllerMessage mainControllerMessage;
-	mainControllerMessage.activity = getUserInterfaceDescriptor();
+	//MainControllerMessage mainControllerMessage;
+	//mainControllerMessage.activity = getUserInterfaceDescriptor();
 
 	logInfo("[userInterface] Running...");
 
@@ -136,6 +136,10 @@ static void runUserInterface(void *activity) {
 					}
 					value = atoi(buffer);
 					// TODO: Update display and send command
+					sendRequest_BEGIN(this, MainController, ProduceProductCommand)
+						//.productIndex = ... 1 or 2 or 3 ...
+						//.withMilk = ... TRUE or FALSE ...
+					sendRequest_END
 					break;
 				case 2: //switchesFileDescriptor:
 					result = read(switchesFileDescriptor, buffer, 3);

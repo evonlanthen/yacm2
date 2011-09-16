@@ -23,6 +23,11 @@ typedef struct {
 	char strValue[256];
 } CoffeeSupplyMessage;
 
+COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply2, Result)
+
+MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(CoffeeSupply2, Result)
+MESSAGE_DEFINITION_END(CoffeeSupply2)
 
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
 

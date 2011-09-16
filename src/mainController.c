@@ -18,7 +18,7 @@
 #include "coffeeSupply.h"
 #include "waterSupply.h"
 #include "milkSupply.h"
-#include "userInterface.h"
+//#include "userInterface.h"
 #include "mainController.h"
 
 static void setUpMainController(void *activity);
@@ -31,6 +31,9 @@ static ActivityDescriptor mainControllerDescriptor = {
 		.run = runMainController,
 		.tearDown = tearDownMainController
 };
+
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, InitCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 2)
 
 static Activity *this;
 
@@ -510,45 +513,6 @@ static void runMainController(void *activity) {
 	setUpStateMachine(&stateMachine);
 
 	sleep(10);
-
-	MainControllerMessage message;
-	unsigned long messageLength;
-
-	logInfo("[mainController] Send message to coffee supply...");
-	logInfo("[mainController] Message size: %ld", sizeof(CoffeeSupplyMessage));
-	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage){
-		.activity = getMainControllerDescriptor(),
-		.intValue = coffeeSupplyEvent_init,
-		.strValue = "Turn on coffee supply"
-		}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
-	logInfo("[mainController] ...done. (send message)");
-
-//	logInfo("[mainController] Send message to water supply...");
-//	sendMessage(getWaterSupplyDescriptor(), (char *)&(WaterSupplyMessage) {
-//		.activity = getMainControllerDescriptor(),
-//		.intValue = waterSupplyEvent_switchOn,
-//		.strValue = "Start water supply",
-//	}, sizeof(WaterSupplyMessage), messagePriority_medium);
-
-	logInfo("[mainController] Send message to user interface...");
-	/*
-	sendMessage(getUserInterfaceDescriptor(), (char *)&(UserInterfaceMessage) {
-		.activity = getMainControllerDescriptor(),
-		.intValue = 2,
-		.strValue = "Show view 2",
-	}, sizeof(UserInterfaceMessage), messagePriority_medium); */
-
-	while(TRUE) {
-		logInfo("[mainController] Waiting for subsystem messages...");
-		messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		if (messageLength > 0) {
-			logInfo("[mainController] Message from %s (%ld): intVal=%d, strVal='%s'",
-					message.activity.name,
-					messageLength,
-					message.intValue,
-					message.strValue);
-		}
-	}
 }
 
 static void tearDownMainController(void *activity) {

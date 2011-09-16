@@ -15,11 +15,23 @@
 #define WASTE_BIN_FULL_ERROR 1401
 #define WASTE_BIN_CLEAR_NOTIFICATION 1301
 
-typedef struct {
-	ActivityDescriptor activity;
-	int intValue;
-	char strValue[256];
-} MainControllerMessage;
+//typedef struct {
+//	ActivityDescriptor activity;
+//	int intValue;
+//	char strValue[256];
+//} MainControllerMessage;
+
+COMMON_MESSAGE_CONTENT_REDEFINITION(MainController, InitCommand)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	unsigned int productIndex;
+	int withMilk;
+MESSAGE_CONTENT_DEFINITION_END(MainController, ProduceProductCommand)
+
+MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(MainController, InitCommand)
+	MESSAGE_CONTENT(MainController, ProduceProductCommand)
+MESSAGE_DEFINITION_END(MainController)
 
 extern ActivityDescriptor getMainControllerDescriptor(void);
 
