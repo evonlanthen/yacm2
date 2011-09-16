@@ -81,10 +81,6 @@ static struct miscdevice buttonsDevice = {
 	.fops = &buttonsFileOperations,
 };
 
-//static struct gpio enableGPIOs[] = {
-//	{ 117, GPIOF_OUT_INIT_LOW, "Select_Input" },
-//	{ 118, GPIOF_OUT_INIT_HIGH, "Select_Output" } };
-
 static struct gpio buttonGPIOs[] = {
 	{ 99, GPIOF_IN, "T0" },
 	{ 101, GPIOF_IN, "T1" },
@@ -125,69 +121,47 @@ static void buttonDebounceTimerExpired(unsigned long data) {
 	clear_bit(data, &debounceButtonFlags);
 }
 
-static void clearGPIOMode(int gpioNumber) {
-	unsigned long flags;
-	int gafr;
-
-	int fn = (gpioNumber & 0x300) >> 8;
-	local_irq_save(flags);
-	gafr = GAFR(gpioNumber) & ~(0x3 << (((gpioNumber) & 0xf) * 2));
-	GAFR( gpioNumber) = gafr | (fn << (((gpioNumber) & 0xf) * 2));
-	local_irq_restore(flags);
-}
-
 static int isButtonsDeviceSetUp = 0;
 
 void __exit exitHMI(void);
 int __init initHMI() {
 	int result = 0;
 
-	printk(KERN_INFO "Loading module...\n");
+	printk(KERN_INFO MODULE_LABEL "Loading module...\n");
 
 	// 1. Setup button device
 	// 1.1 Clear alternate GPIO functions
-	int i;
-	//for (i = 0; i < ARRAY_SIZE(enableGPIOs); i++) {
-	//	clearGPIOMode(enableGPIOs[i].gpio);
-	//}
-	//for (i = 0; i < ARRAY_SIZE(buttonGPIOs); i++) {
-	///	clearGPIOMode(buttonGPIOs[i].gpio);
-	//}
+	// ... Nothing to do ...
 
 	// 1.2 Claim GPIOs
-	int error;
-	//if ((error = gpio_request_array(enableGPIOs, ARRAY_SIZE(enableGPIOs)))) {
-	//	result = error;
-	//	goto initHMI_error;
-	//}
+	if ((result = gpio_request_array(buttonGPIOs, ARRAY_SIZE(buttonGPIOs)))) {
+		printk(KERN_WARNING MODULE_LABEL "Error requesting buttons GPIO array!\n");
 
-	if ((error = gpio_request_array(buttonGPIOs, ARRAY_SIZE(buttonGPIOs)))) {
-		result = error;
-		printk(KERN_WARNING "hmiInit: Error requesting gpio array!\n");
 		goto initHMI_error;
 	}
 
 	// 1.3 Initialize debounce timers
+	int i;
 	for (i = 0; i < ARRAY_SIZE(debounceButtonTimers); i++) {
 		init_timer(&debounceButtonTimers[i]);
 		debounceButtonTimers[i].function = buttonDebounceTimerExpired;
 		debounceButtonTimers[i].data = i;
 	}
-	printk(KERN_INFO "After debounce\n");
 
 	// 1.4 Request interrupts
 	for (i = 0; i < ARRAY_SIZE(buttonGPIOs); i++) {
 		int buttonGPIOInterrupt = gpio_to_irq(buttonGPIOs[i].gpio);
 
-		printk(KERN_INFO "Button GPIO %d interrupt: %d\n", buttonGPIOs[i].gpio, buttonGPIOInterrupt);
+		printk(KERN_INFO MODULE_LABEL "Button GPIO %d interrupt: %d\n", buttonGPIOs[i].gpio, buttonGPIOInterrupt);
 
-		if ((error = request_threaded_irq(buttonGPIOInterrupt,
+		if ((result = request_threaded_irq(buttonGPIOInterrupt,
 								handleButtonInterrupt,
 								handleButtonInterrupt2ndStage,
 								IRQF_TRIGGER_RISING,
 								buttonGPIOs[i].label,
 								(void *)i))) {
-			result = error;
+			printk(KERN_WARNING MODULE_LABEL "Error requesting buttons GPIO interrupts!\n");
+
 			goto initHMI_error;
 		}
 	}
@@ -203,16 +177,14 @@ int __init initHMI() {
 
 		goto initHMI_error;
 	}
-	printk(KERN_INFO "After initializing buttons\n");
+
 	// 2. Setup switches device
-	if (result = initSwitches() < 0) {
+	if ((result = initSwitches()) < 0) {
 		goto initHMI_error;
 	}
 
-	printk(KERN_INFO "After initializing switches\n");
-
 	// 3. Setup LEDs device
-	if (result = initLEDs() < 0) {
+	if ((result = initLEDs()) < 0) {
 		goto initHMI_error;
 	}
 

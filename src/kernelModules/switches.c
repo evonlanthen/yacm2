@@ -94,6 +94,7 @@ static ssize_t readEvent(struct file *file, char __user *buffer, size_t size, lo
 
 			char valueAsString[4];
 			size_t valueAsStringLength = toString(valueAsString, 4, value);
+			// Copy data from kernel to user memory
 			if (!copy_to_user(buffer, valueAsString, valueAsStringLength)) {
 				*offset = valueAsStringLength;
 				result = valueAsStringLength;
@@ -170,12 +171,14 @@ int __init initSwitches() {
 
 	// Request memory region
 	if (!(switchesResource = request_mem_region(MMIO_BASE + MMIO_SWITCHES_OFFSET, 1, "switches"))) {
+		printk(KERN_WARNING MODULE_LABEL "Error requesting switches I/O memory region!\n");
 		result = -EIO;
 
 		goto initSwitches_error;
 	}
 	// Map memory into kernel virtual address space
 	if (!(switchesIOBase = ioremap(MMIO_BASE + MMIO_SWITCHES_OFFSET, 1))) {
+		printk(KERN_WARNING MODULE_LABEL "Error mapping switches I/O memory!\n");
 		result = -EIO;
 
 		goto initSwitches_error;

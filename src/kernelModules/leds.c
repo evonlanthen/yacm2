@@ -38,6 +38,7 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 			//sprintf(valueAsString, "%u", value);
 			//size_t valueAsStringLength = strlen(valueAsString);
 			size_t valueAsStringLength = toString(valueAsString, 4, value);
+			// Copy data from kernel to user memory
 			if (!copy_to_user(buffer, valueAsString, valueAsStringLength)) {
 				*offset = valueAsStringLength;
 				result = valueAsStringLength;
@@ -62,6 +63,7 @@ static ssize_t write(struct file *file, const char __user *buffer, size_t size, 
 		return -ENOMEM;
 	}
 
+	// Copy data from user to kernel memory
 	if (!copy_from_user(valueAsString, buffer, size)) {
 		//unsigned long value = simple_strtoul(buffer, NULL, 0);
 		unsigned long value = toInteger(buffer);
@@ -101,12 +103,14 @@ int __init initLEDs() {
 
 	// Request memory region
 	if (!(ledsResource = request_mem_region(MMIO_BASE + MMIO_LEDS_OFFSET, 1, "leds"))) {
+		printk(KERN_WARNING MODULE_LABEL "Error requesting LEDs I/O memory region!\n");
 		result = -EIO;
 
 		goto initLEDs_error;
 	}
 	// Map memory into kernel virtual address space
 	if (!(ledsIOBase = ioremap(MMIO_BASE + MMIO_LEDS_OFFSET, 1))) {
+		printk(KERN_WARNING MODULE_LABEL "Error mapping LEDs I/O memory!\n");
 		result = -EIO;
 
 		goto initLEDs_error;
