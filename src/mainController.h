@@ -23,6 +23,8 @@
 
 COMMON_MESSAGE_CONTENT_REDEFINITION(MainController, InitCommand)
 
+COMMON_MESSAGE_CONTENT_REDEFINITION(MainController, OffCommand)
+
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int productIndex;
 	int withMilk;
@@ -34,6 +36,7 @@ MESSAGE_CONTENT_DEFINITION_END(MainController, MachineStateChangedNotification)
 
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MainController, InitCommand)
+	MESSAGE_CONTENT(MainController, OffCommand)
 	MESSAGE_CONTENT(MainController, ProduceProductCommand)
 	MESSAGE_CONTENT(MainController, MachineStateChangedNotification)
 MESSAGE_DEFINITION_END(MainController)

@@ -48,7 +48,7 @@ static Activity *this;
 
 static StateMachine stateMachine;
 static int waterBrewTemperature = 0;
-static unsigned waterAmountToSupply = 0;
+static unsigned int waterAmountToSupply = 0;
 
 static ActivityDescriptor clientDescriptor;
 static ActivityDescriptor callerDescriptor;
@@ -258,6 +258,8 @@ static void supplyingStateExitAction() {
 	// Stop pump and heater
 	controlPump(deviceState_off);
 	controlHeater(deviceState_off);
+
+	logInfo("[waterSupply] ...done.");
 
 	sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
 		.code = OK_RESULT

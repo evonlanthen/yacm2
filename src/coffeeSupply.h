@@ -23,9 +23,18 @@ typedef struct {
 	char strValue[256];
 } CoffeeSupplyMessage;
 
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	unsigned int coffeePowderAmount; // [g]
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, GrindCoffeePowderCommand)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, EjectCoffeeWasteCommand)
+
 COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply2, Result)
 
 MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(CoffeeSupply2, GrindCoffeePowderCommand)
+	MESSAGE_CONTENT(CoffeeSupply2, EjectCoffeeWasteCommand)
 	MESSAGE_CONTENT(CoffeeSupply2, Result)
 MESSAGE_DEFINITION_END(CoffeeSupply2)
 
@@ -44,6 +53,5 @@ typedef enum {
 	coffeeSupplyEvent_noBeans,
 	coffeeSupplyEvent_beansAvailable,
 } CoffeeSupplyEvent;
-
 
 #endif /* COFFEESUPPLY_H_ */

@@ -33,10 +33,14 @@ static ActivityDescriptor mainControllerDescriptor = {
 };
 
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, InitCommand, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, OffCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 4)
 
 static Activity *this;
+
+static unsigned productToProduceIndex = 0;
+static unsigned int produceWithMilk = FALSE;
 
 ActivityDescriptor getMainControllerDescriptor() {
 	return mainControllerDescriptor;
@@ -55,9 +59,12 @@ typedef enum {
  */
 typedef enum {
 	coffeeMakingActivity_warmingUp,
+	coffeeMakingActivity_checkingCupFillState,
+	coffeeMakingActivity_grindingCoffeePowder,
+	coffeeMakingActivity_supplyingWater,
 	coffeeMakingActivity_withMilkGateway,
-	coffeeMakingActivity_deliveringMilk,
-	coffeeMakingActivity_deliveringCoffee,
+	coffeeMakingActivity_supplyingMilk,
+	coffeeMakingActivity_ejectingCoffeeWaste,
 	coffeeMakingActivity_finished,
 	coffeeMakingActivity_error,
 	coffeeMakingActivity_undefined
@@ -67,7 +74,7 @@ typedef enum {
  * Represents an ongoing coffee making process instance.
  */
 typedef struct {
-	//Product *product; /**< The product currently produced. */
+	unsigned int productIndex; /**< The product currently produced. */
 	int withMilk; /**< Is the product produced with milk? */
 	CoffeeMakingActivity currentActivity; /**< The activity which is currently executed. */
 } MakeCoffeeProcessInstance;
@@ -141,6 +148,15 @@ typedef enum {
 // -----------------------------------------------------------------------------
 
 static void offStateEntryAction() {
+	// Switch off milk supply
+	sendRequest_BEGIN(this, MilkSupply, OffCommand)
+	sendRequest_END
+	// Switch off water supply
+	sendRequest_BEGIN(this, WaterSupply, OffCommand)
+	sendRequest_END
+	// Switch off coffee supply
+	// ...
+
 	setMachineState(machineState_off);
 	// TODO: Notify user interface
 }
@@ -157,11 +173,25 @@ static State offState = {
 static void initializingStateEntryAction() {
 	setMachineState(machineState_initializing);
 	// TODO: Notify user interface
+
+	// Switch on coffee supply
+	// ...
+	// Switch on water supply
+	sendRequest_BEGIN(this, WaterSupply, InitCommand)
+	sendRequest_END
+	// Switch on milk supply
+	sendRequest_BEGIN(this, MilkSupply, InitCommand)
+	sendRequest_END
+}
+
+static Event initializingStateDoAction() {
+	return event_isInitialized;
 }
 
 static State initializingState = {
 	.stateIndex = machineState_initializing,
 	.entryAction = initializingStateEntryAction,
+	.doAction = initializingStateDoAction
 };
 
 // -----------------------------------------------------------------------------
@@ -169,6 +199,8 @@ static State initializingState = {
 // -----------------------------------------------------------------------------
 
 static void idleStateEntryAction() {
+	logInfo("[mainController] Idle... awaiting command...");
+
 	setMachineState(machineState_idle);
 	// TODO: Notify user interface
 }
@@ -198,15 +230,15 @@ static int producingStatePrecondition()coffeeMakingProcessMachine {
 
 static void startMakeCoffeeProcess(unsigned int productIndex) {
 	coffeeMaker.ongoingCoffeeMaking = newObject(&(MakeCoffeeProcessInstance) {
-		//.product = getProduct(productIndex),
-		.withMilk = coffeeMaker.milkPreselectionState == milkPreselection_on ? TRUE : FALSE
+		.productIndex = productIndex,
+		.withMilk = produceWithMilk
 	}, sizeof(MakeCoffeeProcessInstance));
 
 	setUpStateMachine(&coffeeMakingProcessMachine);
 }
 
 static void producingStateEntryAction() {
-	//startMakeCoffeeProcess(selectedProductIndex);
+	startMakeCoffeeProcess(productToProduceIndex);
 	setMachineState(machineState_producing);
 	// TODO: Notify user interface
 }
@@ -237,6 +269,7 @@ static State producingState = {
 // -----------------------------------------------------------------------------
 
 static StateMachine stateMachine = {
+	.name = "mainController",
 	.numberOfEvents = 7,
 	.initialState = &offState,
 	.transitions = {
@@ -288,11 +321,17 @@ static StateMachine stateMachine = {
  */
 typedef enum {
 	coffeeMakingEvent_isWarmedUp,
-	coffeeMakingEvent_deliverMilk,
-	coffeeMakingEvent_milkDelivered,
-	coffeeMakingEvent_deliverCoffee,
-	coffeeMakingEvent_coffeeDelivered,
-	coffeeMakingEvent_ingredientTankIsEmpty
+	coffeeMakingEvent_cupIsEmpty,
+	coffeeMakingEvent_cupIsNotEmpty,
+	coffeeMakingEvent_grindCoffeePowder,
+	coffeeMakingEvent_coffeePowderGrinded,
+	coffeeMakingEvent_supplyWater,
+	coffeeMakingEvent_waterSupplied,
+	coffeeMakingEvent_supplyMilk,
+	coffeeMakingEvent_milkSupplied,
+	coffeeMakingEvent_ejectCoffeeWaste,
+	coffeeMakingEvent_coffeeWasteEjected,
+	coffeeMakingEvent_errorOccured
 } CoffeeMakingEvent;
 
 // -----------------------------------------------------------------------------
@@ -300,13 +339,87 @@ typedef enum {
 // -----------------------------------------------------------------------------
 
 static void warmingUpActivityEntryAction() {
+	logInfo("[mainController] [makeCoffee process] Warming up...");
+
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_warmingUp;
-	// TODO: Notify user interface
+}
+
+static Event warmingUpActivityDoAction() {
+	return coffeeMakingEvent_isWarmedUp;
 }
 
 static State warmingUpActivity = {
 	.stateIndex = coffeeMakingActivity_warmingUp,
 	.entryAction = warmingUpActivityEntryAction,
+	.doAction = warmingUpActivityDoAction
+};
+
+// -----------------------------------------------------------------------------
+// Checking Cup Fill State activity
+// -----------------------------------------------------------------------------
+
+static Event checkingCupFillStateActivityDoAction() {
+	logInfo("[mainController] [makeCoffee process] Checking cup fill state...");
+
+	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_checkingCupFillState;
+
+	if (readNonBlockingDevice("./dev/cupFillStateSensor") > 0) {
+		return coffeeMakingEvent_cupIsNotEmpty;
+	}
+
+	return coffeeMakingEvent_cupIsEmpty;
+}
+
+static State checkingCupFillStateActivity = {
+	.stateIndex = coffeeMakingActivity_checkingCupFillState,
+	.doAction = checkingCupFillStateActivityDoAction
+};
+
+// -----------------------------------------------------------------------------
+// Grinding Coffee Powder activity
+// -----------------------------------------------------------------------------
+
+static void grindingCoffeePowderActivityEntryAction() {
+	logInfo("[mainController] [makeCoffee process] Going to grind coffee powder...");
+
+	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_grindingCoffeePowder;
+
+	//TODO Send grind coffee powder request to coffee supply
+}
+
+static void grindingCoffeePowderActivityExitAction() {
+
+}
+
+static State grindingCoffeePowderActivity = {
+	.stateIndex = coffeeMakingActivity_grindingCoffeePowder,
+	.entryAction = grindingCoffeePowderActivityEntryAction,
+	.exitAction = grindingCoffeePowderActivityExitAction
+};
+
+// -----------------------------------------------------------------------------
+// Supplying Water activity
+// -----------------------------------------------------------------------------
+
+static void supplyingWaterActivityEntryAction() {
+	logInfo("[mainController] [makeCoffee process] Going to supply water...");
+
+	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_supplyingWater;
+
+	sendRequest_BEGIN(this, WaterSupply, SupplyWaterCommand)
+		//TODO Determine water amount on the basis of the product definition
+		.waterAmount = coffeeMaker.ongoingCoffeeMaking->productIndex * 100
+	sendRequest_END
+}
+
+static void supplyingWaterActivityExitAction() {
+
+}
+
+static State supplyingWaterActivity = {
+	.stateIndex = coffeeMakingActivity_supplyingWater,
+	.entryAction = supplyingWaterActivityEntryAction,
+	.exitAction = supplyingWaterActivityExitAction
 };
 
 // -----------------------------------------------------------------------------
@@ -315,9 +428,9 @@ static State warmingUpActivity = {
 
 static Event withMilkGatewayDoAction() {
 	if (coffeeMaker.ongoingCoffeeMaking->withMilk) {
-		return coffeeMakingEvent_deliverMilk;
+		return coffeeMakingEvent_supplyMilk;
 	} else {
-		return coffeeMakingEvent_deliverCoffee;
+		return coffeeMakingEvent_ejectCoffeeWaste;
 	}
 
 	return NO_EVENT;
@@ -329,41 +442,50 @@ static State withMilkGateway = {
 };
 
 // -----------------------------------------------------------------------------
-// Delivering Milk activity
+// Supplying Milk activity
 // -----------------------------------------------------------------------------
 
-static void deliveringMilkActivityEntryAction() {
-	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_deliveringMilk;
-	// TODO: Notify milk supply and user interface
+static void supplyingMilkActivityEntryAction() {
+	logInfo("[mainController] [makeCoffee process] Going to supply milk...");
+
+	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_supplyingMilk;
+
+	sendRequest_BEGIN(this, MilkSupply, SupplyMilkCommand)
+		//TODO Determine milk amount on the basis of the product definition
+		.milkAmount = 20
+	sendRequest_END
 }
 
-static void deliveringMilkActivityExitAction() {
-	// TODO: Notify milk supply and user interface
+static void supplyingMilkActivityExitAction() {
+
 }
 
-static State deliveringMilkActivity = {
-	.stateIndex = coffeeMakingActivity_deliveringMilk,
-	.entryAction = deliveringMilkActivityEntryAction,
-	.exitAction = deliveringMilkActivityExitAction
+static State supplyingMilkActivity = {
+	.stateIndex = coffeeMakingActivity_supplyingMilk,
+	.entryAction = supplyingMilkActivityEntryAction,
+	.exitAction = supplyingMilkActivityExitAction
 };
 
 // -----------------------------------------------------------------------------
-// Delivering Coffe activity
+// Ejecting Coffee Waste activity
 // -----------------------------------------------------------------------------
 
-static void deliveringCoffeeActivityEntryAction() {
-	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_deliveringCoffee;
-	// TODO: Notify coffee supply and user interface
+static void ejectingCoffeeWasteActivityEntryAction() {
+	logInfo("[mainController] [makeCoffee process] Going to eject coffee waste...");
+
+	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_ejectingCoffeeWaste;
+
+	//TODO Send eject coffee waste request to coffee supply
 }
 
-static void deliveringCoffeeActivityExitAction() {
-	// TODO: Notify coffee supply and user interface
+static void ejectingCoffeeWasteActivityExitAction() {
+
 }
 
-static State deliveringCoffeeActivity = {
-	.stateIndex = coffeeMakingActivity_deliveringCoffee,
-	.entryAction = deliveringCoffeeActivityEntryAction,
-	.exitAction = deliveringCoffeeActivityExitAction
+static State ejectingCoffeeWasteActivity = {
+	.stateIndex = coffeeMakingActivity_ejectingCoffeeWaste,
+	.entryAction = ejectingCoffeeWasteActivityEntryAction,
+	.exitAction = ejectingCoffeeWasteActivityExitAction
 };
 
 // -----------------------------------------------------------------------------
@@ -371,8 +493,11 @@ static State deliveringCoffeeActivity = {
 // -----------------------------------------------------------------------------
 
 static void finishedStateEntryAction() {
+	logInfo("[mainController] [makeCoffee process] Finished.");
+
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_finished;
-	// TODO: Notify user interface
+
+	processStateMachineEvent(&stateMachine, event_productionProcessIsFinished);
 }
 
 static State finishedState = {
@@ -385,8 +510,11 @@ static State finishedState = {
 // -----------------------------------------------------------------------------
 
 static void errorStateEntryAction() {
+	logErr("[mainController] [makeCoffee process] Error occured! Aborting...");
+
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_error;
-	// TODO: Notify user interface
+
+	processStateMachineEvent(&stateMachine, state_productionProcessAborted);
 }
 
 static State errorState = {
@@ -398,37 +526,101 @@ static State errorState = {
 // Activity/state transitions
 // -----------------------------------------------------------------------------
 static StateMachine coffeeMakingProcessMachine = {
-	.numberOfEvents = 6,
+	.name = "coffeeMakingProcess",
+	.numberOfEvents = 12,
 	.initialState = &warmingUpActivity,
 	.transitions = {
 		/* coffeeMakingActivity_warmingUp: */
-			/* coffeeMakingEvent_isWarmedUp: */ &withMilkGateway,
-			/* coffeeMakingEvent_deliverMilk: */ NULL,
-			/* coffeeMakingEvent_milkDelivered: */ NULL,
-			/* coffeeMakingEvent_deliverCoffee: */ NULL,
-			/* coffeeMakingEvent_coffeeDelivered: */ NULL,
-			/* coffeeMakingEvent_ingredientTankIsEmpty: */ NULL,
+			/* coffeeMakingEvent_isWarmedUp: */ &checkingCupFillStateActivity,
+			/* coffeeMakingEvent_cupIsEmpty: */ NULL,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ NULL,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ NULL,
+			/* coffeeMakingEvent_supplyMilk: */ NULL,
+			/* coffeeMakingEvent_milkSupplied: */ NULL,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
+			/* coffeeMakingEvent_errorOccured: */ NULL,
+		/* coffeeMakingActivity_checkingCupFillState: */
+			/* coffeeMakingEvent_isWarmedUp: */ NULL,
+			/* coffeeMakingEvent_cupIsEmpty: */ &supplyingWaterActivity, //&grindingCoffeePowderActivity,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ &errorState,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ NULL,
+			/* coffeeMakingEvent_supplyMilk: */ NULL,
+			/* coffeeMakingEvent_milkSupplied: */ NULL,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
+			/* coffeeMakingEvent_errorOccured: */ NULL,
+		/* coffeeMakingActivity_grindingCoffeePowder: */
+			/* coffeeMakingEvent_isWarmedUp: */ NULL,
+			/* coffeeMakingEvent_cupIsEmpty: */ NULL,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ NULL,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ &supplyingWaterActivity,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ NULL,
+			/* coffeeMakingEvent_supplyMilk: */ NULL,
+			/* coffeeMakingEvent_milkSupplied: */ NULL,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
+			/* coffeeMakingEvent_errorOccured: */ &errorState,
+		/* coffeeMakingActivity_supplyingWater: */
+			/* coffeeMakingEvent_isWarmedUp: */ NULL,
+			/* coffeeMakingEvent_cupIsEmpty: */ NULL,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ NULL,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ &withMilkGateway,
+			/* coffeeMakingEvent_supplyMilk: */ NULL,
+			/* coffeeMakingEvent_milkSupplied: */ NULL,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
+			/* coffeeMakingEvent_errorOccured: */ &errorState,
 		/* coffeeMakingActivity_withMilkGateway: */
 			/* coffeeMakingEvent_isWarmedUp: */ NULL,
-			/* coffeeMakingEvent_deliverMilk: */ &deliveringMilkActivity,
-			/* coffeeMakingEvent_milkDelivered: */ NULL,
-			/* coffeeMakingEvent_deliverCoffee: */ &deliveringCoffeeActivity,
-			/* coffeeMakingEvent_coffeeDelivered: */ NULL,
-			/* coffeeMakingEvent_ingredientTankIsEmpty: */ NULL,
-		/* coffeeMakingActivity_deliveringMilk: */
+			/* coffeeMakingEvent_cupIsEmpty: */ NULL,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ NULL,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ NULL,
+			/* coffeeMakingEvent_supplyMilk: */ &supplyingMilkActivity,
+			/* coffeeMakingEvent_milkSupplied: */ NULL,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ &ejectingCoffeeWasteActivity,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
+			/* coffeeMakingEvent_errorOccured: */ NULL,
+		/* coffeeMakingActivity_supplyingMilk: */
 			/* coffeeMakingEvent_isWarmedUp: */ NULL,
-			/* coffeeMakingEvent_deliverMilk: */ NULL,
-			/* coffeeMakingEvent_milkDelivered: */ &deliveringCoffeeActivity,
-			/* coffeeMakingEvent_deliverCoffee: */ NULL,
-			/* coffeeMakingEvent_coffeeDelivered: */ NULL,
-			/* coffeeMakingEvent_ingredientTankIsEmpty: */ &errorState,
-		/* coffeeMakingActivity_deliveringCoffee: */
+			/* coffeeMakingEvent_cupIsEmpty: */ NULL,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ NULL,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ NULL,
+			/* coffeeMakingEvent_supplyMilk: */ NULL,
+			/* coffeeMakingEvent_milkSupplied: */ &finishedState, //&ejectingCoffeeWasteActivity,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
+			/* coffeeMakingEvent_errorOccured: */ &errorState,
+		/* coffeeMakingActivity_ejectingCoffeeWaste: */
 			/* coffeeMakingEvent_isWarmedUp: */ NULL,
-			/* coffeeMakingEvent_deliverMilk: */ NULL,
-			/* coffeeMakingEvent_milkDelivered: */ NULL,
-			/* coffeeMakingEvent_deliverCoffee: */ NULL,
-			/* coffeeMakingEvent_coffeeDelivered: */ &finishedState,
-			/* coffeeMakingEvent_ingredientTankIsEmpty: */ &errorState
+			/* coffeeMakingEvent_cupIsEmpty: */ NULL,
+			/* coffeeMakingEvent_cubIsNotEmpty: */ NULL,
+			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
+			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
+			/* coffeeMakingEvent_supplyWater: */ NULL,
+			/* coffeeMakingEvent_waterSupplied: */ NULL,
+			/* coffeeMakingEvent_supplyMilk: */ NULL,
+			/* coffeeMakingEvent_milkSupplied: */ NULL,
+			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
+			/* coffeeMakingEvent_coffeeWasteEjected: */ &finishedState,
+			/* coffeeMakingEvent_errorOccured: */ &errorState,
 		}
 };
 
@@ -458,9 +650,6 @@ static void runMainController(void *activity) {
 		sendRequest_END
 
 		while (TRUE) {
-			//ActivityDescriptor senderDescriptor;
-			//Byte message[400];
-			//int result = receiveMessage2(this, &senderDescriptor, &message, 400);
 			receiveGenericMessage_BEGIN(this)
 				if (result > 0) {
 					MESSAGE_SELECTOR_BEGIN
@@ -524,7 +713,90 @@ static void runMainController(void *activity) {
 
 	setUpStateMachine(&stateMachine);
 
-	while (TRUE);
+	// Main controller test
+	///*
+	sleep(1);
+
+	logInfo("-------------------------------------------------------");
+
+	// Switch on main controller
+	sendRequest_BEGIN(this, MainController, InitCommand)
+	sendRequest_END
+
+	sleep(1);
+
+	// Product one (or two) products
+	sendRequest_BEGIN(this, MainController, ProduceProductCommand)
+		.productIndex = 1,
+		.withMilk = TRUE
+	sendRequest_END
+//	sendRequest_BEGIN(this, MainController, ProduceProductCommand)
+//		.productIndex = 2,
+//		.withMilk = TRUE
+//	sendRequest_END
+
+	sleep(1);
+
+	// Switch off main controller
+	//sendRequest_BEGIN(this, MainController, OffCommand)
+	//sendRequest_END
+	//*/
+
+	while (TRUE) {
+		receiveGenericMessage_BEGIN(this)
+			if (result > 0) {
+				MESSAGE_SELECTOR_BEGIN
+					MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, WaterSupply)
+						MESSAGE_SELECTOR_BEGIN
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Result)
+								if (content.code == OK_RESULT) {
+									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_waterSupplied);
+								} else {
+									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
+								}
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Status)
+
+							MESSAGE_SELECTOR_ANY
+
+						MESSAGE_SELECTOR_END
+					MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, MilkSupply)
+						MESSAGE_SELECTOR_BEGIN
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MilkSupply, Result)
+								if (content.code == OK_RESULT) {
+									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_milkSupplied);
+								} else {
+									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
+								}
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MilkSupply, Status)
+
+							MESSAGE_SELECTOR_ANY
+
+						MESSAGE_SELECTOR_END
+					MESSAGE_SELECTOR_ANY
+						MainControllerMessage *specificMessage = (MainControllerMessage *)&message;
+						MESSAGE_SELECTOR_BEGIN
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, InitCommand)
+								logInfo("[mainController] Going to switch on...");
+
+								processStateMachineEvent(&stateMachine, event_switchedOn);
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, OffCommand)
+								logInfo("[mainController] Going to switch off...");
+
+								processStateMachineEvent(&stateMachine, event_switchedOff);
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, ProduceProductCommand)
+								logInfo("[mainController] Going to produce product %u %s milk...", content.productIndex, (content.withMilk ? "with" : "without"));
+
+								productToProduceIndex = content.productIndex;
+								produceWithMilk = content.withMilk;
+
+								processStateMachineEvent(&stateMachine, event_productSelected);
+							MESSAGE_SELECTOR_ANY
+								logWarn("[mainController] Unexpected message from %s received!", senderDescriptor.name);
+						MESSAGE_SELECTOR_END
+				MESSAGE_SELECTOR_END
+			}
+		receiveGenericMessage_END
+	}
 }
 
 static void tearDownMainController(void *activity) {

@@ -41,7 +41,9 @@ static ActivityDescriptor coffeeSupplyDescriptor = {
 	.tearDown = tearDownCoffeeSupply
 };
 
-MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, Result, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, GrindCoffeePowderCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, EjectCoffeeWasteCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, Result, 3)
 
 static int ejectWaste(void) {
 	return writeNonBlockingDevice("/dev/coffeeWasteEjector","1",wrm_replace,FALSE);

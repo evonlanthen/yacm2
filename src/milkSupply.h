@@ -14,6 +14,8 @@
 
 COMMON_MESSAGE_CONTENT_REDEFINITION(MilkSupply, InitCommand)
 
+COMMON_MESSAGE_CONTENT_REDEFINITION(MilkSupply, OffCommand)
+
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int milkAmount; // [ml]
 MESSAGE_CONTENT_DEFINITION_END(MilkSupply, SupplyMilkCommand)
@@ -28,6 +30,7 @@ MESSAGE_CONTENT_DEFINITION_END(MilkSupply, Status)
 
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MilkSupply, InitCommand)
+	MESSAGE_CONTENT(MilkSupply, OffCommand)
 	MESSAGE_CONTENT(MilkSupply, SupplyMilkCommand)
 	MESSAGE_CONTENT(MilkSupply, Result)
 	MESSAGE_CONTENT(MilkSupply, Status)

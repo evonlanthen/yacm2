@@ -82,8 +82,10 @@ static Activity *fillStateMonitor;
 static Activity *pipeFlushing;
 
 MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, InitCommand, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, SupplyMilkCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, Result, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, OffCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, SupplyMilkCommand, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, Result, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(MilkSupply, Status, 5)
 
 ActivityDescriptor getMilkSupplyDescriptor() {
 	return milkSupply;
@@ -115,7 +117,9 @@ static void runMilkSupply(void *activity) {
 			if (result > 0) {
 				MESSAGE_SELECTOR_BEGIN
 					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, InitCommand)
-
+						logInfo("[milkSupply] Switched on.");
+					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, OffCommand)
+						logInfo("[milkSupply] Switched off.");
 					MESSAGE_BY_TYPE_SELECTOR(message, MilkSupply, SupplyMilkCommand)
 						logInfo("[milkSupply] Supplying %u ml milk...", content.milkAmount);
 						logInfo("[milkSupply] ...done.");

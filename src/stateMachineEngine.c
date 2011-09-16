@@ -22,9 +22,13 @@ void setUpStateMachine(StateMachine *stateMachine) {
 		return;
 	}
 
-	activateState(stateMachine, stateMachine->initialState);
+	Event event = activateState(stateMachine, stateMachine->initialState);
 
 	stateMachine->isInitialized = TRUE;
+
+	if (event != NO_EVENT) {
+		processStateMachineEvent(stateMachine, event);
+	}
 }
 
 /**
