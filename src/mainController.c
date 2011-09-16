@@ -36,6 +36,7 @@ MESSAGE_CONTENT_TYPE_MAPPING(MainController, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, OffCommand, 2)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 3)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 5)
 
 static Activity *this;
 
@@ -744,43 +745,64 @@ static void runMainController(void *activity) {
 				MESSAGE_SELECTOR_BEGIN
 					MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, WaterSupply)
 						MESSAGE_SELECTOR_BEGIN
+							// If we got a result from water supply...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Result)
+								// Propagate event to coffee making process state machine
 								if (content.code == OK_RESULT) {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_waterSupplied);
 								} else {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
 								}
+							// If we got a status update from water supply...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, WaterSupply, Status)
 								coffeeMaker.isWaterAvailable = content.availability;
+
+								// Send notification to client
+								sendNotification_BEGIN(this, MainController, clientDescriptor, IngredientAvailabilityChangedNotification)
+									.ingredientIndex = WATER_INDEX,
+									.availability = coffeeMaker.isWaterAvailable
+								sendNotification_END
 							MESSAGE_SELECTOR_ANY
 
 						MESSAGE_SELECTOR_END
 					MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, MilkSupply)
 						MESSAGE_SELECTOR_BEGIN
+							// If we got a result from milk supply...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MilkSupply, Result)
+								// Propagate event to coffee making process state machine
 								if (content.code == OK_RESULT) {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_milkSupplied);
 								} else {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
 								}
+							// If we got a status update from milk supply...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MilkSupply, Status)
 								coffeeMaker.isMilkAvailable = content.availability;
+
+								// Send notification to client
+								sendNotification_BEGIN(this, MainController, clientDescriptor, IngredientAvailabilityChangedNotification)
+									.ingredientIndex = MILK_INDEX,
+									.availability = coffeeMaker.isMilkAvailable
+								sendNotification_END
 							MESSAGE_SELECTOR_ANY
 
 						MESSAGE_SELECTOR_END
 					MESSAGE_SELECTOR_ANY
 						MainControllerMessage *specificMessage = (MainControllerMessage *)&message;
 						MESSAGE_SELECTOR_BEGIN
+							// If we got an init command...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, InitCommand)
 								logInfo("[mainController] Going to switch on...");
 
 								clientDescriptor = senderDescriptor;
 
 								processStateMachineEvent(&stateMachine, event_switchedOn);
+							// If we got an off command...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, OffCommand)
 								logInfo("[mainController] Going to switch off...");
 
 								processStateMachineEvent(&stateMachine, event_switchedOff);
+							// If we got an produce product command...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, ProduceProductCommand)
 								logInfo("[mainController] Going to produce product %u %s milk...", content.productIndex, (content.withMilk ? "with" : "without"));
 

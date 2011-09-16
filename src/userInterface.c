@@ -135,6 +135,10 @@ static void runUserInterface(void *activity) {
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, MachineStateChangedNotification)
 										// Process received machine state and update display
 										MachineState state = content.state;
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, IngredientAvailabilityChangedNotification)
+										// Process received ingredient availability and update display
+										unsigned int ingredientIndex = content.ingredientIndex; // == ... COFFEE_INDEX or WATER_INDEX or MILK_INDEX ...
+										Availability availability = content.availability;
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
 					receiveGenericMessage_END

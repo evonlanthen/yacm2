@@ -12,6 +12,10 @@
 #include <mqueue.h>
 #include "activity.h"
 
+#define COFFEE_INDEX 1
+#define WATER_INDEX 2
+#define MILK_INDEX 3
+
 #define WASTE_BIN_FULL_ERROR 1401
 #define WASTE_BIN_CLEAR_NOTIFICATION 1301
 
@@ -34,11 +38,17 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 	MachineState state;
 MESSAGE_CONTENT_DEFINITION_END(MainController, MachineStateChangedNotification)
 
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	unsigned int ingredientIndex;
+	Availability availability;
+MESSAGE_CONTENT_DEFINITION_END(MainController, IngredientAvailabilityChangedNotification)
+
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MainController, InitCommand)
 	MESSAGE_CONTENT(MainController, OffCommand)
 	MESSAGE_CONTENT(MainController, ProduceProductCommand)
 	MESSAGE_CONTENT(MainController, MachineStateChangedNotification)
+	MESSAGE_CONTENT(MainController, IngredientAvailabilityChangedNotification)
 MESSAGE_DEFINITION_END(MainController)
 
 extern ActivityDescriptor getMainControllerDescriptor(void);
