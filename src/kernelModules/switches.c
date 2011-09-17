@@ -12,6 +12,8 @@
 
 #include <linux/fs.h>
 
+#include <linux/poll.h>
+
 #include <linux/uaccess.h>
 
 #include <linux/io.h>
@@ -133,6 +135,20 @@ static ssize_t readEvent(struct file *file, char __user *buffer, size_t size, lo
 	return result;
 }
 
+static unsigned int poll(struct file *file, poll_table *wait) {
+	unsigned int mask = 0;
+
+	poll_wait(file, &areEventsAvailableWaitQueue, wait);
+
+	if (areEventsAvailable()) {
+		mask |= POLLIN | POLLRDNORM;
+
+		spin_unlock(&eventsLock);
+	}
+
+	return mask;
+}
+
 static unsigned char lastValue = -1;
 static struct task_struct * pollSwitchesTask = NULL;
 
@@ -164,7 +180,8 @@ static int pollSwitches(void *unused) {
 static struct file_operations switchesFileOperations = {
 	.owner = THIS_MODULE,
 	.read = read,
-	.llseek = no_llseek
+	.llseek = no_llseek,
+	.poll = poll
 };
 
 static struct miscdevice switchesDevice = {
