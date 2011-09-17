@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <sys/epoll.h>
 #include "defines.h"
+#include "data.h"
 #include "syslog.h"
 #include "device.h"
 #include "display.h"
@@ -61,7 +62,7 @@ static void runUserInterface(void *activity) {
 	char buttonsDevice[] = "./dev/buttons";
 	int buttonsFileDescriptor;
 	char switchesDevice[] = "./dev/switches";
-	int switchesFileDescriptor;
+	int switchesFileDescriptor, switchesStates, switchesPreviousStates, switchesChanges;
 	//MainControllerMessage mainControllerMessage;
 	//mainControllerMessage.activity = getUserInterfaceDescriptor();
 
@@ -104,8 +105,7 @@ static void runUserInterface(void *activity) {
 		} else {
 			for (i = 0; i < numberOfFiredEvents; i++) {
 				fd = firedEvents[i].data.fd;
-				switch(fd) {
-				case 0: //*this->messageQueue:
+				if (fd == this->messageQueue) {
 					//receiveMessage_BEGIN(this, UserInterface)
 					receiveGenericMessage_BEGIN(this)
 						if (error) {
@@ -142,8 +142,7 @@ static void runUserInterface(void *activity) {
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
 					receiveGenericMessage_END
-					break;
-				case 1: //buttonsFileDescriptor:
+				} else if(fd == buttonsFileDescriptor) {
 					result = read(buttonsFileDescriptor, buffer, 3);
 					if (result < 0) {
 						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
@@ -155,14 +154,35 @@ static void runUserInterface(void *activity) {
 						//.withMilk = ... TRUE or FALSE ...
 					sendRequest_END
 					break;
-				case 2: //switchesFileDescriptor:
+				} else if(fd == switchesFileDescriptor) {
+					// Get bitfield of current switches status:
 					result = read(switchesFileDescriptor, buffer, 3);
 					if (result < 0) {
 						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
 					}
-					value = atoi(buffer);
-					// TODO: Update display and send command
-					break;
+					switchesStates = atoi(buffer);
+					// Get bitfield of changed switches with XOR:
+					switchesChanges = (switchesStates^switchesPreviousStates);
+					if (switchesChanges & POWER_SWITCH) {
+						if (switchesChanges & POWER_SWITCH) {
+							// send init command to mainController:
+							sendRequest_BEGIN(this, MainController, InitCommand)
+							sendRequest_END
+						} else {
+							// send off command to mainController:
+							sendRequest_BEGIN(this, MainController, OffCommand)
+							sendRequest_END
+						}
+					}
+					if (switchesChanges & MILK_SELECTOR_SWITCH) {
+						if (switchesChanges & MILK_SELECTOR_SWITCH) {
+							setMilkSelector(selected);
+						} else {
+							setMilkSelector(notSelected);
+						}
+					}
+					switchesPreviousStates = switchesStates;
+					// TODO: Update display
 				}
 			} // foreach event end
 		} // if number of fired events end
