@@ -272,6 +272,8 @@ static int producingStatePrecondition() {
 	if (violation) {
 		logInfo("[mainController] Precondition for starting coffee making process not met: %s\n", violation);
 
+		sendError(producingError);
+
 		return FALSE;
 	}
 

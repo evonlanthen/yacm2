@@ -130,7 +130,7 @@ static Event activateState(StateMachine *stateMachine, State *nextState) {
 		stateMachine->activeState->entryAction();
 	}
 
-	// If the state has a 'do' action, then run it
+	// If the state has a 'do' action, then run it once immediatly after activation
 	Event event = NO_EVENT;
 	if (stateMachine->activeState->doAction) {
 		event = stateMachine->activeState->doAction();
