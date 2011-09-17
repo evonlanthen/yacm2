@@ -241,6 +241,7 @@ static State coffeePowderDispenserSupplyingState = {
  */
 
 static StateMachine coffeePowderDispenserStateMachine = {
+	.name = "coffeePowderDispenser",
 	.numberOfEvents = 8,
 	.initialState = &coffeePowderDispenserSwitchedOffState,
 	.transitions = {
@@ -302,8 +303,8 @@ static void setUpCoffeePowderDispenser(void *activityarg) {
 	if (!coffeePowderDispenserStateMachine.isInitialized) {
 		logErr("[coffeePowderDispenser] Statemachine init failed!");
 	}
-	fillStateMonitor = createActivity(getFillStateMonitor(), messageQueue_blocking);
-	motorController = createActivity(getMotorController(), messageQueue_blocking);
+	createActivity(getFillStateMonitor(), messageQueue_blocking);
+	createActivity(getMotorController(), messageQueue_blocking);
 }
 
 static void runCoffeePowderDispenser(void *activity) {
@@ -374,16 +375,19 @@ static void tearDownCoffeePowderDispenser(void *activity) {
 	destroyActivity(motorController);
 }
 
-static void setUpFillStateMonitor(void *activity) {
+static void setUpFillStateMonitor(void *activityarg) {
 	logInfo("[fillStateMonitor] Setting up...");
+	fillStateMonitor = activityarg;
 	lastHasBeansState = hasBeans();
 	if (lastHasBeansState) {
+		logInfo("[fillStateMonitor] Init: sending Beans available");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
 			.activity = getFillStateMonitor(),
 			.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
 			.strValue = "Beans available"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
 	} else {
+		logInfo("[fillStateMonitor] Init: sending no beans error");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
 			.activity = getFillStateMonitor(),
 			.intValue = SUPPLY_NO_BEANS_ERROR,
@@ -406,8 +410,9 @@ static void tearDownFillStateMonitor(void *activity) {
 	logInfo("[coffeePowderDispenser] Tearing down...");
 }
 
-static void setUpMotorController(void *activity) {
+static void setUpMotorController(void *activityarg) {
 	logInfo("[motorController] Setting up...");
+	motorController = activityarg;
 	setMotor(0);
 }
 

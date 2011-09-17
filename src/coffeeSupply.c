@@ -206,6 +206,7 @@ static State coffeeSupplySupplyingState = {
  */
 
 static StateMachine coffeeSupplyStateMachine = {
+	.name = "coffeeSupply",
 	.numberOfEvents = 8,
 	.initialState = &coffeeSupplySwitchedOffState,
 	.transitions = {
