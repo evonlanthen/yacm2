@@ -12,11 +12,32 @@
 #include <mqueue.h>
 #include "activity.h"
 
-typedef struct {
-	ActivityDescriptor activity;
-	int intValue;
-	char strValue[256];
-} DisplayMessage;
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	Byte code;
+	char message[128];
+MESSAGE_CONTENT_DEFINITION_END(Display, Status)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	Byte command;
+MESSAGE_CONTENT_DEFINITION_END(Display, Command)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	unsigned int viewType;
+MESSAGE_CONTENT_DEFINITION_END(Display, ChangeViewCommand)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	unsigned int bitField;
+MESSAGE_CONTENT_DEFINITION_END(Display, UpdateLedsCommand)
+
+MESSAGE_DEFINITION_BEGIN
+	MESSAGE_CONTENT(Display, Command)
+	MESSAGE_CONTENT(Display, ChangeViewCommand)
+	MESSAGE_CONTENT(Display, UpdateLedsCommand)
+	MESSAGE_CONTENT(Display, Status)
+MESSAGE_DEFINITION_END(Display)
+
+#define CHANGE_VIEW_COMMAND 1
+#define UPDATE_LEDS_COMMAND 2
 
 extern ActivityDescriptor getDisplayDescriptor(void);
 

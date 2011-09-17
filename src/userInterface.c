@@ -26,6 +26,15 @@
 #include "mainController.h"
 #include "userInterface.h"
 
+/**
+ * Define switches and buttons
+ */
+#define POWER_SWITCH 1<<0
+#define MILK_SELECTOR_SWITCH 1<<1
+#define PRODUCT_3_BUTTON 2
+#define PRODUCT_2_BUTTON 1
+#define PRODUCT_1_BUTTON 0
+
 static void setUpUserInterface(void *activity);
 static void runUserInterface(void *activity);
 static void tearDownUserInterface(void *activity);
@@ -44,6 +53,10 @@ MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, Status, 3)
 static Activity *this;
 static Activity *display;
 
+static int withMilk = FALSE;
+static int switchesStates = 0;
+static int switchesPreviousStates = 0;
+
 ActivityDescriptor getUserInterfaceDescriptor() {
 	return userInterfaceDescriptor;
 }
@@ -54,26 +67,60 @@ static void setUpUserInterface(void *activity) {
 	this = (Activity *)activity;
 }
 
+static void processEventSwitchesChanges(int switchesStates) {
+	int switchesChanges;
+
+	// Get bitfield of changed switches with XOR:
+	switchesChanges = (switchesStates^switchesPreviousStates);
+
+	// Check if the status of the power switch has changed:
+	if (switchesChanges & POWER_SWITCH) {
+		if (switchesStates & POWER_SWITCH) {
+			// send init command to mainController:
+			sendRequest_BEGIN(this, MainController, InitCommand)
+			sendRequest_END
+		} else {
+			// send off command to mainController:
+			sendRequest_BEGIN(this, MainController, OffCommand)
+			sendRequest_END
+		}
+	}
+	// Check if the status of the milk selector switch has changed:
+	if (switchesChanges & MILK_SELECTOR_SWITCH) {
+		if (switchesStates & MILK_SELECTOR_SWITCH) {
+			withMilk = TRUE;
+		} else {
+			withMilk = FALSE;
+		}
+	}
+	switchesPreviousStates = switchesStates;
+}
+
 static void runUserInterface(void *activity) {
-	int polling, value, fd, i, result;
+	int polling, value, fd, i, result, productIndex;
 	struct epoll_event firedEvents[100];
 	int numberOfFiredEvents;
 	char buffer[3];
-	char buttonsDevice[] = "./dev/buttons";
+	char buttonsEventDevice[] = "./dev/buttonsEvent";
 	int buttonsFileDescriptor;
 	char switchesDevice[] = "./dev/switches";
-	int switchesFileDescriptor, switchesStates, switchesPreviousStates, switchesChanges;
+	char switchesEventDevice[] = "./dev/switchesEvent";
+	int switchesFileDescriptor;
 	//MainControllerMessage mainControllerMessage;
 	//mainControllerMessage.activity = getUserInterfaceDescriptor();
 
 	logInfo("[userInterface] Running...");
 
+	// initially read switches states and process event:
+	switchesStates = readNonBlockingDevice(switchesDevice);
+	processEventSwitchesChanges(switchesStates);
+
 	// open file descriptors for buttons and switches:
-	buttonsFileDescriptor = open(buttonsDevice, O_RDONLY);
+	buttonsFileDescriptor = open(buttonsEventDevice, O_RDONLY);
 	if (buttonsFileDescriptor < 0) {
 		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, buttonsDevice, strerror(errno));
 	}
-	switchesFileDescriptor = open(switchesDevice, O_RDONLY);
+	switchesFileDescriptor = open(switchesEventDevice, O_RDONLY);
 	if (switchesFileDescriptor < 0) {
 		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, switchesDevice, strerror(errno));
 	}
@@ -83,7 +130,7 @@ static void runUserInterface(void *activity) {
 		logErr("[%s] Error setting up event waiting: %s", (*this->descriptor).name, strerror(errno));
 	}
 	struct epoll_event eventDescriptors[] = {
-		{ .events = EPOLLIN, .data.fd = 0 }, //(*this->messageQueue) },
+		{ .events = EPOLLIN, .data.fd = this->messageQueue },
 		{ .events = EPOLLIN, .data.fd = buttonsFileDescriptor },
 		{ .events = EPOLLIN, .data.fd = switchesFileDescriptor }
 	};
@@ -139,6 +186,9 @@ static void runUserInterface(void *activity) {
 										// Process received ingredient availability and update display
 										unsigned int ingredientIndex = content.ingredientIndex; // == ... COFFEE_INDEX or WATER_INDEX or MILK_INDEX ...
 										Availability availability = content.availability;
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, CoffeeWasteBinStateChangedNotification)
+										int isBinFull = content.isBinFull;
+										// TODO: LED einschalten und keine neuen Auftrage akzeptieren
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
 					receiveGenericMessage_END
@@ -147,13 +197,16 @@ static void runUserInterface(void *activity) {
 					if (result < 0) {
 						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
 					}
-					value = atoi(buffer);
-					// TODO: Update display and send command
-					sendRequest_BEGIN(this, MainController, ProduceProductCommand)
-						//.productIndex = ... 1 or 2 or 3 ...
-						//.withMilk = ... TRUE or FALSE ...
-					sendRequest_END
-					break;
+					productIndex = (atoi(buffer))+1;
+					if (productIndex > 0 && productIndex <= 3) {
+						// TODO: Update display and send command
+						sendRequest_BEGIN(this, MainController, ProduceProductCommand)
+							.productIndex = productIndex;
+							.withMilk = withMilk;
+						sendRequest_END
+					} else {
+						logWarn("[%s] No product at index %d", (*this->descriptor).name, productIndex);
+					}
 				} else if(fd == switchesFileDescriptor) {
 					// Get bitfield of current switches status:
 					result = read(switchesFileDescriptor, buffer, 3);
@@ -161,27 +214,8 @@ static void runUserInterface(void *activity) {
 						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
 					}
 					switchesStates = atoi(buffer);
-					// Get bitfield of changed switches with XOR:
-					switchesChanges = (switchesStates^switchesPreviousStates);
-					if (switchesChanges & POWER_SWITCH) {
-						if (switchesChanges & POWER_SWITCH) {
-							// send init command to mainController:
-							sendRequest_BEGIN(this, MainController, InitCommand)
-							sendRequest_END
-						} else {
-							// send off command to mainController:
-							sendRequest_BEGIN(this, MainController, OffCommand)
-							sendRequest_END
-						}
-					}
-					if (switchesChanges & MILK_SELECTOR_SWITCH) {
-						if (switchesChanges & MILK_SELECTOR_SWITCH) {
-							setMilkSelector(selected);
-						} else {
-							setMilkSelector(notSelected);
-						}
-					}
-					switchesPreviousStates = switchesStates;
+					processEventSwitchesChanges(switchesStates);
+
 					// TODO: Update display
 				}
 			} // foreach event end
