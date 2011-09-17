@@ -215,13 +215,27 @@ static State idleState = {
  ***************************************************************************
  */
 
+static int supplyError;
+
 static int supplyingStatePrecondition() {
-	return hasWaterState;
+	supplyError = NO_ERROR;
+
+	if (!hasWaterState) {
+		supplyError = NO_WATER_ERROR;
+
+		sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
+			.code = NOK_RESULT,
+			.errorCode = NO_WATER_ERROR
+		sendNotification_END
+
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static int isSupplyInitialized;
 static SupplyResult supplyResult;
-static int supplyError;
 static TIMER supplyInitializingTimer;
 static TIMER supplyingTimer;
 static void supplyingStateEntryAction() {
@@ -229,7 +243,6 @@ static void supplyingStateEntryAction() {
 
 	isSupplyInitialized = FALSE;
 	supplyResult = supplyResult_nok;
-	supplyError = NO_ERROR;
 
 	// Start pump and heater
 	controlPump(deviceState_on);
