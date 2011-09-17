@@ -10,6 +10,7 @@
 #define COFFEESUPPLY_H_
 
 #include <mqueue.h>
+#include "defines.h"
 #include "activity.h"
 
 #define SUPPLY_START_COMMAND 2001
@@ -34,11 +35,22 @@ COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply2, AbortCommand)
 
 COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply2, Result)
 
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	Availability availability;
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, BeanStatus)
+
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	int isBinFull;
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, WasteBinStatus)
+
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(CoffeeSupply2, GrindCoffeePowderCommand)
 	MESSAGE_CONTENT(CoffeeSupply2, EjectCoffeeWasteCommand)
 	MESSAGE_CONTENT(CoffeeSupply2, Result)
+	MESSAGE_CONTENT(CoffeeSupply2, BeanStatus)
+	MESSAGE_CONTENT(CoffeeSupply2, WasteBinStatus)
 MESSAGE_DEFINITION_END(CoffeeSupply2)
+
 
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
 

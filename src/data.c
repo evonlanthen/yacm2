@@ -54,12 +54,14 @@ static pthread_mutex_t mainParametersLock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct {
 	MachineState machineState;
+	Selector milkSelector;
 	//TODO Add product catalog
 	//ProductDefinition products;
 } OperationData;
 
 static OperationData operationData = {
-	.machineState = machineState_off
+	.machineState = machineState_off,
+	.milkSelector = selected
 };
 static pthread_mutex_t operationDataLock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -171,6 +173,20 @@ MachineState getMachineState() {
 	state = operationData.machineState;
 	pthread_mutex_unlock(&operationDataLock);
 	return state;
+}
+
+void setMilkSelector(Selector selector) {
+	pthread_mutex_lock(&operationDataLock);
+	operationData.milkSelector = selector;
+	pthread_mutex_unlock(&operationDataLock);
+}
+
+Selector getMilkSelector() {
+	Selector selector = notSelected;
+	pthread_mutex_lock(&operationDataLock);
+	selector = operationData.milkSelector;
+	pthread_mutex_unlock(&operationDataLock);
+	return selector;
 }
 
 void addStatisticEntry(int event) {
