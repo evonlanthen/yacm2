@@ -38,8 +38,7 @@ static ActivityDescriptor display = {
 
 MESSAGE_CONTENT_TYPE_MAPPING(Display, Command, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(Display, ChangeViewCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(Display, UpdateLedsCommand, 3)
-MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 3)
 
 static Activity *this;
 
@@ -114,7 +113,7 @@ static void runDisplay(void *activity) {
 						ledsBitField,
 						ledsBitFieldString);
 					if (!writeNonBlockingDevice("/dev/leds", ledsBitFieldString, wrm_replace, FALSE)) {
-						logErr("[%s] Could not write to display!", this->descriptor->name);
+						logErr("[%s] Could update leds!", this->descriptor->name);
 					}
 
 					if (!writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
@@ -128,4 +127,7 @@ static void runDisplay(void *activity) {
 
 static void tearDownDisplay(void *activity) {
 	logInfo("[display] Tearing down...");
+	if (!writeNonBlockingDevice("/dev/leds", "0", wrm_replace, FALSE)) {
+		logErr("[%s] Could update leds!", this->descriptor->name);
+	}
 }

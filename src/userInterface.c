@@ -34,6 +34,7 @@
 #define PRODUCT_3_BUTTON 2
 #define PRODUCT_2_BUTTON 1
 #define PRODUCT_1_BUTTON 0
+#define NUMBER_OF_PRODUCTS 3
 
 static void setUpUserInterface(void *activity);
 static void runUserInterface(void *activity);
@@ -124,7 +125,7 @@ static void processEventSwitchesChanges(int switchesStates) {
 }
 
 static void runUserInterface(void *activity) {
-	int polling, fd, i, result;
+	int polling, fd, i, value, result;
 	struct epoll_event firedEvents[100];
 	int numberOfFiredEvents;
 	char buffer[3];
@@ -213,7 +214,12 @@ static void runUserInterface(void *activity) {
 								MESSAGE_SELECTOR_BEGIN
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, MachineStateChangedNotification)
 										// Process received machine state and update display
+										logInfo("[%s] Machine state update received! New state is %d.", this->descriptor->name, content.state);
 										machineState = content.state;
+										// if machine is not producing reset product index to 0:
+										if (content.state != machineState_producing) {
+											productIndex = 0;
+										}
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, IngredientAvailabilityChangedNotification)
 										// Process received ingredient availability and update display
 										switch (content.ingredientIndex) {
@@ -239,15 +245,21 @@ static void runUserInterface(void *activity) {
 					if (result < 0) {
 						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
 					}
-					productIndex = (atoi(buffer))+1;
-					if (productIndex > 0 && productIndex <= 3) {
-						sendRequest_BEGIN(this, MainController, ProduceProductCommand)
-							.productIndex = productIndex,
-							.withMilk = withMilk
-						sendRequest_END
-						notifyDisplay();
+					if (machineState == machineState_idle) {
+						value = atoi(buffer);
+						// check if product index is in range:
+						if (value >= 0 && value < NUMBER_OF_PRODUCTS) {
+							productIndex = value+1;
+							sendRequest_BEGIN(this, MainController, ProduceProductCommand)
+								.productIndex = productIndex,
+								.withMilk = withMilk
+							sendRequest_END
+							notifyDisplay();
+						} else {
+							logWarn("[%s] No product at index %d", this->descriptor->name, productIndex);
+						}
 					} else {
-						logWarn("[%s] No product at index %d", this->descriptor->name, productIndex);
+						logWarn("[%s] Product selected, but machine is in state %d and not in state idle", this->descriptor->name, machineState);
 					}
 				} else if(fd == switchesFileDescriptor) {
 					logInfo("[%s] Switches event", this->descriptor->name);
@@ -262,9 +274,6 @@ static void runUserInterface(void *activity) {
 			} // foreach event end
 		} // if number of fired events end
 	}
-	close(polling);
-	close(buttonsFileDescriptor);
-	close(switchesFileDescriptor);
 }
 
 static void tearDownUserInterface(void *activity) {

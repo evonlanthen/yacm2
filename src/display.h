@@ -27,21 +27,15 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int wasteBinFull;
 MESSAGE_CONTENT_DEFINITION_END(Display, ChangeViewCommand)
 
-MESSAGE_CONTENT_DEFINITION_BEGIN
-	unsigned int bitField;
-MESSAGE_CONTENT_DEFINITION_END(Display, UpdateLedsCommand)
-
 COMMON_MESSAGE_CONTENT_REDEFINITION(Display, Result)
 
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(Display, Command)
 	MESSAGE_CONTENT(Display, ChangeViewCommand)
-	MESSAGE_CONTENT(Display, UpdateLedsCommand)
 	MESSAGE_CONTENT(Display, Result)
 MESSAGE_DEFINITION_END(Display)
 
 #define CHANGE_VIEW_COMMAND 1
-#define UPDATE_LEDS_COMMAND 2
 
 extern ActivityDescriptor getDisplayDescriptor(void);
 
