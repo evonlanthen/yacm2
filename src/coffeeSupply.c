@@ -41,9 +41,11 @@ static ActivityDescriptor coffeeSupplyDescriptor = {
 	.tearDown = tearDownCoffeeSupply
 };
 
-MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, GrindCoffeePowderCommand, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, EjectCoffeeWasteCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply2, Result, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, GrindCoffeePowderCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, EjectCoffeeWasteCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, Result, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, BeanStatus, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, WasteBinStatus, 5)
 
 static int ejectWaste(void) {
 	return writeNonBlockingDevice("./dev/coffeeWasteEjector","1",wrm_replace,FALSE);
@@ -56,7 +58,7 @@ static int hasCoffeeWaste(void) {
 }
 
 // coffeeSupply state for beans
-static int lastHasBeans = TRUE;
+static Availability lastHasBeans = available;
 
 
 /*
@@ -117,6 +119,8 @@ static void coffeeSupplyInitializingStateEntryAction() {
 }
 
 static Event coffeeSupplyInitializingStateDoAction() {
+	// Eject waste
+	ejectWaste();
 	sleep(1);
 	return coffeeSupplyEvent_initialized;
 }
@@ -172,17 +176,8 @@ static Event coffeeSupplySupplyingStateDoAction() {
 }
 
 static void coffeeSupplySupplyingStateExitAction() {
-	// eject Waste
-	logInfo("[coffeeSupply] Ejecting waste...");
-	ejectWaste();
-	// notifiy mainController:
-//	sendMessage(getMainControllerDescriptor(), (char *)&(MainControllerMessage) {
-//		.activity = getCoffeeSupplyDescriptor(),
-//		.intValue = OK_RESULT,
-//		.strValue = "coffee powder supplying finished",
-//	}, sizeof(MainControllerMessage), messagePriority_high);
 	logInfo("[coffeeSupply] Sending ok result to MainController...");
-	sendNotification_BEGIN(coffeeSupply, CoffeeSupply2, getMainControllerDescriptor(), Result)
+	sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
 		.code = OK_RESULT
 	sendNotification_END
 }
@@ -259,7 +254,7 @@ static void runCoffeeSupply(void *activityarg) {
 
 	while (TRUE) {
 		// Wait for incoming message or time event
-		CoffeeSupplyMessage incomingMessage;
+		SimpleCoffeeSupplyMessage incomingMessage;
 		int result = waitForEvent(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage), 1000);
 		if (result < 0) {
 			logErr("[coffeeSupply] Error while waiting for event!");
@@ -284,16 +279,14 @@ static void runCoffeeSupply(void *activityarg) {
 				break;
 			case SUPPLY_START_COMMAND:
 				logInfo("[coffeeSupply] Received supply start command");
-				if (lastHasBeans) {
+				if (lastHasBeans == available) {
 					logInfo("[coffeeSupply] Beans available, starting supply");
 					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_startSupplying);
 				} else {
 					logInfo("[coffeeSupply] No beans, sending info to MainController");
-					sendMessage(getMainControllerDescriptor(), (char *)&(CoffeeSupplyMessage) {
-						.activity = getCoffeeSupplyDescriptor(),
-						.intValue = SUPPLY_NO_BEANS_ERROR,
-						.strValue = "no beans",
-					}, sizeof(MainControllerMessage), messagePriority_high);
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
+						.availability = notAvailable
+					sendNotification_END
 				}
 				break;
 			case SUPPLY_STOP_COMMAND:
@@ -304,22 +297,21 @@ static void runCoffeeSupply(void *activityarg) {
 				logInfo("[coffeeSupply] Received no beans error");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_noBeans);
 				// notifiy mainController:
-				sendMessage(getMainControllerDescriptor(), (char *)&(CoffeeSupplyMessage) {
-					.activity = getCoffeeSupplyDescriptor(),
-					.intValue = SUPPLY_NO_BEANS_ERROR,
-					.strValue = "no beans",
-				}, sizeof(MainControllerMessage), messagePriority_high);
-				lastHasBeans = FALSE;
+				sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
+					.availability = notAvailable
+				sendNotification_END
+
+				lastHasBeans = notAvailable;
 				break;
 			case SUPPLY_BEANS_AVAILABLE_NOTIFICATION:
 				logInfo("[coffeeSupply] Received beans available command");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_beansAvailable);
-				sendMessage(getMainControllerDescriptor(), (char *)&(CoffeeSupplyMessage) {
-					.activity = getCoffeeSupplyDescriptor(),
-					.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
-					.strValue = "beans available",
-				}, sizeof(MainControllerMessage), messagePriority_high);
-				lastHasBeans = TRUE;
+
+				sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
+					.availability = available
+				sendNotification_END
+
+				lastHasBeans = available;
 				break;
 			case OK_RESULT:
 				logInfo("[coffeeSupply] Received ok result");
@@ -337,19 +329,9 @@ static void runCoffeeSupply(void *activityarg) {
 		// Something happened with the waste bin?
 		if (hasCoffeeWasteState != lastHasCoffeeWasteState ) {
 			lastHasCoffeeWasteState = hasCoffeeWasteState;
-			if (hasCoffeeWasteState) {
-				sendMessage(getMainControllerDescriptor(),(char *)&(CoffeeSupplyMessage){
-					.activity = getCoffeeSupplyDescriptor(),
-					.intValue = WASTE_BIN_FULL_ERROR,
-					.strValue = "Waste bin full"
-					}, sizeof(MainControllerMessage), messagePriority_medium);
-			} else {
-				sendMessage(getMainControllerDescriptor(),(char *)&(CoffeeSupplyMessage){
-					.activity = getCoffeeSupplyDescriptor(),
-					.intValue = WASTE_BIN_CLEAR_NOTIFICATION,
-					.strValue = "Waste bin clear"
-					}, sizeof(MainControllerMessage), messagePriority_medium);
-			}
+			sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), WasteBinStatus)
+				.isBinFull = lastHasCoffeeWasteState
+			sendNotification_END
 		}
 	}
 }

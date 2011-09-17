@@ -22,6 +22,10 @@ void setUpStateMachine(StateMachine *stateMachine) {
 		return;
 	}
 
+	if (stateMachine->setUpAction) {
+		stateMachine->setUpAction();
+	}
+
 	Event event = activateState(stateMachine, stateMachine->initialState);
 
 	stateMachine->isInitialized = TRUE;
