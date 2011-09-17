@@ -172,7 +172,7 @@ static State coffeePowderDispenserInitializingState = {
  */
 
 static void coffeePowderDispenserIdleStateEntryAction() {
-	;
+	logInfo("[coffeePowderDispenser] Entered Idle State...");
 }
 
 static Event coffeePowderDispenserIdleStateDoAction() {
@@ -193,6 +193,7 @@ static State coffeePowderDispenserIdleState = {
  */
 
 static void coffeePowderDispenserSupplyingStateEntryAction() {
+	logInfo("[coffeePowderDispenser] Entered Supplying State...");
 	// notifiy motorController:
 	sendMessage(getMotorController(), (char *)&(MotorControllerMessage) {
 		.activity = getCoffeePowderDispenser(),
@@ -202,6 +203,11 @@ static void coffeePowderDispenserSupplyingStateEntryAction() {
 }
 
 static Event coffeePowderDispenserSupplyingStateDoAction() {
+	// enough Powder
+	if (hasEnoughPowder()) {
+		logInfo("[coffeePowderDispenser] Enough powder, stopping grinding...");
+		return coffeePowderDispenserEvent_supplyingFinished;
+	}
 	return NO_EVENT;
 }
 
@@ -293,6 +299,9 @@ static void setUpCoffeePowderDispenser(void *activityarg) {
 	logInfo("[coffeePowderDispenser] Setting up...");
 	coffeePowderDispenser = activityarg;
 	setUpStateMachine(&coffeePowderDispenserStateMachine);
+	if (!coffeePowderDispenserStateMachine.isInitialized) {
+		logErr("[coffeePowderDispenser] Statemachine init failed!");
+	}
 	fillStateMonitor = createActivity(getFillStateMonitor(), messageQueue_blocking);
 	motorController = createActivity(getMotorController(), messageQueue_blocking);
 }
@@ -304,6 +313,7 @@ static void runCoffeePowderDispenser(void *activity) {
 		CoffeePowderDispenserMessage incomingMessage;
 		int result = waitForEvent(coffeePowderDispenser, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
+			logErr("[coffeePowderDispenser] Error while waiting for event!");
 			//TODO Implement apropriate error handling
 			sleep(10);
 			// Try to recover from error
@@ -313,8 +323,10 @@ static void runCoffeePowderDispenser(void *activity) {
 		// Check if there is an incoming message
 		if (result > 0) {
 			// Process incoming message
+			logInfo("[coffeePowderDispenser] Processing incoming message...");
 			switch (incomingMessage.intValue) {
 				case INIT_COMMAND:
+					logInfo("[coffeePowderDispenser] Received init command...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_init);
 					break;
 				case OFF_COMMAND:
@@ -346,12 +358,8 @@ static void runCoffeePowderDispenser(void *activity) {
 					break;
 			}
 		}
-	}
-	// Run state machine
-	runStateMachine(&coffeePowderDispenserStateMachine);
-	// enough Powder
-	if (hasEnoughPowder()) {
-		processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_supplyingFinished);
+		// Run state machine
+		runStateMachine(&coffeePowderDispenserStateMachine);
 	}
 }
 
