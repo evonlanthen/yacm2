@@ -23,6 +23,11 @@
 typedef int Event;
 
 /**
+ * Defines the signature of an abort action.
+ */
+typedef void (*AbortAction)();
+
+/**
  * Defines the signature of a state precondition predicate.
  */
 typedef int (*StatePrecondition)();
@@ -53,6 +58,7 @@ typedef struct {
 	char *name; /**< The state machine's name. */
 	int isInitialized; /**< Is the state machine already initialized? */
 	unsigned int numberOfEvents; /**<  The number of defined events. */
+	AbortAction abortAction; /**< The machine's 'abort' action is called once the machine is aborted. */
 	State *initialState; /**< Defines the state machine's initial state. */
 	State *activeState; /**< The current state. */
 	State *transitions[]; /**< Defines the state machine's state transitions. */

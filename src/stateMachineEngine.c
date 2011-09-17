@@ -58,6 +58,10 @@ void abortStateMachine(StateMachine *stateMachine) {
 		stateMachine->activeState->exitAction();
 	}
 
+	if (stateMachine->abortAction) {
+		stateMachine->abortAction();
+	}
+
 	stateMachine->isInitialized = FALSE;
 }
 

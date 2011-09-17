@@ -41,8 +41,9 @@ static ActivityDescriptor waterSupply = {
 MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, OffCommand, 2)
 MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, SupplyWaterCommand, 3)
-MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, Result, 4)
-MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, Status, 5)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, AbortCommand, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, Result, 5)
+MESSAGE_CONTENT_TYPE_MAPPING(WaterSupply, Status, 6)
 
 static Activity *this;
 
@@ -145,6 +146,24 @@ typedef enum {
 
 /*
  ***************************************************************************
+ * Events
+ ***************************************************************************
+ */
+
+/**
+ * Represents a water supply event
+ */
+typedef enum {
+	waterSupplyEvent_switchOn,
+	waterSupplyEvent_switchOff,
+	waterSupplyEvent_initialized,
+	waterSupplyEvent_startSupplying,
+	waterSupplyEvent_supplyingFinished,
+	waterSupplyEvent_reconfigure,
+} WaterSupplyEvent;
+
+/*
+ ***************************************************************************
  * Switched off state
  ***************************************************************************
  */
@@ -202,6 +221,7 @@ static int supplyingStatePrecondition() {
 
 static int isSupplyInitialized;
 static SupplyResult supplyResult;
+static int supplyError;
 static TIMER supplyInitializingTimer;
 static TIMER supplyingTimer;
 static void supplyingStateEntryAction() {
@@ -209,6 +229,7 @@ static void supplyingStateEntryAction() {
 
 	isSupplyInitialized = FALSE;
 	supplyResult = supplyResult_nok;
+	supplyError = NO_ERROR;
 
 	// Start pump and heater
 	controlPump(deviceState_on);
@@ -227,13 +248,23 @@ static Event supplyingStateDoAction() {
 
 	// Check water
 	if (!checkWater()) {
+		supplyError = NO_WATER_ERROR;
+
 		return waterSupplyEvent_supplyingFinished;
 	}
 
-	if (isSupplyInitialized
-			// Check flow and temperature
-			&& (!hasFlow() || getTemperature() < waterBrewTemperature)) {
-		return waterSupplyEvent_supplyingFinished;
+	if (isSupplyInitialized) {
+		// Check flow and temperature
+		if (!hasFlow()) {
+			supplyError = NO_WATER_FLOW_ERROR;
+
+			return waterSupplyEvent_supplyingFinished;
+		}
+		if (getTemperature() < waterBrewTemperature) {
+			supplyError = WATER_TEMPERATURE_TOO_LOW_ERROR;
+
+			return waterSupplyEvent_supplyingFinished;
+		}
 	}
 
 	if (isTimerElapsed(supplyingTimer)) {
@@ -259,10 +290,11 @@ static void supplyingStateExitAction() {
 	controlPump(deviceState_off);
 	controlHeater(deviceState_off);
 
-	logInfo("[waterSupply] ...done.");
+	logInfo("[waterSupply] ...done (supplying water).");
 
 	sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
-		.code = OK_RESULT
+		.code = supplyResult == supplyResult_ok ? OK_RESULT : NOK_RESULT,
+		.errorCode = supplyError
 	sendNotification_END
 }
 
@@ -360,6 +392,10 @@ static void runWaterSupply(void *activity) {
 								.code = NOK_RESULT
 							sendResponse_END
 						}
+					MESSAGE_BY_TYPE_SELECTOR(message, WaterSupply, AbortCommand)
+						supplyError = ABORTED_ERROR;
+
+						processStateMachineEvent(&stateMachine, waterSupplyEvent_supplyingFinished);
 				MESSAGE_SELECTOR_END
 			}
 		waitForEvent_END
