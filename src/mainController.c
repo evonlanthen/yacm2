@@ -102,10 +102,11 @@ typedef struct {
  * The coffee maker model instance.
  */
 static CoffeeMaker coffeeMaker = {
-		.state = machineState_off,
-		.isCoffeeAvailable = notAvailable,
-		.isWaterAvailable = notAvailable,
-		.isMilkAvailable = notAvailable,
+	.state = machineState_off,
+	.isCoffeeAvailable = notAvailable,
+	.isWaterAvailable = notAvailable,
+	.isMilkAvailable = notAvailable,
+	.isCoffeeWasteBinFull = TRUE
 };
 
 // =============================================================================
@@ -147,7 +148,10 @@ static void offStateEntryAction() {
 	sendRequest_BEGIN(this, WaterSupply, OffCommand)
 	sendRequest_END
 	// Switch off coffee supply
-	// ...
+	// Old message format
+	sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
+		.intValue = OFF_COMMAND
+	}, messagePriority_medium);
 
 	setMachineState(machineState_off);
 	// TODO: Notify user interface
@@ -171,7 +175,10 @@ static void initializingStateEntryAction() {
 	sendNotification_END
 
 	// Switch on coffee supply
-	// ...
+	// Old message format
+	sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
+		.intValue = INIT_COMMAND
+	}, messagePriority_medium);
 	// Switch on water supply
 	sendRequest_BEGIN(this, WaterSupply, InitCommand)
 	sendRequest_END
@@ -217,17 +224,47 @@ static State idleState = {
 static int producingStatePrecondition() {
 	// Only start production if...
 	// - no coffee making process is already running (Paranoia)
-	// - coffee is available
+	// - coffee beans are available
 	// - water is available
 	// - milk is not required or
 	//     milk is available
+	// - coffee waste bin is not full
 	// - selected product is defined
-	return !coffeeMaker.ongoingCoffeeMaking
-		//TODO Activate these conditions
-		//&& coffeeMaker.isCoffeeAvailable == available
-		//&& coffeeMaker.isWaterAvailable == available
-		//&& (!produceWithMilk || (coffeeMaker.isMilkAvailable == available))
-		&& productToProduceIndex < getNumberOfProducts();
+
+	char *violation = NULL;
+
+	if (coffeeMaker.ongoingCoffeeMaking) {
+		violation = "Coffee making process already started!";
+	}
+
+	//TODO Activate these conditions
+//	if (coffeeMaker.isCoffeeAvailable != available) {
+//		violation = "No coffee beans!";
+//	}
+
+//	if (coffeeMaker.isWaterAvailable != available) {
+//		violation = "No water!";
+//	}
+
+//	if (produceWithMilk && (coffeeMaker.isMilkAvailable != available)) {
+//		violation = "No milk!";
+//	}
+
+//	if (coffeeMaker.isCoffeeWasteBinFull) {
+//		violation = "Coffee waste bin full!";
+//	}
+
+	if (productToProduceIndex > getNumberOfProducts()) {
+		violation = "Undefined product!";
+	}
+
+	if (violation) {
+		logInfo("[mainController] Precondition for starting coffee making process not met: %s\n", violation);
+
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static void startMakeCoffeeProcess(unsigned int productIndex) {
@@ -406,7 +443,10 @@ static void grindingCoffeePowderActivityEntryAction() {
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_grindingCoffeePowder;
 
-	//TODO Send grind coffee powder request to coffee supply
+	// Old message format
+	sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
+		.intValue = SUPPLY_START_COMMAND
+	}, messagePriority_medium);
 }
 
 static void grindingCoffeePowderActivityExitAction() {
@@ -497,7 +537,10 @@ static void ejectingCoffeeWasteActivityEntryAction() {
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_ejectingCoffeeWaste;
 
-	//TODO Send eject coffee waste request to coffee supply
+	// Old message format
+	sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
+		.intValue = EJECT_COFFEE_WASTE_COMMAND
+	}, messagePriority_medium);
 }
 
 static void ejectingCoffeeWasteActivityExitAction() {
@@ -554,10 +597,16 @@ static void coffeeMakingProcessAbortAction() {
 	if (productionResult != productionResult_ok) {
 		logErr("[mainController] [makeCoffee process] Aborting...");
 
-		//sendRequest_BEGIN(this, CoffeeSupply, AbortCommand)
-		//sendRequest_END
+		// Abort coffee supply
+		// Old message format
+		sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
+			.intValue = SUPPLY_STOP_COMMAND
+		}, messagePriority_medium);
+		// Abort water supply
 		sendRequest_BEGIN(this, WaterSupply, AbortCommand)
 		sendRequest_END
+		// Abort milk supply
+		// Not yet supported!
 		//sendRequest_BEGIN(this, MilkSupply, AbortCommand)
 		//sendRequest_END
 	}
