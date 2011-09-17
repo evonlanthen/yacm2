@@ -51,7 +51,7 @@ typedef enum {
 } CoffeePowderDispenserEvent;
 
 extern ActivityDescriptor getCoffeePowderDispenser(void);
-extern ActivityDescriptor getFillStateMonitor(void);
+extern ActivityDescriptor getCoffeeBeansFillStateMonitor(void);
 extern ActivityDescriptor getMotorController(void);
 
 

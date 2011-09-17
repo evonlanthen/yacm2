@@ -111,14 +111,14 @@ static State coffeeSupplySwitchedOffState = {
  */
 
 static void coffeeSupplyInitializingStateEntryAction() {
-	logInfo("[coffeeSupply] Send Init message to coffeePowderDispenser...");
+	//logInfo("[coffeeSupply] Send Init message to coffeePowderDispenser...");
 	//Send init message to powder dispenser
 	sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
 			.activity = getCoffeeSupplyDescriptor(),
 			.intValue = INIT_COMMAND,
 			.strValue = "init coffeePowderDispenser"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
-	logInfo("[coffeeSupply] ...done. (send init message)");
+	//logInfo("[coffeeSupply] ...done. (send init message)");
 }
 
 static Event coffeeSupplyInitializingStateDoAction() {
@@ -163,21 +163,21 @@ static State coffeeSupplyIdleState = {
  */
 
 static void coffeeSupplySupplyingStateEntryAction() {
-	logInfo("[coffeeSupply] Entered Supplying State...");
+	//logInfo("[coffeeSupply] Entered Supplying State...");
 	//check if we should eject waste
 	if (wasteDisposable) {
 		ejectWaste();
-		logInfo("[coffeeSupply] Ejecting without notification from maincontroller");
+		//logInfo("[coffeeSupply] Ejecting without notification from maincontroller");
 		wasteDisposable = FALSE;
 	}
-	logInfo("[coffeeSupply] Send Start message to coffeePowderDispenser...");
+	logInfo("[coffeeSupply] Going to grind coffee powder...");
 	//Send init message to powder dispenser
 	sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
 		.activity = getCoffeeSupplyDescriptor(),
 		.intValue = POWDER_DISPENSER_START_COMMAND,
 		.strValue = "start coffeePowderDispenser"
 		}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
-	logInfo("[coffeeSupply] ...done. (send dispenser start message)");
+	//logInfo("[coffeeSupply] ...done. (send dispenser start message)");
 }
 
 static Event coffeeSupplySupplyingStateDoAction() {
@@ -186,7 +186,7 @@ static Event coffeeSupplySupplyingStateDoAction() {
 
 static void coffeeSupplySupplyingStateExitAction() {
 	wasteDisposable = TRUE;
-	logInfo("[coffeeSupply] Sending ok result to MainController...");
+	logInfo("[coffeeSupply] ...done (grinding coffee powder)");
 	sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
 		.code = OK_RESULT
 	sendNotification_END
@@ -254,21 +254,20 @@ ActivityDescriptor getCoffeeSupplyDescriptor() {
 }
 
 static void setUpCoffeeSupply(void *activityarg) {
-	logInfo("[coffeeSupply] Setting up...");
+	//logInfo("[coffeeSupply] Setting up...");
 	coffeeSupply = activityarg;
 	setUpStateMachine(&coffeeSupplyStateMachine);
 	coffeePowderDispenser = createActivity(getCoffeePowderDispenser(), messageQueue_blocking);
 }
 
 static void runCoffeeSupply(void *activityarg) {
-	logInfo("[coffeeSupply] Running...");
+	//logInfo("[coffeeSupply] Running...");
 
 	while (TRUE) {
 		// Wait for incoming message or time event
 		SimpleCoffeeSupplyMessage incomingMessage;
 		int result = waitForEvent(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage), 1000);
 		if (result < 0) {
-			logErr("[coffeeSupply] Error while waiting for event!");
 			//TODO Implement apropriate error handling
 			sleep(10);
 				// Try to recover from error
@@ -278,34 +277,34 @@ static void runCoffeeSupply(void *activityarg) {
 		// Check if there is an incoming message
 		if (result > 0) {
 			// Process incoming message
-			logInfo("[coffeeSupply] Process incoming message...");
+			//logInfo("[coffeeSupply] Process incoming message...");
 			switch (incomingMessage.intValue) {
 			case INIT_COMMAND:
-				logInfo("[coffeeSupply] Received init command");
+				//logInfo("[coffeeSupply] Received init command");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_init);
 				break;
 			case OFF_COMMAND:
-				logInfo("[coffeeSupply] Received off command");
+				//logInfo("[coffeeSupply] Received off command");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_switchOff);
 				break;
 			case SUPPLY_START_COMMAND:
-				logInfo("[coffeeSupply] Received supply start command");
+				//logInfo("[coffeeSupply] Received supply start command");
 				if (lastHasBeans == available) {
-					logInfo("[coffeeSupply] Beans available, starting supply");
+					//logInfo("[coffeeSupply] Beans available, starting supply");
 					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_startSupplying);
 				} else {
-					logInfo("[coffeeSupply] No beans, sending info to MainController");
+					logInfo("[coffeeSupply] No beans!");
 					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
 						.availability = notAvailable
 					sendNotification_END
 				}
 				break;
 			case SUPPLY_STOP_COMMAND:
-				logInfo("[coffeeSupply] Received supply stop command");
+				//logInfo("[coffeeSupply] Received supply stop command");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_stop);
 				break;
 			case SUPPLY_NO_BEANS_ERROR:
-				logInfo("[coffeeSupply] Received no beans error");
+				//logInfo("[coffeeSupply] Received no beans error");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_noBeans);
 				// notifiy mainController:
 				sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
@@ -315,7 +314,7 @@ static void runCoffeeSupply(void *activityarg) {
 				lastHasBeans = notAvailable;
 				break;
 			case SUPPLY_BEANS_AVAILABLE_NOTIFICATION:
-				logInfo("[coffeeSupply] Received beans available command");
+				//logInfo("[coffeeSupply] Received beans available command");
 				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_beansAvailable);
 
 				sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
@@ -325,15 +324,15 @@ static void runCoffeeSupply(void *activityarg) {
 				lastHasBeans = available;
 				break;
 			case EJECT_COFFEE_WASTE_COMMAND:
-				logInfo("[coffeeSupply] Received eject command");
+				//logInfo("[coffeeSupply] Received eject command");
 				if (coffeeSupplyStateMachine.activeState == &coffeeSupplyIdleState) {
-					logInfo("[coffeeSupply] Received eject command in idle state");
+					logInfo("[coffeeSupply] Going to eject coffee waste...");
 					ejectWaste();
 					wasteDisposable = FALSE;
 				}
 				break;
 			case OK_RESULT:
-				logInfo("[coffeeSupply] Received ok result");
+				//logInfo("[coffeeSupply] Received ok result");
 				MESSAGE_SELECTOR_BEGIN
 				MESSAGE_SELECTOR(incomingMessage, coffeePowderDispenser)
 					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_supplyingFinished);
@@ -356,7 +355,7 @@ static void runCoffeeSupply(void *activityarg) {
 }
 
 static void tearDownCoffeeSupply(void *activity) {
-	logInfo("[coffee supply] Tearing down...");
+	//logInfo("[coffee supply] Tearing down...");
 	destroyActivity(coffeePowderDispenser);
 }
 

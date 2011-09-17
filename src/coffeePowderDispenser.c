@@ -8,10 +8,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include "defines.h"
 #include "syslog.h"
 #include "device.h"
+#include "unistd.h"
 #include "mainController.h"
 #include "coffeePowderDispenser.h"
 #include "coffeeSupply.h"
@@ -42,7 +42,7 @@ static ActivityDescriptor coffeePowderDispenserDescriptor = {
 };
 
 static ActivityDescriptor fillStateMonitorDescriptor = {
-	.name = "fillStateMonitor",
+	.name = "coffeeBeansFillStateMonitor",
 	.setUp = setUpFillStateMonitor,
 	.run = runFillStateMonitor,
 	.tearDown = tearDownFillStateMonitor
@@ -81,12 +81,12 @@ static int checkBeans(void) {
 
 		if (hasBeansState) {
 			sendMessage(getCoffeePowderDispenser(), (char *)&(FillStateMonitorMessage) {
-				.activity = getFillStateMonitor(),
+				.activity = getCoffeeBeansFillStateMonitor(),
 				.intValue = POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION,
 			}, sizeof(FillStateMonitorMessage), messagePriority_high);
 		} else {
 			sendMessage(getCoffeePowderDispenser(), (char *)&(FillStateMonitorMessage) {
-				.activity = getFillStateMonitor(),
+				.activity = getCoffeeBeansFillStateMonitor(),
 				.intValue = POWDER_DISPENSER_NO_BEANS_ERROR,
 			}, sizeof(FillStateMonitorMessage), messagePriority_high);
 		}
@@ -150,6 +150,12 @@ static void coffeePowderDispenserInitializingStateEntryAction() {
 		.intValue = MOTOR_STOP_COMMAND,
 		.strValue = "stop motor",
 	}, sizeof(MotorControllerMessage), messagePriority_medium);
+	// notifiy motorController:
+	sendMessage(getCoffeeBeansFillStateMonitor(), (char *)&(FillStateMonitorMessage) {
+		.activity = getCoffeePowderDispenser(),
+		.intValue = INIT_COMMAND,
+		.strValue = "Init",
+	}, sizeof(FillStateMonitorMessage), messagePriority_medium);
 }
 
 static Event coffeePowderDispenserInitializingStateDoAction() {
@@ -288,7 +294,7 @@ ActivityDescriptor getCoffeePowderDispenser() {
 	return coffeePowderDispenserDescriptor;
 }
 
-ActivityDescriptor getFillStateMonitor() {
+ActivityDescriptor getCoffeeBeansFillStateMonitor() {
 	return fillStateMonitorDescriptor;
 }
 
@@ -303,7 +309,7 @@ static void setUpCoffeePowderDispenser(void *activityarg) {
 	if (!coffeePowderDispenserStateMachine.isInitialized) {
 		logErr("[coffeePowderDispenser] Statemachine init failed!");
 	}
-	createActivity(getFillStateMonitor(), messageQueue_blocking);
+	createActivity(getCoffeeBeansFillStateMonitor(), messageQueue_blocking);
 	createActivity(getMotorController(), messageQueue_blocking);
 }
 
@@ -382,14 +388,14 @@ static void setUpFillStateMonitor(void *activityarg) {
 	if (lastHasBeansState) {
 		logInfo("[fillStateMonitor] Init: sending Beans available");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
-			.activity = getFillStateMonitor(),
+			.activity = getCoffeeBeansFillStateMonitor(),
 			.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
 			.strValue = "Beans available"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
 	} else {
 		logInfo("[fillStateMonitor] Init: sending no beans error");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
-			.activity = getFillStateMonitor(),
+			.activity = getCoffeeBeansFillStateMonitor(),
 			.intValue = SUPPLY_NO_BEANS_ERROR,
 			.strValue = "No beans"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
@@ -401,13 +407,28 @@ static void runFillStateMonitor(void *activity) {
 	logInfo("[fillStateMonitor] Running...");
 
 	while (TRUE) {
+		// Wait for incoming message or time event
+		FillStateMonitorMessage incomingMessage;
+		int result = waitForEvent(fillStateMonitor, (char *)&incomingMessage, sizeof(incomingMessage), 100);
+		if (result < 0) {
+			logErr("[fillStateMonitor] Error while waiting for event!");
+			//TODO Implement apropriate error handling
+			sleep(10);
+				// Try to recover from error
+			continue;
+		}
+
+		// Check if there is an incoming message
+		if (result > 0) {
+			// Process incoming message
+			logInfo("[fillStateMonitor] Process incoming message...");
+		}
 		checkBeans();
-		usleep(100);
 	}
 }
 
 static void tearDownFillStateMonitor(void *activity) {
-	logInfo("[coffeePowderDispenser] Tearing down...");
+	logInfo("[FillStateMonitor] Tearing down...");
 }
 
 static void setUpMotorController(void *activityarg) {
