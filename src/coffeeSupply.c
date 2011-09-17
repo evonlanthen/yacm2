@@ -293,9 +293,10 @@ static void runCoffeeSupply(void *activityarg) {
 					//logInfo("[coffeeSupply] Beans available, starting supply");
 					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_startSupplying);
 				} else {
-					logInfo("[coffeeSupply] No beans!");
-					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
-						.availability = notAvailable
+					logInfo("[coffeeSupply] No beans, sending info to MainController");
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = NOK_RESULT,
+						.errorCode = NO_COFFEE_BEANS_ERROR
 					sendNotification_END
 				}
 				break;
@@ -329,6 +330,15 @@ static void runCoffeeSupply(void *activityarg) {
 					logInfo("[coffeeSupply] Going to eject coffee waste...");
 					ejectWaste();
 					wasteDisposable = FALSE;
+
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = OK_RESULT
+					sendNotification_END
+				} else {
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = NOK_RESULT,
+						.errorCode = COFFEE_WASTE_EJECTION_NOT_POSSIBLE_ERROR
+					sendNotification_END
 				}
 				break;
 			case OK_RESULT:

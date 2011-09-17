@@ -16,13 +16,14 @@
 #include "userInterface.h"
 #include "display.h"
 
-#define LED_POWER_SWITCH 1<<7
-#define LED_MILK_SELECTOR 1<<6
-#define LED_INGREDIENT_STATES 1<<5
-#define LED_WASTE_BIN_STATE 1<<4
-#define LED_PRODUCT_3_BUTTON 1<<2
-#define LED_PRODUCT_2_BUTTON 1<<1
-#define LED_PRODUCT_1_BUTTON 1<<0
+#define LED_POWER_SWITCH 7
+#define LED_WITH_MILK 6
+#define LED_INGREDIENTS_MISSING 5
+#define LED_WASTE_BIN_FULL 4
+#define LED_PRODUCT_3_BUTTON (1<<2)
+#define LED_PRODUCT_2_BUTTON (1<<1)
+#define LED_PRODUCT_1_BUTTON (1<<0)
+#define LED_PRODUCT_BUTTON_BY_INDEX(x) ((x > 0) ? 1<<(x-1) : 0)
 
 static void setUpDisplay(void *activity);
 static void runDisplay(void *activity);
@@ -37,8 +38,7 @@ static ActivityDescriptor display = {
 
 MESSAGE_CONTENT_TYPE_MAPPING(Display, Command, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(Display, ChangeViewCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(Display, UpdateLedsCommand, 3)
-MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 3)
 
 static Activity *this;
 
@@ -52,10 +52,17 @@ static void setUpDisplay(void *activity) {
 }
 
 static void runDisplay(void *activity) {
-	int view;
-	char viewString[100] = "Test";
+	unsigned int powerState;
+	MachineState machineState;
+	unsigned int withMilk;
+	unsigned int ingredientsMissing;
+	unsigned int productIndex;
+	unsigned int wasteBinFull;
+	int ledsBitField;
+	char ledsBitFieldString[5];
+	char viewString[301];
 
-	logInfo("[%s] Running...", (*this->descriptor).name);
+	logInfo("[%s] Running...", this->descriptor->name);
 
 	while(TRUE) {
 		waitForEvent_BEGIN(this, Display, 1000)
@@ -69,16 +76,49 @@ static void runDisplay(void *activity) {
 		if (result > 0) {
 			MESSAGE_SELECTOR_BEGIN
 				MESSAGE_BY_TYPE_SELECTOR(message, Display, ChangeViewCommand)
-					view = content.view;
-					if (writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
-						sendResponse_BEGIN(this, Display, Result)
-							.code = OK_RESULT
-						sendResponse_END
+					powerState = content.powerState;
+					machineState = content.machineState;
+					withMilk = content.withMilk;
+					if (content.coffeeAvailability == available &&
+						content.waterAvailability == available &&
+						content.milkAvailability == available) {
+						ingredientsMissing = FALSE;
 					} else {
+						ingredientsMissing = TRUE;
+					}
+					productIndex = content.productIndex;
+					wasteBinFull = content.wasteBinFull;
+					// setup bitfield:
+					ledsBitField = (powerState << LED_POWER_SWITCH);
+					ledsBitField += (withMilk << LED_WITH_MILK);
+					ledsBitField += (ingredientsMissing << LED_INGREDIENTS_MISSING);
+					ledsBitField += LED_PRODUCT_BUTTON_BY_INDEX(productIndex);
+					ledsBitField += (wasteBinFull << LED_WASTE_BIN_FULL);
+					// write bitfield to string:
+					snprintf(ledsBitFieldString, 4, "%d", ledsBitField);
+					snprintf(viewString, 300, "New view: powerState=%d, machineState=%d, withMilk=%d, ingredientsMissing=%d, productIndex=%d, wasteBinFull=%d",
+						powerState,
+						machineState,
+						withMilk,
+						ingredientsMissing,
+						productIndex,
+						wasteBinFull);
+					logInfo("[%s] powerState=%d, machineState=%d, withMilk=%d, ingredientsMissing=%d, productIndex=%d, wasteBinFull=%d, ledsBitField=%d, ledBitFieldStr=%s",
+						this->descriptor->name,
+						powerState,
+						machineState,
+						withMilk,
+						ingredientsMissing,
+						productIndex,
+						wasteBinFull,
+						ledsBitField,
+						ledsBitFieldString);
+					if (!writeNonBlockingDevice("/dev/leds", ledsBitFieldString, wrm_replace, FALSE)) {
+						logErr("[%s] Could update leds!", this->descriptor->name);
+					}
+
+					if (!writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
 						logErr("[%s] Could not write to display!", this->descriptor->name);
-						sendResponse_BEGIN(this, Display, Result)
-							.code = NOK_RESULT
-						sendResponse_END
 					}
 				MESSAGE_SELECTOR_END
 			waitForEvent_END
@@ -88,4 +128,7 @@ static void runDisplay(void *activity) {
 
 static void tearDownDisplay(void *activity) {
 	logInfo("[display] Tearing down...");
+	if (!writeNonBlockingDevice("/dev/leds", "0", wrm_replace, FALSE)) {
+		logErr("[%s] Could update leds!", this->descriptor->name);
+	}
 }

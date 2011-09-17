@@ -47,28 +47,28 @@ static ActivityDescriptor milkSupply = {
 };
 
 static ActivityDescriptor lacticAcidMonitorDescriptor = {
-	.name = "lacticAcidMonitor",
+	.name = "milkLacticAcidMonitor",
 	.setUp = setUpSubsystem,
 	.run = runSubsystem,
 	.tearDown = tearDownSubsystem
 };
 
 static ActivityDescriptor coolingDescriptor = {
-	.name = "cooling",
+	.name = "milkCooling",
 	.setUp = setUpSubsystem,
 	.run = runSubsystem,
 	.tearDown = tearDownSubsystem
 };
 
 static ActivityDescriptor fillStateMonitorDescriptor = {
-	.name = "fillStateMonitor",
+	.name = "milkFillStateMonitor",
 	.setUp = setUpSubsystem,
 	.run = runSubsystem,
 	.tearDown = tearDownSubsystem
 };
 
 static ActivityDescriptor pipeFlushingDescriptor = {
-	.name = "pipeFlushing",
+	.name = "milkPipeFlushing",
 	.setUp = setUpSubsystem,
 	.run = runSubsystem,
 	.tearDown = tearDownSubsystem

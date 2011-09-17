@@ -17,10 +17,6 @@
 #include "syslog.h"
 #include "device.h"
 
-int getFileDescriptor(char *deviceName, int flags) {
-	return open(deviceName, flags);
-}
-
 int readBlockingDevice(char *deviceFifo) {
 	char input[2];
 	int ret, fd;
@@ -29,7 +25,7 @@ int readBlockingDevice(char *deviceFifo) {
 
 	memset(input, 0, 2);
 	memset(&lock, 0, sizeof(struct flock));
-	fd = open(deviceFifo, O_RDONLY);
+	fd = open(deviceFifo, /* O_CREAT | */ O_RDONLY);
 	listen_for[0].fd = fd;
 	listen_for[0].events = POLLIN;
 	listen_for[0].revents = 0;
@@ -69,7 +65,7 @@ int readNonBlockingDevice(char *deviceFile) {
 	ssize_t bytesRead = 0;
 	memset(input, 0, 80);
 	memset(&lock, 0, sizeof(struct flock));
-	fd = open(deviceFile, O_RDONLY);
+	fd = open(deviceFile, /* O_CREAT | */ O_RDONLY);
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
 
@@ -97,7 +93,7 @@ int readNonBlockingDevice(char *deviceFile) {
 int writeNonBlockingDevice(char *deviceFile, char *str, WriteMode mode, int newLine) {
 	int fd;
 	struct flock lock;
-	mode_t openMode = O_WRONLY;
+	mode_t openMode = /* O_CREAT | */ O_WRONLY;
 	int bytesWritten = 0;
 	memset(&lock, 0, sizeof(struct flock));
 

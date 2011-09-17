@@ -20,6 +20,7 @@
 #define SUPPLY_NO_BEANS_ERROR 2401
 
 #define NO_COFFEE_BEANS_ERROR 1
+#define COFFEE_WASTE_EJECTION_NOT_POSSIBLE_ERROR 2
 
 typedef struct {
 	ActivityDescriptor activity;
