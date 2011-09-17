@@ -89,8 +89,6 @@ static int releaseEvent(struct inode *inode, struct file *file) {
 static wait_queue_head_t areEventsAvailableWaitQueue;
 
 static int areEventsAvailable(void) {
-	//test_and_clear_bit(0, &bit)
-
 	spin_lock(&eventsLock);
 	if (!kfifo_is_empty(&events)) {
 		// Wait condition is true -> keep lock and return

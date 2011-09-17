@@ -20,47 +20,108 @@
 
 #include <linux/interrupt.h>
 
+#include <asm/atomic.h>
+#include <linux/kfifo.h>
+#include <linux/spinlock.h>
 #include <linux/wait.h>
+//#include <linux/bitops.h>
 
-#include <linux/bitops.h>
-
+#include "hmi.h"
 #include "switches.h"
 #include "leds.h"
-#include "hmi.h"
+#include "helpers.h"
+
+static struct gpio buttonGPIOs[] = {
+	{ 99, GPIOF_IN, "T0" },
+	{ 101, GPIOF_IN, "T1" },
+	{ 102, GPIOF_IN, "T2" },
+	{ 103, GPIOF_IN, "T3" }
+};
 
 static struct timer_list debounceButtonTimers[4];
 static volatile unsigned long debounceButtonFlags = 0;
 
-static wait_queue_head_t isDataAvailableWaitQueue;
-static volatile int lastPressedButtonIndex = 0;
+static atomic_t isButtonsDeviceAvailable = ATOMIC_INIT(1);
 
-static volatile unsigned long bit = 0;
-static spinlock_t spinlock = SPIN_LOCK_UNLOCKED;
+//static volatile int lastPressedButtonIndex = 0;
+//static volatile unsigned long bit = 0;
+//static spinlock_t spinlock = SPIN_LOCK_UNLOCKED;
+
+static DEFINE_KFIFO(buttonEvents, 8);
+static spinlock_t eventsLock = SPIN_LOCK_UNLOCKED;
+
+static int open(struct inode *inode, struct file *file) {
+	if (!atomic_dec_and_test(&isButtonsDeviceAvailable)) {
+	    atomic_inc(&isButtonsDeviceAvailable);
+	    return /* Already open: */ -EBUSY;
+	}
+
+	// Clear event queue
+	static unsigned long interruptFlags;
+	spin_lock_irqsave(&eventsLock, interruptFlags);
+	kfifo_reset(&buttonEvents);
+	spin_unlock_irqrestore(&eventsLock, interruptFlags);
+
+	return 0;
+}
+
+static int release(struct inode *inode, struct file *file) {
+	atomic_inc(&isButtonsDeviceAvailable);
+
+	return 0;
+}
+
+static wait_queue_head_t areEventsAvailableWaitQueue;
+
+static unsigned long interruptFlags;
+
+static int areEventsAvailable(void) {
+	spin_lock_irqsave(&eventsLock, interruptFlags);
+	if (!kfifo_is_empty(&buttonEvents)) {
+		// Wait condition is true -> keep lock and return
+		return 1;
+	}
+	spin_unlock_irqrestore(&eventsLock, interruptFlags);
+
+	return 0;
+}
 
 static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t *offset) {
 	ssize_t result;
 
-	if (size < 1) {
-		return -EFAULT;
-	}
-
 	if (*offset == 0) {
-		wait_event_interruptible(isDataAvailableWaitQueue, test_and_clear_bit(0, &bit));
+		if (size >= 1) {
+			//wait_event_interruptible(areEventsAvailableWaitQueue, test_and_clear_bit(0, &bit));
+			wait_event_interruptible(areEventsAvailableWaitQueue, areEventsAvailable());
 
-		// Open atomic context (by disabling interrupts)
-		unsigned long flags;
-		spin_lock_irqsave(&spinlock, flags);
+			// Open atomic context (by disabling interrupts)
+			//unsigned long flags;
+			//spin_lock_irqsave(&spinlock, flags);
 
-		unsigned char value = 0x30 + lastPressedButtonIndex;
+			//unsigned char value = 0x30 + lastPressedButtonIndex;
 
-		// Close atomic context (by enabling interrupts)
-		spin_unlock_irqrestore(&spinlock, flags);
+			// Close atomic context (by enabling interrupts)
+			//spin_unlock_irqrestore(&spinlock, flags);
 
-		if (copy_to_user(buffer, &value, 1)) {
-			result = -EFAULT;
+			// Remove first event from queue
+			unsigned char value = 0;
+			if (!kfifo_out(&buttonEvents, &value, 1)) {
+				printk(KERN_WARNING MODULE_LABEL "Event buffer is unexpectedly empty!\n");
+			}
+
+			spin_unlock_irqrestore(&eventsLock, interruptFlags);
+
+			char valueAsString[4];
+			size_t valueAsStringLength = toString(valueAsString, 4, value);
+			// Copy data from kernel to user memory
+			if (!copy_to_user(buffer, valueAsString, valueAsStringLength)) {
+				*offset = valueAsStringLength;
+				result = valueAsStringLength;
+			} else {
+				result = /* Error copying data! */ -EFAULT;
+			}
 		} else {
-			*offset = 1;
-			result = 1;
+			result = /* Buffer to short! */ -EFAULT;
 		}
 	} else {
 		result = /* EOF: */ 0;
@@ -71,60 +132,59 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 
 static struct file_operations buttonsFileOperations = {
 	.owner = THIS_MODULE,
+	.open = open,
 	.read = read,
+	.release = release,
 	.llseek = no_llseek
 };
 
 static struct miscdevice buttonsDevice = {
-	.name = "buttons",
+	.name = "buttonsEvent",
 	.minor = MISC_DYNAMIC_MINOR,
 	.fops = &buttonsFileOperations,
 };
 
-static struct gpio buttonGPIOs[] = {
-	{ 99, GPIOF_IN, "T0" },
-	{ 101, GPIOF_IN, "T1" },
-	{ 102, GPIOF_IN, "T2" },
-	{ 103, GPIOF_IN, "T3" }
-};
+static irqreturn_t handleButtonInterrupt(int irq, void *deviceId) {
+	int buttonIndex = (int)deviceId;
 
-static irqreturn_t handleButtonInterrupt(int irq, void *dev_id) {
-	int index = (int)dev_id;
+	//printk(KERN_INFO MODULE_LABEL "Interrupt for button %d (button GPIO %d) occured!\n", index, buttonGPIOs[index].gpio);
 
-	printk(KERN_INFO "Interrupt for button %d (button GPIO %d) occured!\n", index, buttonGPIOs[index].gpio);
+	if (test_and_set_bit(buttonIndex, &debounceButtonFlags)) {
+		//printk(KERN_INFO MODULE_LABEL "Ignoring interrupt for GPIO %d.\n", buttonGPIOs[index].gpio);
 
-	if (test_and_set_bit(index, &debounceButtonFlags)) {
-		printk(KERN_INFO "Ignoring interrupt for GPIO %d.\n", buttonGPIOs[index].gpio);
 		return IRQ_HANDLED;
 	}
 
-	lastPressedButtonIndex = index;
-	set_bit(0, &bit);
-	wake_up_interruptible_all(&isDataAvailableWaitQueue);
+	mod_timer(&debounceButtonTimers[buttonIndex], jiffies + msecs_to_jiffies(100));
 
-	mod_timer(&debounceButtonTimers[index], jiffies + msecs_to_jiffies(100));
+	//lastPressedButtonIndex = buttonIndex;
+	//set_bit(0, &bit);
+	// Add new event to queue
+	if (!kfifo_in_locked(&buttonEvents, &buttonIndex, 1, &eventsLock)) {
+		printk(KERN_WARNING MODULE_LABEL "Event buffer is full, new event was ignored!\n");
+	}
+
+	wake_up_interruptible_all(&areEventsAvailableWaitQueue);
 
 	return IRQ_WAKE_THREAD;
 }
 
-static irqreturn_t handleButtonInterrupt2ndStage(int irq, void *dev_id) {
-	int index = (int)dev_id;
-	//int led_gpio = gpio_leds[index+4].gpio;
-
-	//gpio_set_value(led_gpio, !gpio_get_value(led_gpio));
+static irqreturn_t handleButtonInterrupt2ndStage(int irq, void *deviceId) {
+	int buttonIndex = (int)deviceId;
 
 	return IRQ_HANDLED;
 }
 
 static void buttonDebounceTimerExpired(unsigned long data) {
-	printk(KERN_INFO "Debounce timer for button GPIO %d expired.\n", buttonGPIOs[data].gpio);
+	//printk(KERN_INFO MODULE_LABEL "Debounce timer for button GPIO %d expired.\n", buttonGPIOs[data].gpio);
+
 	clear_bit(data, &debounceButtonFlags);
 }
 
 static int isButtonsDeviceSetUp = 0;
 
 void __exit exitHMI(void);
-int __init initHMI() {
+int __init initHMI(void) {
 	int result = 0;
 
 	printk(KERN_INFO MODULE_LABEL "Loading module...\n");
@@ -159,7 +219,7 @@ int __init initHMI() {
 								handleButtonInterrupt2ndStage,
 								IRQF_TRIGGER_RISING,
 								buttonGPIOs[i].label,
-								(void *)i))) {
+								/* Button index */ (void *)i))) {
 			printk(KERN_WARNING MODULE_LABEL "Error requesting buttons GPIO interrupts!\n");
 
 			goto initHMI_error;
@@ -167,7 +227,7 @@ int __init initHMI() {
 	}
 
 	// 1.5 Initialize wait queue (used for signaling to waiting read system calls that data is available)
-	init_waitqueue_head(&isDataAvailableWaitQueue);
+	init_waitqueue_head(&areEventsAvailableWaitQueue);
 
 	// 1.6 Setup character device (based on misc devices)
 	if (!(result = misc_register(&buttonsDevice))) {
