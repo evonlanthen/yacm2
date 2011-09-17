@@ -803,7 +803,7 @@ static void runMainController(void *activity) {
 								} else {
 									char *errorMessage;
 									switch (content.errorCode) {
-										case 0: //NO_COFFEE_BEANS_ERROR:
+										case NO_COFFEE_BEANS_ERROR:
 											errorMessage = "No coffee beans!";
 											break;
 										default:
