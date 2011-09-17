@@ -48,14 +48,6 @@ typedef enum {
 } Availability;
 
 /**
- * Represents a selected value
- */
-typedef enum {
-	notSelected,
-	selected
-} Selector;
-
-/**
  * Represents the coffee maker state.
  */
 typedef enum {
@@ -64,12 +56,6 @@ typedef enum {
 	machineState_idle,
 	machineState_producing
 } MachineState;
-
-/**
- * Define some switches
- */
-#define POWER_SWITCH 1<<0
-#define MILK_SELECTOR_SWITCH 1<<1
 
 // Old command codes
 #define INIT_COMMAND 1

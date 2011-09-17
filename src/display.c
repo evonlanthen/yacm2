@@ -16,6 +16,14 @@
 #include "userInterface.h"
 #include "display.h"
 
+#define LED_POWER_SWITCH 1<<7
+#define LED_MILK_SELECTOR 1<<6
+#define LED_INGREDIENT_STATES 1<<5
+#define LED_WASTE_BIN_STATE 1<<4
+#define LED_PRODUCT_3_BUTTON 1<<2
+#define LED_PRODUCT_2_BUTTON 1<<1
+#define LED_PRODUCT_1_BUTTON 1<<0
+
 static void setUpDisplay(void *activity);
 static void runDisplay(void *activity);
 static void tearDownDisplay(void *activity);
@@ -27,46 +35,55 @@ static ActivityDescriptor display = {
 		.tearDown = tearDownDisplay
 };
 
+MESSAGE_CONTENT_TYPE_MAPPING(Display, Command, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, ChangeViewCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, UpdateLedsCommand, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 4)
+
+static Activity *this;
+
 ActivityDescriptor getDisplayDescriptor() {
 	return display;
 }
 
 static void setUpDisplay(void *activity) {
 	logInfo("[display] Setting up...");
+	this = (Activity *)activity;
 }
 
 static void runDisplay(void *activity) {
-	DisplayMessage displayMessage;
-	int messageLength;
-	UserInterfaceMessage userInterfaceMessage;
-	/*
-	userInterfaceMessage.activity = getDisplayDescriptor();
+	int view;
+	char viewString[100] = "Test";
 
-	logInfo("[display] Running...");
+	logInfo("[%s] Running...", (*this->descriptor).name);
 
 	while(TRUE) {
-		logInfo("[display] Going to receive message...");
-		messageLength = receiveMessage(activity, (char *)&displayMessage, sizeof(displayMessage));
-		if (messageLength > 0) {
-			logInfo("[display] Message received from %s (length: %d): value: %d, message: %s",
-				displayMessage.activity.name, messageLength, displayMessage.intValue, displayMessage.strValue);
+		waitForEvent_BEGIN(this, Display, 1000)
+		if (error) {
+			//TODO Implement appropriate error handling
+			sleep(10);
 
-			// TODO: update display and leds
-			if (writeNonBlockingDevice("./dev/display", displayMessage.strValue, wrm_append, TRUE)) {
-				userInterfaceMessage.intValue = TRUE;
-				strcpy(userInterfaceMessage.strValue, "Success!");
-			} else {
-				logErr("[display] Could not write to display!");
-				userInterfaceMessage.intValue = FALSE;
-				strcpy(userInterfaceMessage.strValue, "Failure!");
-			}
-
-			sendMessage(getUserInterfaceDescriptor(),
-					(char *)&userInterfaceMessage,
-					sizeof(userInterfaceMessage),
-					messagePriority_low);
+			// Try again
+			continue;
 		}
-	} */
+		if (result > 0) {
+			MESSAGE_SELECTOR_BEGIN
+				MESSAGE_BY_TYPE_SELECTOR(message, Display, ChangeViewCommand)
+					view = content.view;
+					if (writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
+						sendResponse_BEGIN(this, Display, Result)
+							.code = OK_RESULT
+						sendResponse_END
+					} else {
+						logErr("[%s] Could not write to display!", this->descriptor->name);
+						sendResponse_BEGIN(this, Display, Result)
+							.code = NOK_RESULT
+						sendResponse_END
+					}
+				MESSAGE_SELECTOR_END
+			waitForEvent_END
+		}
+	}
 }
 
 static void tearDownDisplay(void *activity) {
