@@ -135,7 +135,7 @@ static ssize_t readEvent(struct file *file, char __user *buffer, size_t size, lo
 	return result;
 }
 
-static unsigned int poll(struct file *file, poll_table *wait) {
+static unsigned int pollEvent(struct file *file, poll_table *wait) {
 	unsigned int mask = 0;
 
 	poll_wait(file, &areEventsAvailableWaitQueue, wait);
@@ -181,7 +181,6 @@ static struct file_operations switchesFileOperations = {
 	.owner = THIS_MODULE,
 	.read = read,
 	.llseek = no_llseek,
-	.poll = poll
 };
 
 static struct miscdevice switchesDevice = {
@@ -194,8 +193,9 @@ static struct file_operations switchesEventFileOperations = {
 	.owner = THIS_MODULE,
 	.open = openEvent,
 	.read = readEvent,
-	.release = releaseEvent,
-	.llseek = no_llseek
+	.llseek = no_llseek,
+	.poll = pollEvent,
+	.release = releaseEvent
 };
 
 static struct miscdevice switchesEventDevice = {
