@@ -118,11 +118,11 @@ static void runUserInterface(void *activity) {
 	// open file descriptors for buttons and switches:
 	buttonsFileDescriptor = open(buttonsEventDevice, O_RDONLY);
 	if (buttonsFileDescriptor < 0) {
-		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, buttonsDevice, strerror(errno));
+		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, buttonsEventDevice, strerror(errno));
 	}
 	switchesFileDescriptor = open(switchesEventDevice, O_RDONLY);
 	if (switchesFileDescriptor < 0) {
-		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, switchesDevice, strerror(errno));
+		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, switchesEventDevice, strerror(errno));
 	}
 
 	// create poll device:
@@ -148,7 +148,7 @@ static void runUserInterface(void *activity) {
 		// wait for events:
 		numberOfFiredEvents = epoll_wait(polling, firedEvents, 100, -1);
 		if (numberOfFiredEvents < 0) {
-			logErr("[%s] Error waiting for event: %s", (*this->descriptor).name, strerror(errno));
+			logErr("[%s] Error waiting for event: %s", this->descriptor->name, strerror(errno));
 		} else {
 			for (i = 0; i < numberOfFiredEvents; i++) {
 				fd = firedEvents[i].data.fd;
@@ -164,18 +164,10 @@ static void runUserInterface(void *activity) {
 						}
 						logInfo("[%s] Message received from %s (message length: %u)", this->descriptor->name, senderDescriptor.name, result);
 						MESSAGE_SELECTOR_BEGIN
-							MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, UserInterface)
+							MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, Display)
 								MESSAGE_SELECTOR_BEGIN
-									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, UserInterface, Command)
-										logInfo("[%s] User interface command received!", this->descriptor->name);
-										logInfo("[%s] \tCommand: %u", this->descriptor->name, /* message.content.UserInterfaceCommand. */ content.command);
-										sendResponse_BEGIN(this, UserInterface, Status)
-													.code = 254
-										sendResponse_END
-									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, UserInterface, Status)
-										logInfo("[%s] User interface status received!");
-										logInfo("[%s] \tCode: %u", this->descriptor->name, /* message.content.UserInterfaceStatus. */ content.code);
-										logInfo("[%s] \tMessage: %s", this->descriptor->name, /* message.content.UserInterfaceStatus. */ content.message);
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, Display, Result)
+										logInfo("[%s] Display result received!", this->descriptor->name);
 								MESSAGE_SELECTOR_END
 							MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, MainController)
 								MESSAGE_SELECTOR_BEGIN
@@ -195,23 +187,23 @@ static void runUserInterface(void *activity) {
 				} else if(fd == buttonsFileDescriptor) {
 					result = read(buttonsFileDescriptor, buffer, 3);
 					if (result < 0) {
-						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
+						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
 					}
 					productIndex = (atoi(buffer))+1;
 					if (productIndex > 0 && productIndex <= 3) {
 						// TODO: Update display and send command
 						sendRequest_BEGIN(this, MainController, ProduceProductCommand)
-							.productIndex = productIndex;
-							.withMilk = withMilk;
+							.productIndex = productIndex,
+							.withMilk = withMilk
 						sendRequest_END
 					} else {
-						logWarn("[%s] No product at index %d", (*this->descriptor).name, productIndex);
+						logWarn("[%s] No product at index %d", this->descriptor->name, productIndex);
 					}
 				} else if(fd == switchesFileDescriptor) {
 					// Get bitfield of current switches status:
 					result = read(switchesFileDescriptor, buffer, 3);
 					if (result < 0) {
-						logErr("[%s] read button: %s", (*this->descriptor).name, strerror(errno));
+						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
 					}
 					switchesStates = atoi(buffer);
 					processEventSwitchesChanges(switchesStates);

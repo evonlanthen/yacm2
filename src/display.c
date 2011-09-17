@@ -35,10 +35,10 @@ static ActivityDescriptor display = {
 		.tearDown = tearDownDisplay
 };
 
-MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, Command, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, ChangeViewCommand, 2)
-MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, UpdateLedsCommand, 3)
-MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, Status, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, Command, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, ChangeViewCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, UpdateLedsCommand, 3)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 4)
 
 static Activity *this;
 
@@ -52,13 +52,13 @@ static void setUpDisplay(void *activity) {
 }
 
 static void runDisplay(void *activity) {
-	int viewType;
+	int view;
 	char viewString[100] = "Test";
 
 	logInfo("[%s] Running...", (*this->descriptor).name);
 
 	while(TRUE) {
-		waitForEvent_BEGIN(this, WaterSupply, 100)
+		waitForEvent_BEGIN(this, Display, 1000)
 		if (error) {
 			//TODO Implement appropriate error handling
 			sleep(10);
@@ -68,16 +68,15 @@ static void runDisplay(void *activity) {
 		}
 		if (result > 0) {
 			MESSAGE_SELECTOR_BEGIN
-				MESSAGE_BY_TYPE_SELECTOR(message, Display, ShowViewCommand)
-					clientDescriptor = senderDescriptor;
-					viewType = content.viewType;
+				MESSAGE_BY_TYPE_SELECTOR(message, Display, ChangeViewCommand)
+					view = content.view;
 					if (writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
-						sendResponse_BEGIN(this, UserInterface, Result)
+						sendResponse_BEGIN(this, Display, Result)
 							.code = OK_RESULT
 						sendResponse_END
 					} else {
-						logErr("[%s] Could not write to display!", (*this->descriptor).name));
-						sendResponse_BEGIN(this, UserInterface, Result)
+						logErr("[%s] Could not write to display!", this->descriptor->name);
+						sendResponse_BEGIN(this, Display, Result)
 							.code = NOK_RESULT
 						sendResponse_END
 					}

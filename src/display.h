@@ -13,27 +13,24 @@
 #include "activity.h"
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
-	Byte code;
-	char message[128];
-MESSAGE_CONTENT_DEFINITION_END(Display, Status)
-
-MESSAGE_CONTENT_DEFINITION_BEGIN
 	Byte command;
 MESSAGE_CONTENT_DEFINITION_END(Display, Command)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
-	unsigned int viewType;
+	unsigned int view;
 MESSAGE_CONTENT_DEFINITION_END(Display, ChangeViewCommand)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int bitField;
 MESSAGE_CONTENT_DEFINITION_END(Display, UpdateLedsCommand)
 
+COMMON_MESSAGE_CONTENT_REDEFINITION(Display, Result)
+
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(Display, Command)
 	MESSAGE_CONTENT(Display, ChangeViewCommand)
 	MESSAGE_CONTENT(Display, UpdateLedsCommand)
-	MESSAGE_CONTENT(Display, Status)
+	MESSAGE_CONTENT(Display, Result)
 MESSAGE_DEFINITION_END(Display)
 
 #define CHANGE_VIEW_COMMAND 1
