@@ -14,6 +14,8 @@
 
 #include <linux/fs.h>
 
+#include <linux/poll.h>
+
 #include <linux/uaccess.h>
 
 #include <linux/gpio.h>
@@ -116,12 +118,27 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 	return result;
 }
 
+static unsigned int poll(struct file *file, poll_table *wait) {
+	unsigned int mask = 0;
+
+	poll_wait(file, &areEventsAvailableWaitQueue, wait);
+
+	if (areEventsAvailable()) {
+		mask |= POLLIN | POLLRDNORM;
+
+		spin_unlock_irqrestore(&eventsLock, interruptFlags);
+	}
+
+	return mask;
+}
+
 static struct file_operations buttonsFileOperations = {
 	.owner = THIS_MODULE,
 	.open = open,
 	.read = read,
-	.release = release,
-	.llseek = no_llseek
+	.llseek = no_llseek,
+	.poll = poll,
+	.release = release
 };
 
 static struct miscdevice buttonsDevice = {

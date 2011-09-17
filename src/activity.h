@@ -146,6 +146,11 @@ typedef struct {
 #define MESSAGE_SELECTOR_END \
 	}
 
+#define NULL_ACTIVITY \
+	{ \
+		.name = "<Null activity>" \
+	}
+
 typedef void (*ActivityRun)(void *activity);
 
 typedef struct {

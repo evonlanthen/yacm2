@@ -58,7 +58,10 @@ static int hasCoffeeWaste(void) {
 }
 
 // coffeeSupply state for beans
-static Availability lastHasBeans = available;
+static Availability lastHasBeans = notAvailable;
+
+// should waste be ejected
+static int wasteDisposable = FALSE;
 
 
 /*
@@ -161,6 +164,12 @@ static State coffeeSupplyIdleState = {
 
 static void coffeeSupplySupplyingStateEntryAction() {
 	logInfo("[coffeeSupply] Entered Supplying State...");
+	//check if we should eject waste
+	if (wasteDisposable) {
+		ejectWaste();
+		logInfo("[coffeeSupply] Ejecting without notification from maincontroller");
+		wasteDisposable = FALSE;
+	}
 	logInfo("[coffeeSupply] Send Start message to coffeePowderDispenser...");
 	//Send init message to powder dispenser
 	sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
@@ -176,6 +185,7 @@ static Event coffeeSupplySupplyingStateDoAction() {
 }
 
 static void coffeeSupplySupplyingStateExitAction() {
+	wasteDisposable = TRUE;
 	logInfo("[coffeeSupply] Sending ok result to MainController...");
 	sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
 		.code = OK_RESULT
@@ -196,6 +206,7 @@ static State coffeeSupplySupplyingState = {
  */
 
 static StateMachine coffeeSupplyStateMachine = {
+	.name = "coffeeSupply",
 	.numberOfEvents = 8,
 	.initialState = &coffeeSupplySwitchedOffState,
 	.transitions = {
@@ -312,6 +323,14 @@ static void runCoffeeSupply(void *activityarg) {
 				sendNotification_END
 
 				lastHasBeans = available;
+				break;
+			case EJECT_COFFEE_WASTE_COMMAND:
+				logInfo("[coffeeSupply] Received eject command");
+				if (coffeeSupplyStateMachine.activeState == &coffeeSupplyIdleState) {
+					logInfo("[coffeeSupply] Received eject command in idle state");
+					ejectWaste();
+					wasteDisposable = FALSE;
+				}
 				break;
 			case OK_RESULT:
 				logInfo("[coffeeSupply] Received ok result");

@@ -74,12 +74,12 @@ int readNonBlockingDevice(char *deviceFile) {
 	lock.l_whence = SEEK_SET;
 
 	if (fcntl(fd, F_SETLKW, &lock) < 0) {
-		logErr("[device] fcntl: %s", strerror(errno));
+		logErr("[device] [%s] fcntl: %s", deviceFile, strerror(errno));
 	}
 	//lseek(fd, 0, SEEK_SET);
 	bytesRead = read(fd, input, 80);
 	if (bytesRead < 0) {
-		logErr("[device] read: %s", strerror(errno));
+		logErr("[device] [%s] read: %s", deviceFile, strerror(errno));
 	}
 	lock.l_type = F_UNLCK;
 	fcntl(fd, F_SETLKW, &lock);
