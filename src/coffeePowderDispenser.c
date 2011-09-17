@@ -330,17 +330,21 @@ static void runCoffeePowderDispenser(void *activity) {
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_init);
 					break;
 				case OFF_COMMAND:
+					logInfo("[coffeePowderDispenser] Received off command...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_switchOff);
 					break;
 				case POWDER_DISPENSER_START_COMMAND:
+					logInfo("[coffeePowderDispenser] Received start command...");
 					if (lastHasBeansState) {
 						processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_startSupplying);
 					}
 					break;
 				case POWDER_DISPENSER_STOP_COMMAND:
+					logInfo("[coffeePowderDispenser] Received stop command...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_stop);
 					break;
 				case POWDER_DISPENSER_NO_BEANS_ERROR:
+					logInfo("[coffeePowderDispenser] Received no beans error...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_noBeans);
 					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
@@ -349,6 +353,7 @@ static void runCoffeePowderDispenser(void *activity) {
 						}, sizeof(SimpleCoffeeSupplyMessage), messagePriority_medium);
 					break;
 				case POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION:
+					logInfo("[coffeePowderDispenser] Received beans available notification...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_beansAvailable);
 					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
@@ -372,6 +377,20 @@ static void tearDownCoffeePowderDispenser(void *activity) {
 static void setUpFillStateMonitor(void *activity) {
 	logInfo("[fillStateMonitor] Setting up...");
 	lastHasBeansState = hasBeans();
+	if (lastHasBeansState) {
+		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
+			.activity = getFillStateMonitor(),
+			.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
+			.strValue = "Beans available"
+			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
+	} else {
+		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
+			.activity = getFillStateMonitor(),
+			.intValue = SUPPLY_NO_BEANS_ERROR,
+			.strValue = "No beans"
+			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
+	}
+
 }
 
 static void runFillStateMonitor(void *activity) {
