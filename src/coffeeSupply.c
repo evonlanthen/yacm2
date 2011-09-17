@@ -295,8 +295,9 @@ static void runCoffeeSupply(void *activityarg) {
 					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_startSupplying);
 				} else {
 					logInfo("[coffeeSupply] No beans, sending info to MainController");
-					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
-						.availability = notAvailable
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = NOK_RESULT,
+						.errorCode = NO_COFFEE_BEANS_ERROR
 					sendNotification_END
 				}
 				break;
@@ -330,6 +331,15 @@ static void runCoffeeSupply(void *activityarg) {
 					logInfo("[coffeeSupply] Received eject command in idle state");
 					ejectWaste();
 					wasteDisposable = FALSE;
+
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = OK_RESULT
+					sendNotification_END
+				} else {
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = NOK_RESULT,
+						.errorCode = COFFEE_WASTE_EJECTION_NOT_POSSIBLE_ERROR
+					sendNotification_END
 				}
 				break;
 			case OK_RESULT:
@@ -359,4 +369,3 @@ static void tearDownCoffeeSupply(void *activity) {
 	logInfo("[coffee supply] Tearing down...");
 	destroyActivity(coffeePowderDispenser);
 }
-
