@@ -18,7 +18,7 @@
 
 #define LED_POWER_SWITCH 7
 #define LED_WITH_MILK 6
-#define LED_INGREDIENTS_STATE 5
+#define LED_INGREDIENTS_MISSING 5
 #define LED_WASTE_BIN_FULL 4
 #define LED_PRODUCT_3_BUTTON (1<<2)
 #define LED_PRODUCT_2_BUTTON (1<<1)
@@ -55,7 +55,7 @@ static void runDisplay(void *activity) {
 	unsigned int powerState;
 	MachineState machineState;
 	unsigned int withMilk;
-	unsigned int ingredientsState;
+	unsigned int ingredientsMissing;
 	unsigned int productIndex;
 	unsigned int wasteBinFull;
 	int ledsBitField;
@@ -82,32 +82,33 @@ static void runDisplay(void *activity) {
 					if (content.coffeeAvailability == available &&
 						content.waterAvailability == available &&
 						content.milkAvailability == available) {
-						ingredientsState = TRUE;
+						ingredientsMissing = FALSE;
 					} else {
-						ingredientsState = FALSE;
+						ingredientsMissing = TRUE;
 					}
 					productIndex = content.productIndex;
 					wasteBinFull = content.wasteBinFull;
-					ledsBitField = 0;
-					ledsBitField += (powerState << LED_POWER_SWITCH);
+					// setup bitfield:
+					ledsBitField = (powerState << LED_POWER_SWITCH);
 					ledsBitField += (withMilk << LED_WITH_MILK);
-					ledsBitField += (ingredientsState << LED_INGREDIENTS_STATE);
+					ledsBitField += (ingredientsMissing << LED_INGREDIENTS_MISSING);
 					ledsBitField += LED_PRODUCT_BUTTON_BY_INDEX(productIndex);
 					ledsBitField += (wasteBinFull << LED_WASTE_BIN_FULL);
+					// write bitfield to string:
 					snprintf(ledsBitFieldString, 4, "%d", ledsBitField);
-					snprintf(viewString, 300, "New view: powerState=%d, machineState=%d, withMilk=%d, ingredientsState=%d, productIndex=%d, wasteBinFull=%d",
+					snprintf(viewString, 300, "New view: powerState=%d, machineState=%d, withMilk=%d, ingredientsMissing=%d, productIndex=%d, wasteBinFull=%d",
 						powerState,
 						machineState,
 						withMilk,
-						ingredientsState,
+						ingredientsMissing,
 						productIndex,
 						wasteBinFull);
-					logInfo("[%s] New view: powerState=%d, machineState=%d, withMilk=%d, ingredientsState=%d, productIndex=%d, wasteBinFull=%d, ledsBitField=%d, ledBitFieldStr=%s",
+					logInfo("[%s] powerState=%d, machineState=%d, withMilk=%d, ingredientsMissing=%d, productIndex=%d, wasteBinFull=%d, ledsBitField=%d, ledBitFieldStr=%s",
 						this->descriptor->name,
 						powerState,
 						machineState,
 						withMilk,
-						ingredientsState,
+						ingredientsMissing,
 						productIndex,
 						wasteBinFull,
 						ledsBitField,
