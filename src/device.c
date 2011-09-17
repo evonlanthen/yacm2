@@ -105,7 +105,7 @@ int writeNonBlockingDevice(char *deviceFile, char *str, WriteMode mode, int newL
 		openMode |= O_APPEND;
 	}
 	if ((fd = open(deviceFile, openMode)) < 0) {
-		logErr("[blocking] open: %s", strerror(errno));
+		logErr("[blocking] open: %s! File: %s", strerror(errno), deviceFile);
 		return bytesWritten;
 	}
 	lock.l_type = F_WRLCK;
