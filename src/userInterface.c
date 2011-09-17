@@ -53,7 +53,15 @@ MESSAGE_CONTENT_TYPE_MAPPING(UserInterface, Status, 3)
 static Activity *this;
 static Activity *display;
 
-static int withMilk = FALSE;
+static unsigned int powerState = FALSE;
+static MachineState machineState = machineState_off;
+static unsigned int withMilk = FALSE;
+static Availability coffeeAvailability = available;
+static Availability waterAvailability = available;
+static Availability milkAvailability = available;
+static unsigned int productIndex = 0;
+static unsigned int wasteBinFull = FALSE;
+
 static int switchesStates = 0;
 static int switchesPreviousStates = 0;
 
@@ -62,9 +70,23 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 }
 
 static void setUpUserInterface(void *activity) {
-	logInfo("[userInterface] Setting up...");
+	logInfo("[UserInterface] Setting up...");
 	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
 	this = (Activity *)activity;
+}
+
+static void notifyDisplay() {
+	logInfo("[%s] Notifiying display...", this->descriptor->name);
+	sendRequest_BEGIN(this, Display, ChangeViewCommand)
+		.powerState = powerState,
+		.machineState = machineState,
+		.withMilk = withMilk,
+		.coffeeAvailability = coffeeAvailability,
+		.waterAvailability = waterAvailability,
+		.milkAvailability = milkAvailability,
+		.wasteBinFull = wasteBinFull,
+		.productIndex = productIndex
+	sendRequest_END
 }
 
 static void processEventSwitchesChanges(int switchesStates) {
@@ -79,10 +101,12 @@ static void processEventSwitchesChanges(int switchesStates) {
 			// send init command to mainController:
 			sendRequest_BEGIN(this, MainController, InitCommand)
 			sendRequest_END
+			powerState = TRUE;
 		} else {
 			// send off command to mainController:
 			sendRequest_BEGIN(this, MainController, OffCommand)
 			sendRequest_END
+			powerState = FALSE;
 		}
 	}
 	// Check if the status of the milk selector switch has changed:
@@ -97,14 +121,14 @@ static void processEventSwitchesChanges(int switchesStates) {
 }
 
 static void runUserInterface(void *activity) {
-	int polling, value, fd, i, result, productIndex;
+	int polling, fd, i, result;
 	struct epoll_event firedEvents[100];
 	int numberOfFiredEvents;
 	char buffer[3];
-	char buttonsEventDevice[] = "./dev/buttonsEvent";
+	char buttonsEventDevice[] = "/dev/buttonsEvent";
 	int buttonsFileDescriptor;
-	char switchesDevice[] = "./dev/switches";
-	char switchesEventDevice[] = "./dev/switchesEvent";
+	char switchesDevice[] = "/dev/switches";
+	char switchesEventDevice[] = "/dev/switchesEvent";
 	int switchesFileDescriptor;
 	//MainControllerMessage mainControllerMessage;
 	//mainControllerMessage.activity = getUserInterfaceDescriptor();
@@ -112,22 +136,30 @@ static void runUserInterface(void *activity) {
 	logInfo("[userInterface] Running...");
 
 	// initially read switches states and process event:
+	logInfo("[userInterface] Checking initial switch states...");
 	switchesStates = readNonBlockingDevice(switchesDevice);
 	processEventSwitchesChanges(switchesStates);
+	if (switchesStates) {
+		notifyDisplay();
+	}
 
 	// open file descriptors for buttons and switches:
+	logInfo("[userInterface] Open file descriptors...");
 	buttonsFileDescriptor = open(buttonsEventDevice, O_RDONLY);
 	if (buttonsFileDescriptor < 0) {
 		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, buttonsEventDevice, strerror(errno));
+		return;
 	}
 	switchesFileDescriptor = open(switchesEventDevice, O_RDONLY);
 	if (switchesFileDescriptor < 0) {
 		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, switchesEventDevice, strerror(errno));
+		return;
 	}
 
 	// create poll device:
+	logInfo("[userInterface] Creating polling device...");
 	if ((polling = epoll_create(3)) < 0) {
-		logErr("[%s] Error setting up event waiting: %s", (*this->descriptor).name, strerror(errno));
+		logErr("[%s] Error setting up event waiting: %s", this->descriptor->name, strerror(errno));
 	}
 	struct epoll_event eventDescriptors[] = {
 		{ .events = EPOLLIN, .data.fd = this->messageQueue },
@@ -136,7 +168,7 @@ static void runUserInterface(void *activity) {
 	};
 	for (i = 0; i < 3; i++) {
 		if (epoll_ctl(polling, EPOLL_CTL_ADD, eventDescriptors[i].data.fd, &eventDescriptors[i]) < 0) {
-			logErr("[%s] Error registering event source %d: %s", (*this->descriptor).name, i, strerror(errno));
+			logErr("[%s] Error registering event source %d (fd %d): %s", this->descriptor->name, i, eventDescriptors[i].data.fd, strerror(errno));
 			close(polling);
 			close(buttonsFileDescriptor);
 			close(switchesFileDescriptor);
@@ -150,10 +182,10 @@ static void runUserInterface(void *activity) {
 		if (numberOfFiredEvents < 0) {
 			logErr("[%s] Error waiting for event: %s", this->descriptor->name, strerror(errno));
 		} else {
+			logInfo("[%s] Events occured", this->descriptor->name);
 			for (i = 0; i < numberOfFiredEvents; i++) {
 				fd = firedEvents[i].data.fd;
 				if (fd == this->messageQueue) {
-					//receiveMessage_BEGIN(this, UserInterface)
 					receiveGenericMessage_BEGIN(this)
 						if (error) {
 							//TODO Implement appropriate error handling
@@ -173,13 +205,22 @@ static void runUserInterface(void *activity) {
 								MESSAGE_SELECTOR_BEGIN
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, MachineStateChangedNotification)
 										// Process received machine state and update display
-										MachineState state = content.state;
+										machineState = content.state;
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, IngredientAvailabilityChangedNotification)
 										// Process received ingredient availability and update display
-										unsigned int ingredientIndex = content.ingredientIndex; // == ... COFFEE_INDEX or WATER_INDEX or MILK_INDEX ...
-										Availability availability = content.availability;
+										switch (content.ingredientIndex) {
+										case COFFEE_INDEX:
+											coffeeAvailability = content.availability;
+											break;
+										case WATER_INDEX:
+											waterAvailability = content.availability;
+											break;
+										case MILK_INDEX:
+											milkAvailability = content.availability;
+										}
+										notifyDisplay();
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, CoffeeWasteBinStateChangedNotification)
-										int isBinFull = content.isBinFull;
+										wasteBinFull = content.isBinFull;
 										// TODO: LED einschalten und keine neuen Auftrage akzeptieren
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
@@ -196,6 +237,7 @@ static void runUserInterface(void *activity) {
 							.productIndex = productIndex,
 							.withMilk = withMilk
 						sendRequest_END
+						notifyDisplay();
 					} else {
 						logWarn("[%s] No product at index %d", this->descriptor->name, productIndex);
 					}
@@ -203,12 +245,11 @@ static void runUserInterface(void *activity) {
 					// Get bitfield of current switches status:
 					result = read(switchesFileDescriptor, buffer, 3);
 					if (result < 0) {
-						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
+						logErr("[%s] Read button: %s", this->descriptor->name, strerror(errno));
 					}
 					switchesStates = atoi(buffer);
 					processEventSwitchesChanges(switchesStates);
-
-					// TODO: Update display
+					notifyDisplay();
 				}
 			} // foreach event end
 		} // if number of fired events end

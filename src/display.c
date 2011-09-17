@@ -17,12 +17,13 @@
 #include "display.h"
 
 #define LED_POWER_SWITCH 1<<7
-#define LED_MILK_SELECTOR 1<<6
-#define LED_INGREDIENT_STATES 1<<5
-#define LED_WASTE_BIN_STATE 1<<4
+#define LED_WITH_MILK 1<<6
+#define LED_INGREDIENTS_STATE 1<<5
+#define LED_WASTE_BIN_FULL 1<<4
 #define LED_PRODUCT_3_BUTTON 1<<2
 #define LED_PRODUCT_2_BUTTON 1<<1
 #define LED_PRODUCT_1_BUTTON 1<<0
+#define LED_PRODUCT_BUTTON_BY_INDEX(x) (x > 0) ? 1<<(x-1) : 0
 
 static void setUpDisplay(void *activity);
 static void runDisplay(void *activity);
@@ -52,10 +53,17 @@ static void setUpDisplay(void *activity) {
 }
 
 static void runDisplay(void *activity) {
-	int view;
-	char viewString[100] = "Test";
+	unsigned int powerState;
+	MachineState machineState;
+	unsigned int withMilk;
+	unsigned int ingredientsState;
+	unsigned int productIndex;
+	unsigned int wasteBinFull;
+	int ledsBitField;
+	char ledsBitFieldString[4];
+	char viewString[101];
 
-	logInfo("[%s] Running...", (*this->descriptor).name);
+	logInfo("[%s] Running...", this->descriptor->name);
 
 	while(TRUE) {
 		waitForEvent_BEGIN(this, Display, 1000)
@@ -69,7 +77,50 @@ static void runDisplay(void *activity) {
 		if (result > 0) {
 			MESSAGE_SELECTOR_BEGIN
 				MESSAGE_BY_TYPE_SELECTOR(message, Display, ChangeViewCommand)
-					view = content.view;
+					powerState = content.powerState;
+					machineState = content.machineState;
+					withMilk = content.withMilk;
+					if (content.coffeeAvailability == available &&
+						content.waterAvailability == available &&
+						content.milkAvailability == available) {
+						ingredientsState = TRUE;
+					} else {
+						ingredientsState = FALSE;
+					}
+					productIndex = content.productIndex;
+					wasteBinFull = content.wasteBinFull;
+					ledsBitField = 0;
+					ledsBitField += (powerState & LED_POWER_SWITCH);
+					ledsBitField += (withMilk & LED_WITH_MILK);
+					ledsBitField += (ingredientsState & LED_INGREDIENTS_STATE);
+					ledsBitField += LED_PRODUCT_BUTTON_BY_INDEX(productIndex);
+					ledsBitField += (wasteBinFull & LED_WASTE_BIN_FULL);
+					snprintf(ledsBitFieldString, 3, "%d", ledsBitField);
+					snprintf(viewString, 100, "New view: powerState=%d, machineState=%d, withMilk=%d, ingredientsState=%d, productIndex=%d, wasteBinFull=%d\n",
+						powerState,
+						machineState,
+						withMilk,
+						ingredientsState,
+						productIndex,
+						wasteBinFull);
+					logInfo("New view: powerState=%d, machineState=%d, withMilk=%d, ingredientsState=%d, productIndex=%d, wasteBinFull=%d\n",
+						powerState,
+						machineState,
+						withMilk,
+						ingredientsState,
+						productIndex,
+						wasteBinFull);
+					if (writeNonBlockingDevice("/dev/leds", ledsBitFieldString, wrm_append, TRUE)) {
+						sendResponse_BEGIN(this, Display, Result)
+							.code = OK_RESULT
+						sendResponse_END
+					} else {
+						logErr("[%s] Could not write to display!", this->descriptor->name);
+						sendResponse_BEGIN(this, Display, Result)
+							.code = NOK_RESULT
+						sendResponse_END
+					}
+
 					if (writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
 						sendResponse_BEGIN(this, Display, Result)
 							.code = OK_RESULT

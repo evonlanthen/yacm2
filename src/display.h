@@ -17,7 +17,14 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 MESSAGE_CONTENT_DEFINITION_END(Display, Command)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
-	unsigned int view;
+	unsigned int powerState;
+	MachineState machineState;
+	unsigned int withMilk;
+	Availability coffeeAvailability;
+	Availability waterAvailability;
+	Availability milkAvailability;
+	unsigned int productIndex;
+	unsigned int wasteBinFull;
 MESSAGE_CONTENT_DEFINITION_END(Display, ChangeViewCommand)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
