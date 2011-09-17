@@ -79,6 +79,8 @@ static int openEvent(struct inode *inode, struct file *file) {
 	kfifo_reset(&events);
 	spin_unlock(&eventsLock);
 
+	nonseekable_open(inode, file);
+
 	return 0;
 }
 
@@ -106,7 +108,10 @@ static ssize_t readEvent(struct file *file, char __user *buffer, size_t size, lo
 
 	if (*offset == 0) {
 		if (size >= 3) {
-			wait_event_interruptible(areEventsAvailableWaitQueue, areEventsAvailable());
+			int waitResult = wait_event_interruptible(areEventsAvailableWaitQueue, areEventsAvailable());
+			if (waitResult == -ERESTARTSYS) {
+				return 0;
+			}
 
 			// Remove first event from queue
 			unsigned char value = 0;
@@ -123,12 +128,14 @@ static ssize_t readEvent(struct file *file, char __user *buffer, size_t size, lo
 				*offset = valueAsStringLength;
 				result = valueAsStringLength;
 			} else {
+				printk(KERN_WARNING MODULE_LABEL "Error copying data to user memory!");
 				result = /* Error copying data! */ -EFAULT;
 			}
 		} else {
 			result = /* Buffer to short! */ -EFAULT;
 		}
 	} else {
+		*offset = 0;
 		result = /* EOF: */ 0;
 	}
 
@@ -141,7 +148,7 @@ static unsigned int pollEvent(struct file *file, poll_table *wait) {
 	poll_wait(file, &areEventsAvailableWaitQueue, wait);
 
 	if (areEventsAvailable()) {
-		mask |= POLLIN | POLLRDNORM;
+		mask |= POLLIN;// | POLLRDNORM;
 
 		spin_unlock(&eventsLock);
 	}
@@ -163,6 +170,7 @@ static int pollSwitches(void *unused) {
 					printk(KERN_WARNING MODULE_LABEL "Event buffer is full, new event was ignored!\n");
 				}
 
+				//printk("notify wait queue\n");
 				wake_up_interruptible_all(&areEventsAvailableWaitQueue);
 			}
 

@@ -59,6 +59,8 @@ static int open(struct inode *inode, struct file *file) {
 	kfifo_reset(&buttonEvents);
 	spin_unlock_irqrestore(&eventsLock, interruptFlags);
 
+	nonseekable_open(inode, file);
+
 	return 0;
 }
 
@@ -89,7 +91,10 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 
 	if (*offset == 0) {
 		if (size >= 1) {
-			wait_event_interruptible(areEventsAvailableWaitQueue, areEventsAvailable());
+			int waitResult = wait_event_interruptible(areEventsAvailableWaitQueue, areEventsAvailable());
+			if (waitResult == -ERESTARTSYS) {
+				return 0;
+			}
 
 			// Remove first event from queue
 			unsigned char value = 0;
@@ -106,12 +111,14 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 				*offset = valueAsStringLength;
 				result = valueAsStringLength;
 			} else {
+				printk(KERN_WARNING MODULE_LABEL "Error copying data to user memory!");
 				result = /* Error copying data! */ -EFAULT;
 			}
 		} else {
 			result = /* Buffer to short! */ -EFAULT;
 		}
 	} else {
+		*offset = 0;
 		result = /* EOF: */ 0;
 	}
 
