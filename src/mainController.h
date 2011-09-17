@@ -49,6 +49,10 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 	Availability availability;
 MESSAGE_CONTENT_DEFINITION_END(MainController, IngredientAvailabilityChangedNotification)
 
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	int isBinFull;
+MESSAGE_CONTENT_DEFINITION_END(MainController, CoffeeWasteBinStateChangedNotification)
+
 MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MainController, InitCommand)
 	MESSAGE_CONTENT(MainController, OffCommand)

@@ -21,6 +21,11 @@
 //#include "userInterface.h"
 #include "mainController.h"
 
+typedef enum {
+	productionResult_ok,
+	productionResult_nok
+} ProductionResult;
+
 static void setUpMainController(void *activity);
 static void runMainController(void *activity);
 static void tearDownMainController(void *activity);
@@ -87,6 +92,7 @@ typedef struct {
 	Availability isWaterAvailable;
 	//Milk milk; /**< The milk ingredient. */
 	Availability isMilkAvailable;
+	int isCoffeeWasteBinFull;
 	//ProductListElement *products; /**< The product definition collection. */
 	MakeCoffeeProcessInstance *ongoingCoffeeMaking; /**< A possibly ongoing coffee making process instance. */
 } CoffeeMaker;
@@ -336,6 +342,17 @@ typedef enum {
 	coffeeMakingEvent_errorOccured
 } CoffeeMakingEvent;
 
+
+static ProductionResult productionResult;
+
+// -----------------------------------------------------------------------------
+// Set up action
+// -----------------------------------------------------------------------------
+
+static void coffeeMakingProcessSetUpAction() {
+	productionResult = productionResult_nok;
+}
+
 // -----------------------------------------------------------------------------
 // Warming Up activity
 // -----------------------------------------------------------------------------
@@ -501,6 +518,8 @@ static void finishedStateEntryAction() {
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_finished;
 
+	productionResult = productionResult_ok;
+
 	processStateMachineEvent(&stateMachine, event_productionProcessIsFinished);
 }
 
@@ -531,14 +550,16 @@ static State errorState = {
 // -----------------------------------------------------------------------------
 
 static void coffeeMakingProcessAbortAction() {
-	logErr("[mainController] [makeCoffee process] Aborting...");
+	if (productionResult != productionResult_ok) {
+		logErr("[mainController] [makeCoffee process] Aborting...");
 
-	//sendRequest_BEGIN(this, CoffeeSupply, AbortCommand)
-	//sendRequest_END
-	sendRequest_BEGIN(this, WaterSupply, AbortCommand)
-	sendRequest_END
-	//sendRequest_BEGIN(this, MilkSupply, AbortCommand)
-	//sendRequest_END
+		//sendRequest_BEGIN(this, CoffeeSupply, AbortCommand)
+		//sendRequest_END
+		sendRequest_BEGIN(this, WaterSupply, AbortCommand)
+		sendRequest_END
+		//sendRequest_BEGIN(this, MilkSupply, AbortCommand)
+		//sendRequest_END
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -547,6 +568,7 @@ static void coffeeMakingProcessAbortAction() {
 static StateMachine coffeeMakingProcessMachine = {
 	.name = "coffeeMakingProcess",
 	.numberOfEvents = 12,
+	.setUpAction = coffeeMakingProcessSetUpAction,
 	.abortAction = coffeeMakingProcessAbortAction,
 	.initialState = &warmingUpActivity,
 	.transitions = {
@@ -766,6 +788,49 @@ static void runMainController(void *activity) {
 		receiveGenericMessage_BEGIN(this)
 			if (result > 0) {
 				MESSAGE_SELECTOR_BEGIN
+					MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, CoffeeSupply)
+						MESSAGE_SELECTOR_BEGIN
+							// If we got a result from coffee supply...
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, CoffeeSupply, Result)
+								// Propagate event to coffee making process state machine
+								if (content.code == OK_RESULT) {
+									if (coffeeMakingProcessMachine->activeState == grindingCoffeePowderActivity) {
+										processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_coffeePowderGrinded);
+									} else if (coffeeMakingProcessMachine->activeState == ejectingCoffeeWasteActivity) {
+										processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_coffeeWasteEjected);
+									}
+								} else {
+									char *errorMessage;
+									switch (content.errorCode) {
+										case NO_COFFEE_BEANS_ERROR:
+											errorMessage = "No coffee beans!";
+											break;
+										default:
+											errorMessage = "<Unknown error>";
+									}
+									logInfo("[mainController] Coffee supply reports an error: %s", errorMessage);
+
+									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
+								}
+							// If we got a bean status update from coffee supply...
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, CoffeeSupply, BeanStatus)
+								coffeeMaker.isCoffeeAvailable = content.availability;
+
+								// Send notification to client
+								sendNotification_BEGIN(this, MainController, clientDescriptor, IngredientAvailabilityChangedNotification)
+									.ingredientIndex = COFFEE_INDEX,
+									.availability = coffeeMaker.isCoffeeAvailable
+								sendNotification_END
+							// If we got a waste bin status update from coffee supply...
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, CoffeeSupply, WasteBinStatus)
+								coffeeMaker.isCoffeeWasteBinFull = content.isBinFull;
+
+								// Send notification to client
+								sendNotification_BEGIN(this, MainController, clientDescriptor, CoffeeWasteBinStateChangedNotification)
+									.isBinFull = coffeeMaker.isCoffeeWasteBinFull
+								sendNotification_END
+							MESSAGE_SELECTOR_ANY
+						MESSAGE_SELECTOR_END
 					MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, WaterSupply)
 						MESSAGE_SELECTOR_BEGIN
 							// If we got a result from water supply...

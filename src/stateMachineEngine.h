@@ -23,7 +23,12 @@
 typedef int Event;
 
 /**
- * Defines the signature of an abort action.
+ * Defines the signature of an 'set up' action.
+ */
+typedef void (*SetUpAction)();
+
+/**
+ * Defines the signature of an 'abort' action.
  */
 typedef void (*AbortAction)();
 
@@ -58,6 +63,7 @@ typedef struct {
 	char *name; /**< The state machine's name. */
 	int isInitialized; /**< Is the state machine already initialized? */
 	unsigned int numberOfEvents; /**<  The number of defined events. */
+	SetUpAction setUpAction; /**< The machine's 'set up' action is called once the machine is set up. */
 	AbortAction abortAction; /**< The machine's 'abort' action is called once the machine is aborted. */
 	State *initialState; /**< Defines the state machine's initial state. */
 	State *activeState; /**< The current state. */
