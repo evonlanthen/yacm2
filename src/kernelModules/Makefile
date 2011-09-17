@@ -8,6 +8,7 @@ PWD  := $(shell pwd)
 
 all:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+	cp hmi.ko grinder.ko /carme/rootfs/root
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

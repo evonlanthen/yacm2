@@ -17,11 +17,12 @@
 #include <linux/io.h>
 #include <linux/ioport.h>
 
-#include <linux/kthread.h>
-
+#include <asm/atomic.h>
 #include <linux/kfifo.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
+
+#include <linux/kthread.h>
 
 #include <linux/delay.h>
 
@@ -60,8 +61,31 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 	return result;
 }
 
+static atomic_t isSwitchesEventDeviceAvailable = ATOMIC_INIT(1);
+
 static DEFINE_KFIFO(events, 8);
 static spinlock_t eventsLock = SPIN_LOCK_UNLOCKED;
+
+static int openEvent(struct inode *inode, struct file *file) {
+	if (!atomic_dec_and_test(&isSwitchesEventDeviceAvailable)) {
+	    atomic_inc(&isSwitchesEventDeviceAvailable);
+	    return /* Already open: */ -EBUSY;
+	}
+
+	// Clear event queue
+	spin_lock(&eventsLock);
+	kfifo_reset(&events);
+	spin_unlock(&eventsLock);
+
+	return 0;
+}
+
+static int releaseEvent(struct inode *inode, struct file *file) {
+	atomic_inc(&isSwitchesEventDeviceAvailable);
+
+	return 0;
+}
+
 static wait_queue_head_t areEventsAvailableWaitQueue;
 
 static int areEventsAvailable(void) {
@@ -153,7 +177,9 @@ static struct miscdevice switchesDevice = {
 
 static struct file_operations switchesEventFileOperations = {
 	.owner = THIS_MODULE,
+	.open = openEvent,
 	.read = readEvent,
+	.release = releaseEvent,
 	.llseek = no_llseek
 };
 
