@@ -15,7 +15,6 @@
 #include "syslog.h"
 #include "activity.h"
 
-//#define UNKNOWN_SENDER_NAME "<Unknown sender>"
 #define UNKNOWN_SENDER_DESCRIPTOR \
 	&(ActivityDescriptor) { \
 		.name = "<Unknown sender>" \
@@ -24,6 +23,12 @@
 #define NULL_FILE_DESCRIPTOR -999
 
 static char *createMessageQueueId(char *activityName) {
+	if (!activityName) {
+		logErr("["__FILE__"] null pointer at createMessageQueueId(activityName)!");
+
+		return 0;
+	}
+
 	size_t idLength = strlen(activityName) + 2;
 	char *id = (char *) malloc(idLength);
 	memset(id, 0, idLength);
@@ -52,8 +57,8 @@ static mqd_t createMessageQueue(char *activityName, MessageQueueMode messageQueu
 		queue = mq_open(id, O_CREAT | O_RDONLY, S_IRWXU | S_IRWXG, &attributes);
 	}
 
-	//
 	free(id);
+
 	if (queue < 0) {
 		logErr("[%s] Error creating message queue %s: %s", activityName, id, strerror(errno));
 	}
@@ -122,9 +127,11 @@ void destroyActivity(Activity *activity) {
 	}
 
 	char *messageQueueId = createMessageQueueId(activity->descriptor->name);
-	mq_close(activity->messageQueue);
+	if (mq_close(activity->messageQueue) < 0) {
+		logErr("[%s] Error closing activity's message queue for incoming messages: %s", activity->descriptor->name, strerror(errno));
+	}
 	if (mq_unlink(messageQueueId) < 0) {
-		logErr("[%s] Error destroying activity's message queue for incoming messages: %s", activity->descriptor->name, strerror(errno));
+		logErr("[%s] Error destroying activity's message queue %s for incoming messages: %d: %s", activity->descriptor->name, messageQueueId, errno, strerror(errno));
 	}
 	free(messageQueueId);
 
@@ -196,7 +203,7 @@ int receiveMessage(void *_receiver, char *buffer, unsigned long length) {
 //int receiveMessage2(void *_receiver, char *senderName, char *buffer, unsigned long length) {
 int receiveMessage2(void *_receiver, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length) {
 	if (!_receiver) {
-		logErr("["__FILE__"] null pointer at receiveMessage(_receiver, ...)");
+		logErr("["__FILE__"] null pointer at receiveMessage(_receiver, ...)!");
 
 		return -EFAULT;
 	}
@@ -284,10 +291,14 @@ int sendMessage(ActivityDescriptor receiverDescriptor, char *buffer, unsigned lo
 
 int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned long length, void *buffer, MessagePriority priority) {
 //	if (!_sender) {
-//		logErr("["__FILE__"] null pointer at senderMessage(_sender, ...)");
+//		logErr("["__FILE__"] null pointer at senderMessage(_sender, ...)!");
 //
 //		return -EFAULT;
 //	}
+
+	if (strcmp(receiverDescriptor.name, "<Null activity>") == 0) {
+		return 0;
+	}
 
 	int result = 0;
 
@@ -312,7 +323,11 @@ int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned 
 	mqd_t receiverQueue = mq_open(receiverMessageQueueId, O_WRONLY);
 	free(receiverMessageQueueId);
 	if (receiverQueue < 0) {
-		logErr("[%s] Error opening message queue for sending: %s", "<Sender>", strerror(errno));
+		if (sender) {
+			logErr("[%s] Error opening message queue %s for sending: %s", sender->descriptor->name, receiverDescriptor.name, strerror(errno));
+		} else {
+			logErr("[%s] Error opening message queue %s for sending: %s", "<Sender>", receiverDescriptor.name, strerror(errno));
+		}
 
 		return -EFAULT;
 	}

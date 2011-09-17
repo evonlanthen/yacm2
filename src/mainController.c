@@ -18,7 +18,6 @@
 #include "coffeeSupply.h"
 #include "waterSupply.h"
 #include "milkSupply.h"
-//#include "userInterface.h"
 #include "mainController.h"
 
 typedef enum {
@@ -29,6 +28,8 @@ typedef enum {
 static void setUpMainController(void *activity);
 static void runMainController(void *activity);
 static void tearDownMainController(void *activity);
+
+static void sendError(int code);
 
 static ActivityDescriptor mainControllerDescriptor = {
 		.name = "mainController",
@@ -41,17 +42,18 @@ MESSAGE_CONTENT_TYPE_MAPPING(MainController, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, OffCommand, 2)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 3)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, AbortCommand, 4)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 5)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProducingProductNotification, 6)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 7)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, CoffeeWasteBinStateChangedNotification, 8)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, Result, 5)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 6)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProducingProductNotification, 7)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 8)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, CoffeeWasteBinStateChangedNotification, 9)
 
 static Activity *this;
 
 static unsigned productToProduceIndex = 0;
 static unsigned int produceWithMilk = FALSE;
 
-static ActivityDescriptor clientDescriptor;
+static ActivityDescriptor clientDescriptor = NULL_ACTIVITY;
 
 ActivityDescriptor getMainControllerDescriptor() {
 	return mainControllerDescriptor;
@@ -88,7 +90,7 @@ typedef struct {
 typedef struct {
 	MachineState state; /**< The coffee maker's state. */
 	//Coffee coffee; /**< The coffee ingredient. */
-	Availability isCoffeeAvailable;
+	Availability areCoffeeBeansAvailable;
 	//Water water; /**< The water ingredient. */
 	Availability isWaterAvailable;
 	//Milk milk; /**< The milk ingredient. */
@@ -103,7 +105,7 @@ typedef struct {
  */
 static CoffeeMaker coffeeMaker = {
 	.state = machineState_off,
-	.isCoffeeAvailable = notAvailable,
+	.areCoffeeBeansAvailable = notAvailable,
 	.isWaterAvailable = notAvailable,
 	.isMilkAvailable = notAvailable,
 	.isCoffeeWasteBinFull = TRUE
@@ -221,6 +223,8 @@ static State idleState = {
 // Producing state
 // -----------------------------------------------------------------------------
 
+static int producingError;
+
 static int producingStatePrecondition() {
 	// Only start production if...
 	// - no coffee making process is already running (Paranoia)
@@ -240,22 +244,27 @@ static int producingStatePrecondition() {
 	//TODO Activate these conditions
 //	if (coffeeMaker.isCoffeeAvailable != available) {
 //		violation = "No coffee beans!";
+//		sendError(PROCESS_NO_COFFEE_BEANS_ERROR);
 //	}
 
 //	if (coffeeMaker.isWaterAvailable != available) {
 //		violation = "No water!";
+//		sendError(PROCESS_NO_WATER_ERROR);
 //	}
 
 //	if (produceWithMilk && (coffeeMaker.isMilkAvailable != available)) {
 //		violation = "No milk!";
+//		sendError(PROCESS_NO_MILK_ERROR);
 //	}
 
 //	if (coffeeMaker.isCoffeeWasteBinFull) {
 //		violation = "Coffee waste bin full!";
+//		sendError(PROCESS_COFFEE_WASTE_BIN_IS_FULL_ERROR);
 //	}
 
 	if (productToProduceIndex > getNumberOfProducts()) {
 		violation = "Undefined product!";
+		sendError(PROCESS_UNDEFINED_PRODUCT_ERROR);
 	}
 
 	if (violation) {
@@ -423,6 +432,9 @@ static Event checkingCupFillStateActivityDoAction() {
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_checkingCupFillState;
 
 	if (readNonBlockingDevice("./dev/cupFillStateSensor") > 0) {
+		logInfo("[mainController] [makeCoffee process] Cup is not empty!");
+		sendError(PROCESS_CUP_IS_NOT_EMPTY_ERROR);
+
 		return coffeeMakingEvent_cupIsNotEmpty;
 	}
 
@@ -577,7 +589,8 @@ static State finishedState = {
 // -----------------------------------------------------------------------------
 
 static void errorStateEntryAction() {
-	logErr("[mainController] [makeCoffee process] Error occured! Aborting...");
+	logInfo("[mainController] [makeCoffee process] Error occured!");
+	logInfo("[mainController] [makeCoffee process] Going to abort process...");
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_error;
 
@@ -854,6 +867,7 @@ static void runMainController(void *activity) {
 									switch (content.errorCode) {
 										case NO_COFFEE_BEANS_ERROR:
 											errorMessage = "No coffee beans!";
+											sendError(PROCESS_NO_COFFEE_BEANS_ERROR);
 											break;
 										default:
 											errorMessage = "<Unknown error>";
@@ -864,12 +878,12 @@ static void runMainController(void *activity) {
 								}
 							// If we got a bean status update from coffee supply...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, CoffeeSupply, BeanStatus)
-								coffeeMaker.isCoffeeAvailable = content.availability;
+								coffeeMaker.areCoffeeBeansAvailable = content.availability;
 
 								// Send notification to client
 								sendNotification_BEGIN(this, MainController, clientDescriptor, IngredientAvailabilityChangedNotification)
 									.ingredientIndex = COFFEE_INDEX,
-									.availability = coffeeMaker.isCoffeeAvailable
+									.availability = coffeeMaker.areCoffeeBeansAvailable
 								sendNotification_END
 							// If we got a waste bin status update from coffee supply...
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, CoffeeSupply, WasteBinStatus)
@@ -893,12 +907,15 @@ static void runMainController(void *activity) {
 									switch (content.errorCode) {
 										case NO_WATER_ERROR:
 											errorMessage = "No water!";
+											sendError(PROCESS_NO_WATER_ERROR);
 											break;
 										case NO_WATER_FLOW_ERROR:
 											errorMessage = "No water flow!";
+											sendError(PROCESS_NO_WATER_FLOW_ERROR);
 											break;
 										case WATER_TEMPERATURE_TOO_LOW_ERROR:
 											errorMessage = "Water temperature too low!";
+											sendError(PROCESS_WATER_TEMPERATURE_TOO_LOW_ERROR);
 											break;
 										case ABORTED_ERROR:
 											errorMessage = "Supplying aborted!";
@@ -977,6 +994,13 @@ static void runMainController(void *activity) {
 			}
 		receiveGenericMessage_END
 	}
+}
+
+static void sendError(int code) {
+	sendNotification_BEGIN(this, MainController, clientDescriptor, Result)
+		.code = NOK_RESULT,
+		.errorCode = code
+	sendNotification_END
 }
 
 static void tearDownMainController(void *activity) {
