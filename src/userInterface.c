@@ -29,8 +29,8 @@
 /**
  * Define switches and buttons
  */
-#define POWER_SWITCH 1<<0
-#define MILK_SELECTOR_SWITCH 1<<1
+#define POWER_SWITCH (1<<7)
+#define MILK_SELECTOR_SWITCH (1<<6)
 #define PRODUCT_3_BUTTON 2
 #define PRODUCT_2_BUTTON 1
 #define PRODUCT_1_BUTTON 0
@@ -69,12 +69,6 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 	return userInterfaceDescriptor;
 }
 
-static void setUpUserInterface(void *activity) {
-	logInfo("[UserInterface] Setting up...");
-	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
-	this = (Activity *)activity;
-}
-
 static void notifyDisplay() {
 	logInfo("[%s] Notifiying display...", this->descriptor->name);
 	sendRequest_BEGIN(this, Display, ChangeViewCommand)
@@ -89,35 +83,44 @@ static void notifyDisplay() {
 	sendRequest_END
 }
 
+static void setUpUserInterface(void *activity) {
+	logInfo("[UserInterface] Setting up...");
+	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
+	this = (Activity *)activity;
+	notifyDisplay();
+}
+
 static void processEventSwitchesChanges(int switchesStates) {
 	int switchesChanges;
 
 	// Get bitfield of changed switches with XOR:
 	switchesChanges = (switchesStates^switchesPreviousStates);
-
-	// Check if the status of the power switch has changed:
-	if (switchesChanges & POWER_SWITCH) {
-		if (switchesStates & POWER_SWITCH) {
-			// send init command to mainController:
-			sendRequest_BEGIN(this, MainController, InitCommand)
-			sendRequest_END
-			powerState = TRUE;
-		} else {
-			// send off command to mainController:
-			sendRequest_BEGIN(this, MainController, OffCommand)
-			sendRequest_END
-			powerState = FALSE;
+	if (switchesChanges > 0) {
+		// Check if the status of the power switch has changed:
+		if (switchesChanges & POWER_SWITCH) {
+			if (switchesStates & POWER_SWITCH) {
+				// send init command to mainController:
+				sendRequest_BEGIN(this, MainController, InitCommand)
+				sendRequest_END
+				powerState = TRUE;
+			} else {
+				// send off command to mainController:
+				sendRequest_BEGIN(this, MainController, OffCommand)
+				sendRequest_END
+				powerState = FALSE;
+			}
 		}
-	}
-	// Check if the status of the milk selector switch has changed:
-	if (switchesChanges & MILK_SELECTOR_SWITCH) {
-		if (switchesStates & MILK_SELECTOR_SWITCH) {
-			withMilk = TRUE;
-		} else {
-			withMilk = FALSE;
+		// Check if the status of the milk selector switch has changed:
+		if (switchesChanges & MILK_SELECTOR_SWITCH) {
+			if (switchesStates & MILK_SELECTOR_SWITCH) {
+				withMilk = TRUE;
+			} else {
+				withMilk = FALSE;
+			}
 		}
+		switchesPreviousStates = switchesStates;
+		notifyDisplay();
 	}
-	switchesPreviousStates = switchesStates;
 }
 
 static void runUserInterface(void *activity) {
@@ -182,10 +185,16 @@ static void runUserInterface(void *activity) {
 		if (numberOfFiredEvents < 0) {
 			logErr("[%s] Error waiting for event: %s", this->descriptor->name, strerror(errno));
 		} else {
-			logInfo("[%s] Events occured", this->descriptor->name);
+			logInfo("[%s] Number of Events: %d", this->descriptor->name, numberOfFiredEvents);
 			for (i = 0; i < numberOfFiredEvents; i++) {
+				if (!(firedEvents[i].events & EPOLLIN)) {
+					logErr("[%s] Event was not EPOLLIN", this->descriptor->name);
+					continue;
+				}
+
 				fd = firedEvents[i].data.fd;
 				if (fd == this->messageQueue) {
+					logInfo("[%s] Message queue event", this->descriptor->name);
 					receiveGenericMessage_BEGIN(this)
 						if (error) {
 							//TODO Implement appropriate error handling
@@ -194,7 +203,6 @@ static void runUserInterface(void *activity) {
 							// Try again
 							continue;
 						}
-						logInfo("[%s] Message received from %s (message length: %u)", this->descriptor->name, senderDescriptor.name, result);
 						MESSAGE_SELECTOR_BEGIN
 							MESSAGE_BY_SENDER_SELECTOR(senderDescriptor, message, Display)
 								MESSAGE_SELECTOR_BEGIN
@@ -218,21 +226,21 @@ static void runUserInterface(void *activity) {
 										case MILK_INDEX:
 											milkAvailability = content.availability;
 										}
-										notifyDisplay();
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, CoffeeWasteBinStateChangedNotification)
 										wasteBinFull = content.isBinFull;
 										// TODO: LED einschalten und keine neuen Auftrage akzeptieren
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
+						notifyDisplay();
 					receiveGenericMessage_END
 				} else if(fd == buttonsFileDescriptor) {
+					logInfo("[%s] Buttons event", this->descriptor->name);
 					result = read(buttonsFileDescriptor, buffer, 3);
 					if (result < 0) {
 						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
 					}
 					productIndex = (atoi(buffer))+1;
 					if (productIndex > 0 && productIndex <= 3) {
-						// TODO: Update display and send command
 						sendRequest_BEGIN(this, MainController, ProduceProductCommand)
 							.productIndex = productIndex,
 							.withMilk = withMilk
@@ -242,6 +250,7 @@ static void runUserInterface(void *activity) {
 						logWarn("[%s] No product at index %d", this->descriptor->name, productIndex);
 					}
 				} else if(fd == switchesFileDescriptor) {
+					logInfo("[%s] Switches event", this->descriptor->name);
 					// Get bitfield of current switches status:
 					result = read(switchesFileDescriptor, buffer, 3);
 					if (result < 0) {
@@ -249,7 +258,6 @@ static void runUserInterface(void *activity) {
 					}
 					switchesStates = atoi(buffer);
 					processEventSwitchesChanges(switchesStates);
-					notifyDisplay();
 				}
 			} // foreach event end
 		} // if number of fired events end
