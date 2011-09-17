@@ -143,20 +143,17 @@ static void runUserInterface(void *activity) {
 	logInfo("[userInterface] Checking initial switch states...");
 	switchesStates = readNonBlockingDevice(switchesDevice);
 	processEventSwitchesChanges(switchesStates);
-	if (switchesStates) {
-		notifyDisplay();
-	}
 
 	// open file descriptors for buttons and switches:
 	logInfo("[userInterface] Open file descriptors...");
 	buttonsFileDescriptor = open(buttonsEventDevice, O_RDONLY);
 	if (buttonsFileDescriptor < 0) {
-		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, buttonsEventDevice, strerror(errno));
+		logErr("[%s] Unable to open device %s: %s", this->descriptor->name, buttonsEventDevice, strerror(errno));
 		return;
 	}
 	switchesFileDescriptor = open(switchesEventDevice, O_RDONLY);
 	if (switchesFileDescriptor < 0) {
-		logErr("[%s] Unable to open device %s: %s", (*this->descriptor).name, switchesEventDevice, strerror(errno));
+		logErr("[%s] Unable to open device %s: %s", this->descriptor->name, switchesEventDevice, strerror(errno));
 		return;
 	}
 
@@ -234,7 +231,6 @@ static void runUserInterface(void *activity) {
 										}
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, CoffeeWasteBinStateChangedNotification)
 										wasteBinFull = content.isBinFull;
-										// TODO: LED einschalten und keine neuen Auftrage akzeptieren
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
 						notifyDisplay();
@@ -245,7 +241,9 @@ static void runUserInterface(void *activity) {
 					if (result < 0) {
 						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
 					}
-					if (machineState == machineState_idle) {
+					if (wasteBinFull) {
+						logWarn("[%s] Unable to produce coffee, because waste bin is full", this->descriptor->name);
+					} else if (machineState == machineState_idle) {
 						value = atoi(buffer);
 						// check if product index is in range:
 						if (value >= 0 && value < NUMBER_OF_PRODUCTS) {
@@ -256,7 +254,7 @@ static void runUserInterface(void *activity) {
 							sendRequest_END
 							notifyDisplay();
 						} else {
-							logWarn("[%s] No product at index %d", this->descriptor->name, productIndex);
+							logWarn("[%s] No product at index %d", this->descriptor->name, value+1);
 						}
 					} else {
 						logWarn("[%s] Product selected, but machine is in state %d and not in state idle", this->descriptor->name, machineState);
