@@ -56,10 +56,10 @@ static ActivityDescriptor motorControllerDescriptor = {
 };
 
 static int setMotor(int power) {
-	char level[2];
+	char level[3];
 	if (power > 99) power = 99;
 	if (power < 0) power = 0;
-	snprintf(level,2,"%d",power);
+	snprintf(level,3,"%d",power);
 	return writeNonBlockingDevice("/dev/coffeeGrinderMotor",level,wrm_replace,FALSE);
 }
 
@@ -383,18 +383,17 @@ static void setUpFillStateMonitor(void *activityarg) {
 		logInfo("[fillStateMonitor] Init: sending Beans available");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
 			.activity = getFillStateMonitor(),
-			.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
+			.intValue = POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION,
 			.strValue = "Beans available"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
 	} else {
 		logInfo("[fillStateMonitor] Init: sending no beans error");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
 			.activity = getFillStateMonitor(),
-			.intValue = SUPPLY_NO_BEANS_ERROR,
+			.intValue = POWDER_DISPENSER_NO_BEANS_ERROR,
 			.strValue = "No beans"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
 	}
-
 }
 
 static void runFillStateMonitor(void *activity) {

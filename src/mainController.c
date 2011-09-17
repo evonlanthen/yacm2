@@ -235,6 +235,8 @@ static int producingStatePrecondition() {
 	// - coffee waste bin is not full
 	// - selected product is defined
 
+	producingError = NO_ERROR;
+
 	char *violation = NULL;
 
 	if (coffeeMaker.ongoingCoffeeMaking) {
@@ -244,27 +246,27 @@ static int producingStatePrecondition() {
 	//TODO Activate these conditions
 //	if (coffeeMaker.isCoffeeAvailable != available) {
 //		violation = "No coffee beans!";
-//		sendError(PROCESS_NO_COFFEE_BEANS_ERROR);
+//		productingError = PROCESS_NO_COFFEE_BEANS_ERROR;
 //	}
 
 //	if (coffeeMaker.isWaterAvailable != available) {
 //		violation = "No water!";
-//		sendError(PROCESS_NO_WATER_ERROR);
+//		productingError = PROCESS_NO_WATER_ERROR;
 //	}
 
 //	if (produceWithMilk && (coffeeMaker.isMilkAvailable != available)) {
 //		violation = "No milk!";
-//		sendError(PROCESS_NO_MILK_ERROR);
+//		productingError = PROCESS_NO_MILK_ERROR;
 //	}
 
 //	if (coffeeMaker.isCoffeeWasteBinFull) {
 //		violation = "Coffee waste bin full!";
-//		sendError(PROCESS_COFFEE_WASTE_BIN_IS_FULL_ERROR);
+//		productingError = PROCESS_COFFEE_WASTE_BIN_IS_FULL_ERROR;
 //	}
 
 	if (productToProduceIndex > getNumberOfProducts()) {
 		violation = "Undefined product!";
-		sendError(PROCESS_UNDEFINED_PRODUCT_ERROR);
+		producingError = PROCESS_UNDEFINED_PRODUCT_ERROR;
 	}
 
 	if (violation) {
@@ -310,6 +312,10 @@ static void abortMakeCoffeeProcessInstance() {
 
 static void producingStateExitAction() {
 	abortMakeCoffeeProcessInstance();
+
+	if (producingError != NO_ERROR) {
+		sendError(producingError);
+	}
 }
 
 static State producingState = {
@@ -433,7 +439,7 @@ static Event checkingCupFillStateActivityDoAction() {
 
 	if (readNonBlockingDevice("./dev/cupFillStateSensor") > 0) {
 		logInfo("[mainController] [makeCoffee process] Cup is not empty!");
-		sendError(PROCESS_CUP_IS_NOT_EMPTY_ERROR);
+		producingError = PROCESS_CUP_IS_NOT_EMPTY_ERROR;
 
 		return coffeeMakingEvent_cupIsNotEmpty;
 	}
@@ -650,7 +656,7 @@ static StateMachine coffeeMakingProcessMachine = {
 			/* coffeeMakingEvent_errorOccured: */ NULL,
 		/* coffeeMakingActivity_checkingCupFillState: */
 			/* coffeeMakingEvent_isWarmedUp: */ NULL,
-			/* coffeeMakingEvent_cupIsEmpty: */ &supplyingWaterActivity, //&grindingCoffeePowderActivity,
+			/* coffeeMakingEvent_cupIsEmpty: */ &grindingCoffeePowderActivity,
 			/* coffeeMakingEvent_cubIsNotEmpty: */ &errorState,
 			/* coffeeMakingEvent_grindCoffeePowder: */ NULL,
 			/* coffeeMakingEvent_coffeePowderGrinded: */ NULL,
@@ -709,7 +715,7 @@ static StateMachine coffeeMakingProcessMachine = {
 			/* coffeeMakingEvent_supplyWater: */ NULL,
 			/* coffeeMakingEvent_waterSupplied: */ NULL,
 			/* coffeeMakingEvent_supplyMilk: */ NULL,
-			/* coffeeMakingEvent_milkSupplied: */ &finishedState, //&ejectingCoffeeWasteActivity,
+			/* coffeeMakingEvent_milkSupplied: */ &ejectingCoffeeWasteActivity,
 			/* coffeeMakingEvent_ejectCoffeeWaste: */ NULL,
 			/* coffeeMakingEvent_coffeeWasteEjected: */ NULL,
 			/* coffeeMakingEvent_errorOccured: */ &errorState,
@@ -867,8 +873,10 @@ static void runMainController(void *activity) {
 									switch (content.errorCode) {
 										case NO_COFFEE_BEANS_ERROR:
 											errorMessage = "No coffee beans!";
-											sendError(PROCESS_NO_COFFEE_BEANS_ERROR);
+											producingError = PROCESS_NO_COFFEE_BEANS_ERROR;
 											break;
+										case COFFEE_WASTE_EJECTION_NOT_POSSIBLE_ERROR:
+											errorMessage = "Coffee waste ejection not possible!";
 										default:
 											errorMessage = "<Unknown error>";
 									}
@@ -907,15 +915,15 @@ static void runMainController(void *activity) {
 									switch (content.errorCode) {
 										case NO_WATER_ERROR:
 											errorMessage = "No water!";
-											sendError(PROCESS_NO_WATER_ERROR);
+											producingError = PROCESS_NO_WATER_ERROR;
 											break;
 										case NO_WATER_FLOW_ERROR:
 											errorMessage = "No water flow!";
-											sendError(PROCESS_NO_WATER_FLOW_ERROR);
+											producingError = PROCESS_NO_WATER_FLOW_ERROR;
 											break;
 										case WATER_TEMPERATURE_TOO_LOW_ERROR:
 											errorMessage = "Water temperature too low!";
-											sendError(PROCESS_WATER_TEMPERATURE_TOO_LOW_ERROR);
+											producingError = PROCESS_WATER_TEMPERATURE_TOO_LOW_ERROR;
 											break;
 										case ABORTED_ERROR:
 											errorMessage = "Supplying aborted!";
