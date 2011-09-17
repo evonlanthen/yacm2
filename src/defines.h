@@ -71,12 +71,21 @@ typedef enum {
 #define POWER_SWITCH 1<<0
 #define MILK_SELECTOR_SWITCH 1<<1
 
-// Old
+// Old command codes
 #define INIT_COMMAND 1
 #define OFF_COMMAND 2
 #define ABORT_COMMAND 3
 
+/**
+ * Result codes
+ */
 #define OK_RESULT 101
 #define NOK_RESULT 201
+
+/**
+ * Common error codes
+ */
+#define NO_ERROR 0
+#define ABORTED_ERROR 901
 
 #endif /* DEFINES_H_ */

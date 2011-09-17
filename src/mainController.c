@@ -35,8 +35,10 @@ static ActivityDescriptor mainControllerDescriptor = {
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, InitCommand, 1)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, OffCommand, 2)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProduceProductCommand, 3)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 4)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 5)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, AbortCommand, 4)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 5)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProducingProductNotification, 6)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 7)
 
 static Activity *this;
 
@@ -237,6 +239,9 @@ static void producingStateEntryAction() {
 	sendNotification_BEGIN(this, MainController, clientDescriptor, MachineStateChangedNotification)
 		.state = machineState_producing
 	sendNotification_END
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ProducingProductNotification)
+		.productIndex = productToProduceIndex
+	sendNotification_END
 
 	startMakeCoffeeProcess(productToProduceIndex);
 }
@@ -342,7 +347,7 @@ static void warmingUpActivityEntryAction() {
 }
 
 static Event warmingUpActivityDoAction() {
-	sleep(1);
+	sleep(5);
 
 	return coffeeMakingEvent_isWarmedUp;
 }
@@ -522,11 +527,27 @@ static State errorState = {
 };
 
 // -----------------------------------------------------------------------------
+// Abort action
+// -----------------------------------------------------------------------------
+
+static void coffeeMakingProcessAbortAction() {
+	logErr("[mainController] [makeCoffee process] Aborting...");
+
+	//sendRequest_BEGIN(this, CoffeeSupply, AbortCommand)
+	//sendRequest_END
+	sendRequest_BEGIN(this, WaterSupply, AbortCommand)
+	sendRequest_END
+	//sendRequest_BEGIN(this, MilkSupply, AbortCommand)
+	//sendRequest_END
+}
+
+// -----------------------------------------------------------------------------
 // Activity/state transitions
 // -----------------------------------------------------------------------------
 static StateMachine coffeeMakingProcessMachine = {
 	.name = "coffeeMakingProcess",
 	.numberOfEvents = 12,
+	.abortAction = coffeeMakingProcessAbortAction,
 	.initialState = &warmingUpActivity,
 	.transitions = {
 		/* coffeeMakingActivity_warmingUp: */
@@ -624,13 +645,13 @@ static StateMachine coffeeMakingProcessMachine = {
 };
 
 static void setUpMainController(void *activity) {
-	logInfo("[mainController] Setting up...");
+	//logInfo("[mainController] Setting up...");
 
 	this = (Activity *)activity;
 }
 
 static void runMainController(void *activity) {
-	logInfo("[mainController] Running...");
+	//logInfo("[mainController] Running...");
 
 	// Water supply test
 	/*
@@ -753,6 +774,25 @@ static void runMainController(void *activity) {
 								if (content.code == OK_RESULT) {
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_waterSupplied);
 								} else {
+									char *errorMessage;
+									switch (content.errorCode) {
+										case NO_WATER_ERROR:
+											errorMessage = "No water!";
+											break;
+										case NO_WATER_FLOW_ERROR:
+											errorMessage = "No water flow!";
+											break;
+										case WATER_TEMPERATURE_TOO_LOW_ERROR:
+											errorMessage = "Water temperature too low!";
+											break;
+										case ABORTED_ERROR:
+											errorMessage = "Supplying aborted!";
+											break;
+										default:
+											errorMessage = "<Unknown error>";
+									}
+									logInfo("[mainController] Water supply reports an error: %s", errorMessage);
+
 									processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_errorOccured);
 								}
 							// If we got a status update from water supply...
@@ -812,8 +852,11 @@ static void runMainController(void *activity) {
 								produceWithMilk = content.withMilk;
 
 								processStateMachineEvent(&stateMachine, event_productSelected);
+							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, AbortCommand)
+								logInfo("[mainController] Going to abort current operation...");
+								processStateMachineEvent(&stateMachine, event_productionProcessAborted);
 							MESSAGE_SELECTOR_ANY
-								logWarn("[mainController] Unexpected message from %s received!", senderDescriptor.name);
+								logWarn("[mainController] Unexpected message %u from %s received!", specificMessage->type, senderDescriptor.name);
 						MESSAGE_SELECTOR_END
 				MESSAGE_SELECTOR_END
 			}
@@ -822,5 +865,5 @@ static void runMainController(void *activity) {
 }
 
 static void tearDownMainController(void *activity) {
-	logInfo("[mainController] Tearing down...");
+	//logInfo("[mainController] Tearing down...");
 }

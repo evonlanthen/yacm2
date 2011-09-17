@@ -16,14 +16,12 @@
 #include "activity.h"
 
 //#define UNKNOWN_SENDER_NAME "<Unknown sender>"
-
 #define UNKNOWN_SENDER_DESCRIPTOR \
 	&(ActivityDescriptor) { \
 		.name = "<Unknown sender>" \
 	}
 
-//MESSAGE_CONTENT_TYPE_MAPPING(InitCommand, 91)
-//MESSAGE_CONTENT_TYPE_MAPPING(OffCommand, 92)
+#define NULL_FILE_DESCRIPTOR -999
 
 static char *createMessageQueueId(char *activityName) {
 	size_t idLength = strlen(activityName) + 2;
@@ -101,6 +99,8 @@ Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode message
 	activity->messageQueue = messageQueue;
 	activity->messageQueueMode = messageQueueMode;
 
+	activity->polling = NULL_FILE_DESCRIPTOR;
+
 	// Start new thread
 	pthread_t thread;
 	if (pthread_create(&thread, NULL, runThread, activity) < 0) {
@@ -115,6 +115,11 @@ Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode message
 void destroyActivity(Activity *activity) {
 	pthread_cancel(activity->thread);
 	pthread_join(activity->thread, NULL);
+
+	if (activity->polling != NULL_FILE_DESCRIPTOR) {
+		close(activity->polling);
+		activity->polling = NULL_FILE_DESCRIPTOR;
+	}
 
 	char *messageQueueId = createMessageQueueId(activity->descriptor->name);
 	mq_close(activity->messageQueue);
@@ -134,30 +139,38 @@ int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigne
 int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void *buffer, unsigned long length, unsigned int timeout) {
 	//logInfo("[%s] Going to wait for an event...", activity->descriptor->name);
 
-	int polling;
-	if ((polling = epoll_create(1)) < 0) {
-		logErr("[%s] Error setting up event waiting: %s", activity->descriptor->name, strerror(errno));
+	//int polling;
+	if (activity->polling == NULL_FILE_DESCRIPTOR) {
+		if ((/* polling */ activity->polling = epoll_create(1)) < 0) {
+			logErr("[%s] Error setting up event waiting: %s", activity->descriptor->name, strerror(errno));
 
-		return -EFAULT;
+			close(activity->polling);
+			activity->polling = NULL_FILE_DESCRIPTOR;
+
+			return -EFAULT;
+		}
+
+		struct epoll_event messageQueueEventDescriptor = {
+				.events = EPOLLIN,
+				.data.fd = activity->messageQueue
+		};
+		if (epoll_ctl(/* polling */ activity->polling, EPOLL_CTL_ADD, messageQueueEventDescriptor.data.fd, &messageQueueEventDescriptor) < 0) {
+			logErr("[%s] Error registering message queue event source: %s", activity->descriptor->name, strerror(errno));
+
+			//close(polling);
+			close(activity->polling);
+			activity->polling = NULL_FILE_DESCRIPTOR;
+
+			return -EFAULT;
+		}
 	}
-
-	struct epoll_event messageQueueEventDescriptor = {
-			.events = EPOLLIN,
-			.data.fd = activity->messageQueue
-	};
-	if (epoll_ctl(polling, EPOLL_CTL_ADD, messageQueueEventDescriptor.data.fd, &messageQueueEventDescriptor) < 0) {
-		logErr("[%s] Error registering message queue event source: %s", activity->descriptor->name, strerror(errno));
-
-		close(polling);
-
-		return -EFAULT;
-	}
+	int polling = activity->polling;
 
 	struct epoll_event firedEvents[1];
 	int numberOfFiredEvents;
 	numberOfFiredEvents = epoll_wait(polling, firedEvents, 1, timeout);
 
-	close(polling);
+	//close(polling);
 
 	if (numberOfFiredEvents < 0) {
 		logErr("[%s] Error waiting for event: %s", activity->descriptor->name, strerror(errno));

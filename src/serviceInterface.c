@@ -24,27 +24,35 @@ static ActivityDescriptor serviceInterface = {
 	.tearDown = tearDownServiceInterface
 };
 
+static Activity *this;
+
 ActivityDescriptor getServiceInterfaceDescriptor() {
 	return serviceInterface;
 }
 
 static void setUpServiceInterface(void *activity) {
-	logInfo("[serviceInterface] Setting up...");
+	//logInfo("[serviceInterface] Setting up...");
+
+	this = (Activity *)activity;
 }
 
 static void runServiceInterface(void *activity) {
-	logInfo("[serviceInterface] Running...");
+	//logInfo("[serviceInterface] Running...");
 
+//	while (TRUE) {
+//		logInfo("[serviceInterface] Going to receive message...");
+//		ServiceInterfaceMessage message;
+//		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
+//		logInfo("[serviceInterface] Message received - length: %ld, value: %d, message: %s",
+//				messageLength, message.intValue, message.strValue);
+//	}
 	while (TRUE) {
-		logInfo("[serviceInterface] Going to receive message...");
-		ServiceInterfaceMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		logInfo("[serviceInterface] Message received - length: %ld, value: %d, message: %s",
-				messageLength, message.intValue, message.strValue);
+		receiveMessage_BEGIN(this, ServiceInterface)
+		receiveMessage_END
 	}
 }
 
 static void tearDownServiceInterface(void *activity) {
-	logInfo("[serviceInterface] Tearing down...");
+	//logInfo("[serviceInterface] Tearing down...");
 }
 

@@ -24,7 +24,6 @@
 #include <linux/kfifo.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
-//#include <linux/bitops.h>
 
 #include "hmi.h"
 #include "switches.h"
@@ -42,10 +41,6 @@ static struct timer_list debounceButtonTimers[4];
 static volatile unsigned long debounceButtonFlags = 0;
 
 static atomic_t isButtonsDeviceAvailable = ATOMIC_INIT(1);
-
-//static volatile int lastPressedButtonIndex = 0;
-//static volatile unsigned long bit = 0;
-//static spinlock_t spinlock = SPIN_LOCK_UNLOCKED;
 
 static DEFINE_KFIFO(buttonEvents, 8);
 static spinlock_t eventsLock = SPIN_LOCK_UNLOCKED;
@@ -76,6 +71,7 @@ static wait_queue_head_t areEventsAvailableWaitQueue;
 static unsigned long interruptFlags;
 
 static int areEventsAvailable(void) {
+	// Open atomic context (by disabling interrupts)
 	spin_lock_irqsave(&eventsLock, interruptFlags);
 	if (!kfifo_is_empty(&buttonEvents)) {
 		// Wait condition is true -> keep lock and return
@@ -91,17 +87,7 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 
 	if (*offset == 0) {
 		if (size >= 1) {
-			//wait_event_interruptible(areEventsAvailableWaitQueue, test_and_clear_bit(0, &bit));
 			wait_event_interruptible(areEventsAvailableWaitQueue, areEventsAvailable());
-
-			// Open atomic context (by disabling interrupts)
-			//unsigned long flags;
-			//spin_lock_irqsave(&spinlock, flags);
-
-			//unsigned char value = 0x30 + lastPressedButtonIndex;
-
-			// Close atomic context (by enabling interrupts)
-			//spin_unlock_irqrestore(&spinlock, flags);
 
 			// Remove first event from queue
 			unsigned char value = 0;
@@ -157,8 +143,6 @@ static irqreturn_t handleButtonInterrupt(int irq, void *deviceId) {
 
 	mod_timer(&debounceButtonTimers[buttonIndex], jiffies + msecs_to_jiffies(100));
 
-	//lastPressedButtonIndex = buttonIndex;
-	//set_bit(0, &bit);
 	// Add new event to queue
 	if (!kfifo_in_locked(&buttonEvents, &buttonIndex, 1, &eventsLock)) {
 		printk(KERN_WARNING MODULE_LABEL "Event buffer is full, new event was ignored!\n");
@@ -166,14 +150,15 @@ static irqreturn_t handleButtonInterrupt(int irq, void *deviceId) {
 
 	wake_up_interruptible_all(&areEventsAvailableWaitQueue);
 
-	return IRQ_WAKE_THREAD;
-}
-
-static irqreturn_t handleButtonInterrupt2ndStage(int irq, void *deviceId) {
-	int buttonIndex = (int)deviceId;
-
 	return IRQ_HANDLED;
+	//return IRQ_WAKE_THREAD;
 }
+
+//static irqreturn_t handleButtonInterrupt2ndStage(int irq, void *deviceId) {
+	//int buttonIndex = (int)deviceId;
+
+	//return IRQ_HANDLED;
+//}
 
 static void buttonDebounceTimerExpired(unsigned long data) {
 	//printk(KERN_INFO MODULE_LABEL "Debounce timer for button GPIO %d expired.\n", buttonGPIOs[data].gpio);
@@ -214,9 +199,9 @@ int __init initHMI(void) {
 
 		printk(KERN_INFO MODULE_LABEL "Button GPIO %d interrupt: %d\n", buttonGPIOs[i].gpio, buttonGPIOInterrupt);
 
-		if ((result = request_threaded_irq(buttonGPIOInterrupt,
+		if ((result = request_irq /* request_threaded_irq */ (buttonGPIOInterrupt,
 								handleButtonInterrupt,
-								handleButtonInterrupt2ndStage,
+								//handleButtonInterrupt2ndStage,
 								IRQF_TRIGGER_RISING,
 								buttonGPIOs[i].label,
 								/* Button index */ (void *)i))) {
@@ -279,7 +264,6 @@ void __exit exitHMI() {
 	}
 
 	gpio_free_array(buttonGPIOs, ARRAY_SIZE(buttonGPIOs));
-	//gpio_free_array(enableGPIOs, ARRAY_SIZE(enableGPIOs));
 
 	printk(KERN_INFO MODULE_LABEL "...done. (unloading)\n");
 }

@@ -166,6 +166,7 @@ typedef struct {
 	pthread_t thread;
 	mqd_t messageQueue;
 	MessageQueueMode messageQueueMode;
+	int polling;
 } Activity;
 
 typedef enum {
@@ -199,7 +200,8 @@ COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN
 COMMON_MESSAGE_CONTENT_DEFINITION_END(AbortCommand)
 
 COMMON_MESSAGE_CONTENT_DEFINITION_BEGIN
-	Byte code;
+	unsigned int code;
+	unsigned int errorCode;
 COMMON_MESSAGE_CONTENT_DEFINITION_END(Result)
 
 #endif /* ACTIVITY_H_ */
