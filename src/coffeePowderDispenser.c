@@ -76,7 +76,7 @@ static int lastHasBeansState = FALSE;
 static int checkBeans(void) {
 	int hasBeansState = hasBeans();
 	if (hasBeansState != lastHasBeansState) {
-		logInfo("[fillStateMonitor] Beans state changed to %d",hasBeansState);
+		//logInfo("[fillStateMonitor] Beans state changed to %d",hasBeansState);
 		lastHasBeansState = hasBeansState;
 
 		if (hasBeansState) {
@@ -123,7 +123,7 @@ typedef enum {
  */
 
 static void coffeePowderDispenserSwitchedOffStateEntryAction() {
-	logInfo("[coffeePowderDispenser] Entered SwitchedOff State...");
+	//logInfo("[coffeePowderDispenser] Entered SwitchedOff State...");
 }
 
 static Event coffeePowderDispenserSwitchedOffStateDoAction() {
@@ -178,7 +178,7 @@ static State coffeePowderDispenserInitializingState = {
  */
 
 static void coffeePowderDispenserIdleStateEntryAction() {
-	logInfo("[coffeePowderDispenser] Entered Idle State...");
+	//logInfo("[coffeePowderDispenser] Entered Idle State...");
 }
 
 static Event coffeePowderDispenserIdleStateDoAction() {
@@ -199,7 +199,7 @@ static State coffeePowderDispenserIdleState = {
  */
 
 static void coffeePowderDispenserSupplyingStateEntryAction() {
-	logInfo("[coffeePowderDispenser] Entered Supplying State...");
+	//logInfo("[coffeePowderDispenser] Entered Supplying State...");
 	// notifiy motorController:
 	sendMessage(getMotorController(), (char *)&(MotorControllerMessage) {
 		.activity = getCoffeePowderDispenser(),
@@ -211,7 +211,7 @@ static void coffeePowderDispenserSupplyingStateEntryAction() {
 static Event coffeePowderDispenserSupplyingStateDoAction() {
 	// enough Powder
 	if (hasEnoughPowder()) {
-		logInfo("[coffeePowderDispenser] Enough powder, stopping grinding...");
+		logInfo("[coffeePowderDispenser] Finished grinding...");
 		return coffeePowderDispenserEvent_supplyingFinished;
 	}
 	return NO_EVENT;
@@ -303,7 +303,7 @@ ActivityDescriptor getMotorController() {
 }
 
 static void setUpCoffeePowderDispenser(void *activityarg) {
-	logInfo("[coffeePowderDispenser] Setting up...");
+	//logInfo("[coffeePowderDispenser] Setting up...");
 	coffeePowderDispenser = activityarg;
 	setUpStateMachine(&coffeePowderDispenserStateMachine);
 	if (!coffeePowderDispenserStateMachine.isInitialized) {
@@ -314,7 +314,7 @@ static void setUpCoffeePowderDispenser(void *activityarg) {
 }
 
 static void runCoffeePowderDispenser(void *activity) {
-	logInfo("[coffeePowderDispenser] Running...");
+	//logInfo("[coffeePowderDispenser] Running...");
 	while (TRUE) {
 		// Wait for incoming message or time event
 		CoffeePowderDispenserMessage incomingMessage;
@@ -330,28 +330,28 @@ static void runCoffeePowderDispenser(void *activity) {
 		// Check if there is an incoming message
 		if (result > 0) {
 			// Process incoming message
-			logInfo("[coffeePowderDispenser] Processing incoming message...");
+			//logInfo("[coffeePowderDispenser] Processing incoming message...");
 			switch (incomingMessage.intValue) {
 				case INIT_COMMAND:
-					logInfo("[coffeePowderDispenser] Received init command...");
+					//logInfo("[coffeePowderDispenser] Received init command...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_init);
 					break;
 				case OFF_COMMAND:
-					logInfo("[coffeePowderDispenser] Received off command...");
+					//logInfo("[coffeePowderDispenser] Received off command...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_switchOff);
 					break;
 				case POWDER_DISPENSER_START_COMMAND:
-					logInfo("[coffeePowderDispenser] Received start command...");
+					//logInfo("[coffeePowderDispenser] Received start command...");
 					if (lastHasBeansState) {
 						processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_startSupplying);
 					}
 					break;
 				case POWDER_DISPENSER_STOP_COMMAND:
-					logInfo("[coffeePowderDispenser] Received stop command...");
+					//logInfo("[coffeePowderDispenser] Received stop command...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_stop);
 					break;
 				case POWDER_DISPENSER_NO_BEANS_ERROR:
-					logInfo("[coffeePowderDispenser] Received no beans error...");
+					//logInfo("[coffeePowderDispenser] Received no beans error...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_noBeans);
 					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
@@ -360,7 +360,7 @@ static void runCoffeePowderDispenser(void *activity) {
 						}, sizeof(SimpleCoffeeSupplyMessage), messagePriority_medium);
 					break;
 				case POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION:
-					logInfo("[coffeePowderDispenser] Received beans available notification...");
+					//logInfo("[coffeePowderDispenser] Received beans available notification...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_beansAvailable);
 					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
@@ -376,24 +376,24 @@ static void runCoffeePowderDispenser(void *activity) {
 }
 
 static void tearDownCoffeePowderDispenser(void *activity) {
-	logInfo("[coffeePowderDispenser] Tearing down...");
+	//logInfo("[coffeePowderDispenser] Tearing down...");
 	destroyActivity(fillStateMonitor);
 	destroyActivity(motorController);
 }
 
 static void setUpFillStateMonitor(void *activityarg) {
-	logInfo("[fillStateMonitor] Setting up...");
+	//logInfo("[fillStateMonitor] Setting up...");
 	fillStateMonitor = activityarg;
 	lastHasBeansState = hasBeans();
 	if (lastHasBeansState) {
-		logInfo("[fillStateMonitor] Init: sending Beans available");
+		//logInfo("[fillStateMonitor] Init: sending Beans available");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
 			.activity = getCoffeeBeansFillStateMonitor(),
 			.intValue = POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION,
 			.strValue = "Beans available"
 			}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
 	} else {
-		logInfo("[fillStateMonitor] Init: sending no beans error");
+		//logInfo("[fillStateMonitor] Init: sending no beans error");
 		sendMessage(getCoffeePowderDispenser(),(char *)&(SimpleCoffeeSupplyMessage){
 			.activity = getCoffeeBeansFillStateMonitor(),
 			.intValue = POWDER_DISPENSER_NO_BEANS_ERROR,
@@ -403,7 +403,7 @@ static void setUpFillStateMonitor(void *activityarg) {
 }
 
 static void runFillStateMonitor(void *activity) {
-	logInfo("[fillStateMonitor] Running...");
+	//logInfo("[fillStateMonitor] Running...");
 
 	while (TRUE) {
 		// Wait for incoming message or time event
@@ -420,32 +420,31 @@ static void runFillStateMonitor(void *activity) {
 		// Check if there is an incoming message
 		if (result > 0) {
 			// Process incoming message
-			logInfo("[fillStateMonitor] Process incoming message...");
+			//logInfo("[fillStateMonitor] Process incoming message...");
 		}
 		checkBeans();
 	}
 }
 
 static void tearDownFillStateMonitor(void *activity) {
-	logInfo("[FillStateMonitor] Tearing down...");
+	//logInfo("[FillStateMonitor] Tearing down...");
 }
 
 static void setUpMotorController(void *activityarg) {
-	logInfo("[motorController] Setting up...");
+	//logInfo("[motorController] Setting up...");
 	motorController = activityarg;
 	setMotor(0);
 }
 
 static void runMotorController(void *activity) {
-	logInfo("[motorController] Running...");
+	//logInfo("[motorController] Running...");
 
 	while (TRUE) {
 
-		logInfo("[motorController] Going to receive message...");
+		//logInfo("[motorController] Going to receive message...");
 		MotorControllerMessage message;
 		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
-		logInfo("[motorController] Message received from %s (length: %ld): value: %d, message: %s",
-				message.activity.name, messageLength, message.intValue, message.strValue);
+		//logInfo("[motorController] Message received from %s (length: %ld): value: %d, message: %s", message.activity.name, messageLength, message.intValue, message.strValue);
 		switch (message.intValue) {
 			case MOTOR_START_COMMAND:
 				setMotor(50);
@@ -458,7 +457,7 @@ static void runMotorController(void *activity) {
 }
 
 static void tearDownMotorController(void *activity) {
-	logInfo("[motorController] Tearing down...");
+	//logInfo("[motorController] Tearing down...");
 	setMotor(0);
 }
 
