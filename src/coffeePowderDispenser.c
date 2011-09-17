@@ -219,11 +219,11 @@ static void coffeePowderDispenserSupplyingStateExitAction() {
 		.strValue = "stop motor",
 	}, sizeof(MotorControllerMessage), messagePriority_medium);
 	// notifiy coffeeSupply:
-	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(CoffeeSupplyMessage) {
+	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(SimpleCoffeeSupplyMessage) {
 		.activity = getCoffeePowderDispenser(),
 		.intValue = OK_RESULT,
 		.strValue = "grinding complete",
-	}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
+	}, sizeof(SimpleCoffeeSupplyMessage), messagePriority_medium);
 }
 
 static State coffeePowderDispenserSupplyingState = {
@@ -342,19 +342,19 @@ static void runCoffeePowderDispenser(void *activity) {
 					break;
 				case POWDER_DISPENSER_NO_BEANS_ERROR:
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_noBeans);
-					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(CoffeeSupplyMessage){
+					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
 						.intValue = SUPPLY_NO_BEANS_ERROR,
 						.strValue = "No beans"
-						}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
+						}, sizeof(SimpleCoffeeSupplyMessage), messagePriority_medium);
 					break;
 				case POWDER_DISPENSER_BEANS_AVAILABLE_NOTIFICATION:
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_beansAvailable);
-					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(CoffeeSupplyMessage){
+					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
 						.intValue = SUPPLY_BEANS_AVAILABLE_NOTIFICATION,
 						.strValue = "Beans available"
-						}, sizeof(CoffeeSupplyMessage), messagePriority_medium);
+						}, sizeof(SimpleCoffeeSupplyMessage), messagePriority_medium);
 					break;
 			}
 		}

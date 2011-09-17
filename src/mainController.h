@@ -61,6 +61,7 @@ MESSAGE_DEFINITION_BEGIN
 	MESSAGE_CONTENT(MainController, MachineStateChangedNotification)
 	MESSAGE_CONTENT(MainController, ProducingProductNotification)
 	MESSAGE_CONTENT(MainController, IngredientAvailabilityChangedNotification)
+	MESSAGE_CONTENT(MainController, CoffeeWasteBinStateChangedNotification)
 MESSAGE_DEFINITION_END(MainController)
 
 extern ActivityDescriptor getMainControllerDescriptor(void);

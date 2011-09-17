@@ -44,6 +44,7 @@ MESSAGE_CONTENT_TYPE_MAPPING(MainController, AbortCommand, 4)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 5)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProducingProductNotification, 6)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 7)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, CoffeeWasteBinStateChangedNotification, 8)
 
 static Activity *this;
 
@@ -794,15 +795,15 @@ static void runMainController(void *activity) {
 							MESSAGE_BY_TYPE_SELECTOR(*specificMessage, CoffeeSupply, Result)
 								// Propagate event to coffee making process state machine
 								if (content.code == OK_RESULT) {
-									if (coffeeMakingProcessMachine->activeState == grindingCoffeePowderActivity) {
+									if (coffeeMakingProcessMachine.activeState == &grindingCoffeePowderActivity) {
 										processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_coffeePowderGrinded);
-									} else if (coffeeMakingProcessMachine->activeState == ejectingCoffeeWasteActivity) {
+									} else if (coffeeMakingProcessMachine.activeState == &ejectingCoffeeWasteActivity) {
 										processStateMachineEvent(&coffeeMakingProcessMachine, coffeeMakingEvent_coffeeWasteEjected);
 									}
 								} else {
 									char *errorMessage;
 									switch (content.errorCode) {
-										case NO_COFFEE_BEANS_ERROR:
+										case 0: //NO_COFFEE_BEANS_ERROR:
 											errorMessage = "No coffee beans!";
 											break;
 										default:

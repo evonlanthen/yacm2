@@ -18,39 +18,40 @@
 #define SUPPLY_BEANS_AVAILABLE_NOTIFICATION 2301
 #define SUPPLY_NO_BEANS_ERROR 2401
 
+#define NO_COFFEE_BEANS_ERROR 1
+
 typedef struct {
 	ActivityDescriptor activity;
 	int intValue;
 	char strValue[256];
-} CoffeeSupplyMessage;
+} SimpleCoffeeSupplyMessage;
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int coffeePowderAmount; // [g]
-MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, GrindCoffeePowderCommand)
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply, GrindCoffeePowderCommand)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
-MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, EjectCoffeeWasteCommand)
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply, EjectCoffeeWasteCommand)
 
-COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply2, AbortCommand)
+COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply, AbortCommand)
 
-COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply2, Result)
+COMMON_MESSAGE_CONTENT_REDEFINITION(CoffeeSupply, Result)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	Availability availability;
-MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, BeanStatus)
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply, BeanStatus)
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	int isBinFull;
-MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply2, WasteBinStatus)
+MESSAGE_CONTENT_DEFINITION_END(CoffeeSupply, WasteBinStatus)
 
 MESSAGE_DEFINITION_BEGIN
-	MESSAGE_CONTENT(CoffeeSupply2, GrindCoffeePowderCommand)
-	MESSAGE_CONTENT(CoffeeSupply2, EjectCoffeeWasteCommand)
-	MESSAGE_CONTENT(CoffeeSupply2, Result)
-	MESSAGE_CONTENT(CoffeeSupply2, BeanStatus)
-	MESSAGE_CONTENT(CoffeeSupply2, WasteBinStatus)
-MESSAGE_DEFINITION_END(CoffeeSupply2)
-
+	MESSAGE_CONTENT(CoffeeSupply, GrindCoffeePowderCommand)
+	MESSAGE_CONTENT(CoffeeSupply, EjectCoffeeWasteCommand)
+	MESSAGE_CONTENT(CoffeeSupply, Result)
+	MESSAGE_CONTENT(CoffeeSupply, BeanStatus)
+	MESSAGE_CONTENT(CoffeeSupply, WasteBinStatus)
+MESSAGE_DEFINITION_END(CoffeeSupply)
 
 extern ActivityDescriptor getCoffeeSupplyDescriptor(void);
 
