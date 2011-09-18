@@ -36,6 +36,8 @@
 #define PRODUCT_1_BUTTON 0
 #define NUMBER_OF_PRODUCTS 3
 
+#define BUFFER_SIZE 4
+
 static void setUpUserInterface(void *activity);
 static void runUserInterface(void *activity);
 static void tearDownUserInterface(void *activity);
@@ -128,14 +130,12 @@ static void runUserInterface(void *activity) {
 	int polling, fd, i, value, result;
 	struct epoll_event firedEvents[100];
 	int numberOfFiredEvents;
-	char buffer[3];
+	char buffer[BUFFER_SIZE];
 	char buttonsEventDevice[] = "/dev/buttonsEvent";
 	int buttonsFileDescriptor;
 	char switchesDevice[] = "/dev/switches";
 	char switchesEventDevice[] = "/dev/switchesEvent";
 	int switchesFileDescriptor;
-	//MainControllerMessage mainControllerMessage;
-	//mainControllerMessage.activity = getUserInterfaceDescriptor();
 
 	logInfo("[userInterface] Running...");
 
@@ -157,7 +157,7 @@ static void runUserInterface(void *activity) {
 		return;
 	}
 
-	// create poll device:
+	// create poll device and add message queue, switches and buttons event devices:
 	logInfo("[userInterface] Creating polling device...");
 	if ((polling = epoll_create(3)) < 0) {
 		logErr("[%s] Error setting up event waiting: %s", this->descriptor->name, strerror(errno));
@@ -237,7 +237,8 @@ static void runUserInterface(void *activity) {
 					receiveGenericMessage_END
 				} else if(fd == buttonsFileDescriptor) {
 					logInfo("[%s] Buttons event", this->descriptor->name);
-					result = read(buttonsFileDescriptor, buffer, 3);
+					memset(buffer, 0, BUFFER_SIZE);
+					result = read(buttonsFileDescriptor, buffer, BUFFER_SIZE);
 					if (result < 0) {
 						logErr("[%s] read button: %s", this->descriptor->name, strerror(errno));
 					}
@@ -262,7 +263,8 @@ static void runUserInterface(void *activity) {
 				} else if(fd == switchesFileDescriptor) {
 					logInfo("[%s] Switches event", this->descriptor->name);
 					// Get bitfield of current switches status:
-					result = read(switchesFileDescriptor, buffer, 3);
+					memset(buffer, 0, BUFFER_SIZE);
+					result = read(switchesFileDescriptor, buffer, BUFFER_SIZE);
 					if (result < 0) {
 						logErr("[%s] Read button: %s", this->descriptor->name, strerror(errno));
 					}
