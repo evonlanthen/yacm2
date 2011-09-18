@@ -328,7 +328,6 @@ static void runCoffeeSupply(void *activityarg) {
 				break;
 			case SUPPLY_NO_BEANS_ERROR:
 				//logInfo("[coffeeSupply] Received no beans error");
-				logInfo("%d\n", coffeeSupplyStateMachine.activeState->stateIndex);
 				if (coffeeSupplyStateMachine.activeState == &coffeeSupplySupplyingState) {
 					logInfo("[coffeeSupply] No beans!");
 					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
