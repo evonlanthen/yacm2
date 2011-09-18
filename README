@@ -15,6 +15,10 @@ Authors:
 Build and installation for CARME board:
 	$ make 
 
+Requirements for build:
+- User has sudo rights
+- Rootfs of CARME board is mounted on /carme/rootfs
+
 Running yacm2 on CARME board:
 	# cd /root
 	# insmod ./grinder.ko
