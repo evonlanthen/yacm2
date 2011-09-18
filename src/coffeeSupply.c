@@ -204,6 +204,12 @@ static void coffeeSupplySupplyingStateExitAction() {
 	sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
 		.code = OK_RESULT
 	sendNotification_END
+	//Send init message to powder dispenser
+	sendMessage(getCoffeePowderDispenser(), (char *)&(CoffeePowderDispenserMessage){
+		.activity = getCoffeeSupplyDescriptor(),
+		.intValue = POWDER_DISPENSER_STOP_COMMAND,
+		.strValue = "stop coffeePowderDispenser"
+	}, sizeof(CoffeePowderDispenserMessage), messagePriority_medium);
 }
 
 static State coffeeSupplySupplyingState = {
