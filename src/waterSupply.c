@@ -215,18 +215,15 @@ static State idleState = {
  ***************************************************************************
  */
 
+static SupplyResult supplyResult;
 static int supplyError;
 
 static int supplyingStatePrecondition() {
+	supplyResult = supplyResult_nok;
 	supplyError = NO_ERROR;
 
 	if (!hasWaterState) {
 		supplyError = NO_WATER_ERROR;
-
-		sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
-			.code = NOK_RESULT,
-			.errorCode = NO_WATER_ERROR
-		sendNotification_END
 
 		return FALSE;
 	}
@@ -235,14 +232,13 @@ static int supplyingStatePrecondition() {
 }
 
 static int isSupplyInitialized;
-static SupplyResult supplyResult;
 static TIMER supplyInitializingTimer;
 static TIMER supplyingTimer;
+
 static void supplyingStateEntryAction() {
 	logInfo("[waterSupply] Going to supply %u ml water with a temperature of %d °C...", waterAmountToSupply, waterBrewTemperature);
 
 	isSupplyInitialized = FALSE;
-	supplyResult = supplyResult_nok;
 
 	// Start pump and heater
 	controlPump(deviceState_on);
@@ -305,6 +301,13 @@ static void supplyingStateExitAction() {
 
 	logInfo("[waterSupply] ...done (supplying water).");
 
+//	sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
+//		.code = supplyResult == supplyResult_ok ? OK_RESULT : NOK_RESULT,
+//		.errorCode = supplyError
+//	sendNotification_END
+}
+
+static void supplyingStatePostAction() {
 	sendNotification_BEGIN(this, WaterSupply, callerDescriptor, Result)
 		.code = supplyResult == supplyResult_ok ? OK_RESULT : NOK_RESULT,
 		.errorCode = supplyError
@@ -316,7 +319,8 @@ static State supplyingState = {
 	.precondition = supplyingStatePrecondition,
 	.entryAction = supplyingStateEntryAction,
 	.doAction = supplyingStateDoAction,
-	.exitAction = supplyingStateExitAction
+	.exitAction = supplyingStateExitAction,
+	.postAction = supplyingStatePostAction
 };
 
 /*

@@ -43,6 +43,7 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 				*offset = valueAsStringLength;
 				result = valueAsStringLength;
 			} else {
+				printk(KERN_WARNING MODULE_LABEL "Error copying data to user memory!");
 				result = /* Error copying data! */ -EFAULT;
 			}
 		} else {
@@ -75,6 +76,7 @@ static ssize_t write(struct file *file, const char __user *buffer, size_t size, 
 		iowrite8((unsigned char)value, ledsIOBase);
 		result = size;
 	} else {
+		printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
 		result = /* Error copying data! */ -EFAULT;
 	}
 

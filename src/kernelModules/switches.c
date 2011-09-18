@@ -148,7 +148,7 @@ static unsigned int pollEvent(struct file *file, poll_table *wait) {
 	poll_wait(file, &areEventsAvailableWaitQueue, wait);
 
 	if (areEventsAvailable()) {
-		mask |= POLLIN;// | POLLRDNORM;
+		mask |= POLLIN | POLLRDNORM;
 
 		spin_unlock(&eventsLock);
 	}

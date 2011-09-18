@@ -277,8 +277,6 @@ static int producingStatePrecondition() {
 	if (violation) {
 		logInfo("[mainController] Precondition for starting coffee making process not met: %s\n", violation);
 
-		sendError(producingError);
-
 		return FALSE;
 	}
 
@@ -319,7 +317,9 @@ static void abortMakeCoffeeProcessInstance() {
 
 static void producingStateExitAction() {
 	abortMakeCoffeeProcessInstance();
+}
 
+static void producingStatePostAction() {
 	if (producingError != NO_ERROR) {
 		sendError(producingError);
 	}
@@ -329,7 +329,8 @@ static State producingState = {
 	.stateIndex = machineState_producing,
 	.precondition = producingStatePrecondition,
 	.entryAction = producingStateEntryAction,
-	.exitAction = producingStateExitAction
+	.exitAction = producingStateExitAction,
+	.postAction = producingStatePostAction
 };
 
 // -----------------------------------------------------------------------------

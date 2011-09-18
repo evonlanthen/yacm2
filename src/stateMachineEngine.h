@@ -54,6 +54,7 @@ typedef struct {
 	StateAction entryAction; /**< The state's 'entry' action is called once after the state was activated. */
 	DoStateAction doAction; /**< The state's 'do' action is constantly called while the state is active. */
 	StateAction exitAction; /**< The state's 'exit' action is called once before the state will be deactivated. */
+	StateAction postAction; /**< The state's 'post' action is called once in each case after state activiation, either if the state has been successfully or unsuccessfully (e.g. the precondition was not met) activated. */
 } State;
 
 /**

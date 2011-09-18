@@ -91,6 +91,12 @@ void processStateMachineEvent(StateMachine *stateMachine, Event event) {
 			}
 		} else {
 			logWarn("[%s state machine] Precondition for state %d is not met!", stateMachine->name, nextState->stateIndex);
+
+			// If the state has an 'post' action,
+			// run the state's 'post' action
+			if (nextState->postAction) {
+				nextState->postAction();
+			}
 		}
 	} else {
 		logWarn("[%s state machine] Ignoring event %d!", stateMachine->name, event);
@@ -115,17 +121,21 @@ static Event runState(State *state) {
  * Activates the given state.
  */
 static Event activateState(StateMachine *stateMachine, State *nextState) {
-	// If a state is currently active and the state has an exit action,
-	// then run the state's exit action
+	// If a state is currently active and the state has an 'exit' and/or 'post' action,
+	// then run the state's 'exit' and/or 'post' action
 	if (stateMachine->activeState) {
 		if (stateMachine->activeState->exitAction) {
 			stateMachine->activeState->exitAction();
 		}
+
+		if (stateMachine->activeState->postAction) {
+			stateMachine->activeState->postAction();
+		}
 	}
 	// Make the next state the currently active state
 	stateMachine->activeState = nextState;
-	// If the (now currently active) state has an entry action,
-	// run the state's entry action
+	// If the (now currently active) state has an 'entry' action,
+	// run the state's 'entry' action
 	if (stateMachine->activeState->entryAction) {
 		stateMachine->activeState->entryAction();
 	}
