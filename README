@@ -13,7 +13,7 @@ Authors:
 ================================================================================
 
 Build and installation for CARME board:
-    $ make 
+	$ make 
 
 Running yacm2 on CARME board:
 	# cd /root

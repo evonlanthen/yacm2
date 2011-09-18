@@ -4,10 +4,10 @@
 
 # Directory of root filesystem
 ROOTFS		= /carme/rootfs
-INSTALL_DIR = root
+INSTALL_DIR	= root
 
 # Build settings
-KDIR            = /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME
+KDIR		= /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME
 CC		= arm-linux-gcc
 CFLAGS		= -Wall -std=c99 -I$(ROOTFS)/usr/include -I$(ROOTFS)/usr/include/microwin -D DEBUG -D_BSD_SOURCE
 LDFLAGS 	= -lrt -lpthread -lnano-X -lvncserver -lm -lpng -lfreetype -ljpeg -lz -lSDL -lSDL_mixer -ldirectfb -ldirect -lfusion -lmad -L$(ROOTFS)/usr/lib
