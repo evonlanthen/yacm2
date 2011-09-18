@@ -13,10 +13,6 @@
 #include "activity.h"
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
-	Byte command;
-MESSAGE_CONTENT_DEFINITION_END(Display, Command)
-
-MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int powerState;
 	MachineState machineState;
 	unsigned int withMilk;
@@ -27,11 +23,15 @@ MESSAGE_CONTENT_DEFINITION_BEGIN
 	unsigned int wasteBinFull;
 MESSAGE_CONTENT_DEFINITION_END(Display, ChangeViewCommand)
 
+MESSAGE_CONTENT_DEFINITION_BEGIN
+	char message[128];
+MESSAGE_CONTENT_DEFINITION_END(Display, ShowErrorCommand)
+
 COMMON_MESSAGE_CONTENT_REDEFINITION(Display, Result)
 
 MESSAGE_DEFINITION_BEGIN
-	MESSAGE_CONTENT(Display, Command)
 	MESSAGE_CONTENT(Display, ChangeViewCommand)
+	MESSAGE_CONTENT(Display, ShowErrorCommand)
 	MESSAGE_CONTENT(Display, Result)
 MESSAGE_DEFINITION_END(Display)
 

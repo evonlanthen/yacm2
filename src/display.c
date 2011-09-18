@@ -36,14 +36,20 @@ static ActivityDescriptor display = {
 		.tearDown = tearDownDisplay
 };
 
-MESSAGE_CONTENT_TYPE_MAPPING(Display, Command, 1)
-MESSAGE_CONTENT_TYPE_MAPPING(Display, ChangeViewCommand, 2)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, ChangeViewCommand, 1)
+MESSAGE_CONTENT_TYPE_MAPPING(Display, ShowErrorCommand, 2)
 MESSAGE_CONTENT_TYPE_MAPPING(Display, Result, 3)
 
-static Activity *this;
+static Activity *this = NULL;
 
 ActivityDescriptor getDisplayDescriptor() {
 	return display;
+}
+
+static void writeDisplay(char *message) {
+	if (!writeNonBlockingDevice("./dev/display", message, wrm_append, TRUE)) {
+		logErr("[%s] Could not write to display!", this->descriptor->name);
+	}
 }
 
 static void setUpDisplay(void *activity) {
@@ -63,7 +69,7 @@ static void runDisplay(void *activity) {
 	char ledsBitFieldString[5];
 	char viewString[301];
 
-	//logInfo("[%s] Running...", this->descriptor->name);
+	//logInfo("[display] Running...");
 
 	while(TRUE) {
 		waitForEvent_BEGIN(this, Display, 1000)
@@ -77,6 +83,8 @@ static void runDisplay(void *activity) {
 		if (result > 0) {
 			MESSAGE_SELECTOR_BEGIN
 				MESSAGE_BY_TYPE_SELECTOR(message, Display, ChangeViewCommand)
+					//logInfo("[display] Going to change view...");
+
 					powerState = content.powerState;
 					machineState = content.machineState;
 					withMilk = content.withMilk;
@@ -104,16 +112,16 @@ static void runDisplay(void *activity) {
 						ingredientsMissing,
 						productIndex,
 						wasteBinFull);
-					logInfo("[%s] powerState=%d, machineState=%d, withMilk=%d, ingredientsMissing=%d, productIndex=%d, wasteBinFull=%d, ledsBitField=%d, ledBitFieldStr=%s",
-						this->descriptor->name,
-						powerState,
-						machineState,
-						withMilk,
-						ingredientsMissing,
-						productIndex,
-						wasteBinFull,
-						ledsBitField,
-						ledsBitFieldString);
+//					logInfo("[%s] powerState=%d, machineState=%d, withMilk=%d, ingredientsMissing=%d, productIndex=%d, wasteBinFull=%d, ledsBitField=%d, ledBitFieldStr=%s",
+//						this->descriptor->name,
+//						powerState,
+//						machineState,
+//						withMilk,
+//						ingredientsMissing,
+//						productIndex,
+//						wasteBinFull,
+//						ledsBitField,
+//						ledsBitFieldString);
 					if (!writeNonBlockingDevice("/dev/leds", ledsBitFieldString, wrm_replace, FALSE)) {
 						logErr("[%s] Could not update leds!", this->descriptor->name);
 					}
@@ -121,9 +129,11 @@ static void runDisplay(void *activity) {
 					if (!writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
 						logErr("[%s] Could not write to display!", this->descriptor->name);
 					}
-				MESSAGE_SELECTOR_END
-			waitForEvent_END
+				MESSAGE_BY_TYPE_SELECTOR(message, Display, ShowErrorCommand)
+					writeDisplay(content.message);
+			MESSAGE_SELECTOR_END
 		}
+		waitForEvent_END
 	}
 }
 
