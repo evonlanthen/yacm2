@@ -312,6 +312,14 @@ static void runCoffeeSupply(void *activityarg) {
 					.availability = notAvailable
 				sendNotification_END
 
+				if (coffeeSupplyStateMachine.activeState == &coffeeSupplySupplyingState) {
+					logInfo("[coffeeSupply] No beans!");
+					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
+						.code = NOK_RESULT,
+						.errorCode = NO_COFFEE_BEANS_ERROR
+					sendNotification_END
+				}
+
 				lastHasBeans = notAvailable;
 				break;
 			case SUPPLY_BEANS_AVAILABLE_NOTIFICATION:
