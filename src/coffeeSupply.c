@@ -335,8 +335,10 @@ static void runCoffeeSupply(void *activityarg) {
 			case EJECT_COFFEE_WASTE_COMMAND:
 				//logInfo("[coffeeSupply] Received eject command");
 				if (coffeeSupplyStateMachine.activeState == &coffeeSupplyIdleState) {
-					logInfo("[coffeeSupply] Going to eject coffee waste...");
 					ejectWaste();
+
+					logInfo("[coffeeSupply] Coffee waste ejected");
+
 					wasteDisposable = FALSE;
 
 					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)

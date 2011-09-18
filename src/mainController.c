@@ -248,26 +248,25 @@ static int producingStatePrecondition() {
 		violation = "Coffee making process already started!";
 	}
 
-	//TODO Activate these conditions
-//	if (coffeeMaker.isCoffeeAvailable != available) {
-//		violation = "No coffee beans!";
-//		productingError = PROCESS_NO_COFFEE_BEANS_ERROR;
-//	}
+	if (coffeeMaker.areCoffeeBeansAvailable != available) {
+		violation = "No coffee beans!";
+		producingError = PROCESS_NO_COFFEE_BEANS_ERROR;
+	}
 
-//	if (coffeeMaker.isWaterAvailable != available) {
-//		violation = "No water!";
-//		productingError = PROCESS_NO_WATER_ERROR;
-//	}
+	if (coffeeMaker.isWaterAvailable != available) {
+		violation = "No water!";
+		producingError = PROCESS_NO_WATER_ERROR;
+	}
 
-//	if (produceWithMilk && (coffeeMaker.isMilkAvailable != available)) {
-//		violation = "No milk!";
-//		productingError = PROCESS_NO_MILK_ERROR;
-//	}
+	if (produceWithMilk && (coffeeMaker.isMilkAvailable != available)) {
+		violation = "No milk!";
+		producingError = PROCESS_NO_MILK_ERROR;
+	}
 
-//	if (coffeeMaker.isCoffeeWasteBinFull) {
-//		violation = "Coffee waste bin full!";
-//		productingError = PROCESS_COFFEE_WASTE_BIN_IS_FULL_ERROR;
-//	}
+	if (coffeeMaker.isCoffeeWasteBinFull) {
+		violation = "Coffee waste bin full!";
+		producingError = PROCESS_COFFEE_WASTE_BIN_IS_FULL_ERROR;
+	}
 
 	if (productToProduceIndex > getNumberOfProducts()) {
 		violation = "Undefined product!";
