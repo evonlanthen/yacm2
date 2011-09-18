@@ -91,7 +91,7 @@ typedef enum {
  */
 
 static void coffeeSupplySwitchedOffStateEntryAction() {
-	logInfo("[coffeeSupply] Entered SwitchedOff State...");
+	//logInfo("[coffeeSupply] Entered SwitchedOff State...");
 }
 
 static Event coffeeSupplySwitchedOffStateDoAction() {
@@ -164,7 +164,7 @@ static State coffeeSupplyIdleState = {
 
 static void coffeeSupplySupplyingStateEntryAction() {
 	//logInfo("[coffeeSupply] Entered Supplying State...");
-	//check if we should eject waste
+	//Check if we should eject waste
 	if (wasteDisposable) {
 		ejectWaste();
 		//logInfo("[coffeeSupply] Ejecting without notification from maincontroller");
@@ -293,7 +293,7 @@ static void runCoffeeSupply(void *activityarg) {
 					//logInfo("[coffeeSupply] Beans available, starting supply");
 					processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_startSupplying);
 				} else {
-					logInfo("[coffeeSupply] No beans, sending info to MainController");
+					logInfo("[coffeeSupply] No beans!");
 					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
 						.code = NOK_RESULT,
 						.errorCode = NO_COFFEE_BEANS_ERROR
@@ -368,4 +368,3 @@ static void tearDownCoffeeSupply(void *activity) {
 	//logInfo("[coffee supply] Tearing down...");
 	destroyActivity(coffeePowderDispenser);
 }
-

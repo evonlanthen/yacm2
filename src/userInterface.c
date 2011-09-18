@@ -87,9 +87,12 @@ static void notifyDisplay() {
 }
 
 static void setUpUserInterface(void *activity) {
-	logInfo("[UserInterface] Setting up...");
-	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
+	//logInfo("[UserInterface] Setting up...");
+
 	this = (Activity *)activity;
+
+	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
+
 	notifyDisplay();
 }
 
@@ -137,7 +140,7 @@ static void runUserInterface(void *activity) {
 	char switchesEventDevice[] = "/dev/switchesEvent";
 	int switchesFileDescriptor;
 
-	logInfo("[userInterface] Running...");
+	//logInfo("[userInterface] Running...");
 
 	// initially read switches states and process event:
 	logInfo("[userInterface] Checking initial switch states...");
@@ -277,6 +280,7 @@ static void runUserInterface(void *activity) {
 }
 
 static void tearDownUserInterface(void *activity) {
-	logInfo("[userInterface] Tearing down...");
+	//logInfo("[userInterface] Tearing down...");
+
 	destroyActivity(display);
 }

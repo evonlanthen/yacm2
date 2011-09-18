@@ -95,7 +95,6 @@ static int checkBeans(void) {
 	return hasBeansState;
 }
 
-
 /*
  ***************************************************************************
  * States coffeePowderDispenser
@@ -135,7 +134,6 @@ static State coffeePowderDispenserSwitchedOffState = {
 	.entryAction = coffeePowderDispenserSwitchedOffStateEntryAction,
 	.doAction = coffeePowderDispenserSwitchedOffStateDoAction
 };
-
 
 /*
  ***************************************************************************
@@ -211,7 +209,7 @@ static void coffeePowderDispenserSupplyingStateEntryAction() {
 static Event coffeePowderDispenserSupplyingStateDoAction() {
 	// enough Powder
 	if (hasEnoughPowder()) {
-		logInfo("[coffeePowderDispenser] Finished grinding...");
+		logInfo("[coffeePowderDispenser] Enough powder!");
 		return coffeePowderDispenserEvent_supplyingFinished;
 	}
 	return NO_EVENT;
@@ -238,7 +236,6 @@ static State coffeePowderDispenserSupplyingState = {
 	.doAction = coffeePowderDispenserSupplyingStateDoAction,
 	.exitAction = coffeePowderDispenserSupplyingStateExitAction
 };
-
 
 /*
  ***************************************************************************
@@ -320,7 +317,6 @@ static void runCoffeePowderDispenser(void *activity) {
 		CoffeePowderDispenserMessage incomingMessage;
 		int result = waitForEvent(coffeePowderDispenser, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
-			logErr("[coffeePowderDispenser] Error while waiting for event!");
 			//TODO Implement apropriate error handling
 			sleep(10);
 			// Try to recover from error
@@ -410,7 +406,6 @@ static void runFillStateMonitor(void *activity) {
 		FillStateMonitorMessage incomingMessage;
 		int result = waitForEvent(fillStateMonitor, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
-			logErr("[fillStateMonitor] Error while waiting for event!");
 			//TODO Implement apropriate error handling
 			sleep(10);
 				// Try to recover from error
@@ -460,10 +455,3 @@ static void tearDownMotorController(void *activity) {
 	//logInfo("[motorController] Tearing down...");
 	setMotor(0);
 }
-
-
-
-
-
-
-

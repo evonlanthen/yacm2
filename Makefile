@@ -34,10 +34,10 @@ orchid-install:
 	cp $(EXEC_NAME)_orchid $(ROOTFS)/usr/local/bin/$(EXEC_NAME)
 
 carme-install:
-	sudo cp $(EXEC_NAME)_carme $(ROOTFS)/$(INSTALL_DIR)/$(EXEC_NAME)
-	sudo cp src/kernelModules/*.ko $(ROOTFS)/$(INSTALL_DIR)/
-	sudo mkdir -p $(ROOTFS)/$(INSTALL_DIR)/dev
-	sudo cp dev/* $(ROOTFS)/$(INSTALL_DIR)/dev/
+	cp $(EXEC_NAME)_carme $(ROOTFS)/$(INSTALL_DIR)/$(EXEC_NAME)
+	cp src/kernelModules/*.ko $(ROOTFS)/$(INSTALL_DIR)/
+	mkdir -p $(ROOTFS)/$(INSTALL_DIR)/dev
+	cp dev/* $(ROOTFS)/$(INSTALL_DIR)/dev/
 
 install: carme-install
 

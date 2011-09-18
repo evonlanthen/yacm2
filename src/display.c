@@ -47,7 +47,8 @@ ActivityDescriptor getDisplayDescriptor() {
 }
 
 static void setUpDisplay(void *activity) {
-	logInfo("[display] Setting up...");
+	//logInfo("[display] Setting up...");
+
 	this = (Activity *)activity;
 }
 
@@ -62,7 +63,7 @@ static void runDisplay(void *activity) {
 	char ledsBitFieldString[5];
 	char viewString[301];
 
-	logInfo("[%s] Running...", this->descriptor->name);
+	//logInfo("[%s] Running...", this->descriptor->name);
 
 	while(TRUE) {
 		waitForEvent_BEGIN(this, Display, 1000)
@@ -114,7 +115,7 @@ static void runDisplay(void *activity) {
 						ledsBitField,
 						ledsBitFieldString);
 					if (!writeNonBlockingDevice("/dev/leds", ledsBitFieldString, wrm_replace, FALSE)) {
-						logErr("[%s] Could update leds!", this->descriptor->name);
+						logErr("[%s] Could not update leds!", this->descriptor->name);
 					}
 
 					if (!writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
@@ -127,8 +128,9 @@ static void runDisplay(void *activity) {
 }
 
 static void tearDownDisplay(void *activity) {
-	logInfo("[display] Tearing down...");
+	//logInfo("[display] Tearing down...");
+
 	if (!writeNonBlockingDevice("/dev/leds", "0", wrm_replace, FALSE)) {
-		logErr("[%s] Could update leds!", this->descriptor->name);
+		logErr("[%s] Could not update leds!", this->descriptor->name);
 	}
 }

@@ -23,7 +23,7 @@ typedef unsigned char Byte;
 typedef unsigned short Word;
 typedef unsigned int DWord;
 
-// Old
+// Old message type
 typedef struct {
 	int intValue;
 	char stringValue[128];
@@ -59,13 +59,14 @@ typedef struct {
 		} content; \
 	} name##Message;
 
-// Old
+// Old messaging API
 #define receiveSimpleMessage_BEGIN(activity) \
 	{ \
 	ActivityDescriptor senderDescriptor; \
 	SimpleMessage message; \
 	int result = receiveMessage2(activity, &senderDescriptor, &message, sizeof(message));
 
+// New messaging API
 #define receiveGenericMessage_BEGIN(activity) \
 	{ \
 		ActivityDescriptor senderDescriptor; \
@@ -94,12 +95,13 @@ typedef struct {
 
 #define waitForEvent_END receiveMessage_END
 
-// Old
+// Old messaging API
 #define sendSimpleMessage(sender, receiver, _intValue) \
 	sendMessage2(sender, receiver, &(SimpleMessage) { \
 		.intValue = _intValue \
 	});
 
+// New messaging API
 #define sendRequest_BEGIN(sender, receiver, _content) \
 	sendMessage2(sender, get##receiver##Descriptor(), sizeof(receiver##Message), &(receiver##Message) { \
 		.type = receiver##_content##Type, \
@@ -128,7 +130,7 @@ typedef struct {
 #define MESSAGE_SELECTOR_BEGIN \
 	if (0) {
 
-// Obsolete
+// Old message selector (still used by coffee supply)
 #define MESSAGE_SELECTOR(message, activityName) \
 	} else if (strcmp(message.activity.name, #activityName) == 0) {
 
@@ -184,7 +186,7 @@ typedef enum {
 Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode messageQueueMode);
 void destroyActivity(Activity *activity);
 
-// Old messaging API
+// Old messaging API (still used by coffee supply)
 int waitForEvent(Activity *activity, char *buffer, unsigned long length, unsigned int timeout);
 int receiveMessage(void *_receiver, char *buffer, unsigned long length);
 int sendMessage(ActivityDescriptor activity, char *buffer, unsigned long length, MessagePriority priority);
