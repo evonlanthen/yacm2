@@ -157,6 +157,11 @@ static void offStateEntryAction() {
 
 	setMachineState(machineState_off);
 	// TODO: Notify user interface
+
+	// Notifiy client
+	sendNotification_BEGIN(this, MainController, clientDescriptor, MachineStateChangedNotification)
+		.state = machineState_off
+	sendNotification_END
 }
 
 static State offState = {
@@ -827,7 +832,7 @@ static void runMainController(void *activity) {
 	setUpStateMachine(&stateMachine);
 
 	// Main controller test
-	///*
+	/*
 	sleep(1);
 
 	logInfo("-------------------------------------------------------");
@@ -853,7 +858,7 @@ static void runMainController(void *activity) {
 	// Switch off main controller
 	//sendRequest_BEGIN(this, MainController, OffCommand)
 	//sendRequest_END
-	//*/
+	*/
 
 	while (TRUE) {
 		receiveGenericMessage_BEGIN(this)
