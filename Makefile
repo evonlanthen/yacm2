@@ -4,6 +4,7 @@
 
 # Directory of root filesystem
 ROOTFS		= /carme/rootfs
+INSTALL_DIR = root
 
 # Build settings
 KDIR            = /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME
@@ -33,11 +34,12 @@ orchid-install:
 	cp $(EXEC_NAME)_orchid $(ROOTFS)/usr/local/bin/$(EXEC_NAME)
 
 carme-install:
-	cp $(EXEC_NAME)_carme $(ROOTFS)/usr/local/bin/$(EXEC_NAME)
-	cp $(EXEC_NAME)_carme $(ROOTFS)/root/$(EXEC_NAME)
-	
+	sudo cp $(EXEC_NAME)_carme $(ROOTFS)/$(INSTALL_DIR)/$(EXEC_NAME)
+	sudo cp src/kernelModules/*.ko $(ROOTFS)/$(INSTALL_DIR)/
+	sudo mkdir -p $(ROOTFS)/$(INSTALL_DIR)/dev
+	sudo cp dev/* $(ROOTFS)/$(INSTALL_DIR)/dev/
+
 install: carme-install
-	#@echo "Please use 'make orchid-install' or 'make carme-install'"
 
 doc:
 	doxygen

@@ -12,3 +12,15 @@ Authors:
 
 ================================================================================
 
+Build and installation for CARME board:
+    $ make 
+
+Running yacm2 on CARME board:
+	# cd /root
+	# insmod ./grinder.ko
+	# insmod ./hmi.ko
+	# ./yacm
+
+Stopping yacm2:
+	Press CTRL+C
+
