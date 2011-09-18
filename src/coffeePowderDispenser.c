@@ -438,7 +438,7 @@ static void runMotorController(void *activity) {
 
 		//logInfo("[motorController] Going to receive message...");
 		MotorControllerMessage message;
-		unsigned long messageLength = receiveMessage(activity, (char *)&message, sizeof(message));
+		receiveMessage(activity, (char *)&message, sizeof(message));
 		//logInfo("[motorController] Message received from %s (length: %ld): value: %d, message: %s", message.activity.name, messageLength, message.intValue, message.strValue);
 		switch (message.intValue) {
 			case MOTOR_START_COMMAND:
