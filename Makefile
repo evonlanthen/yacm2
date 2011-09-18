@@ -27,8 +27,11 @@ carme:
 modules:
 	$(MAKE) -C src/kernelModules
 
-clean:
+clean: modules-clean
 	$(RM) *.o $(EXEC_NAME)_* $(EXEC_NAME)
+
+modules-clean:
+	$(MAKE) -C src/kernelModules clean
 
 orchid-install:
 	cp $(EXEC_NAME)_orchid $(ROOTFS)/usr/local/bin/$(EXEC_NAME)
