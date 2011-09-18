@@ -48,6 +48,8 @@ MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, BeanStatus, 4)
 MESSAGE_CONTENT_TYPE_MAPPING(CoffeeSupply, WasteBinStatus, 5)
 
 static int ejectWaste(void) {
+	logInfo("[coffeeSupply] Eject coffee waste...");
+
 	return writeNonBlockingDevice("./dev/coffeeWasteEjector","1",wrm_replace,FALSE);
 }
 
