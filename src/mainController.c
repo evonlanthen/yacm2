@@ -156,7 +156,6 @@ static void offStateEntryAction() {
 	}, messagePriority_medium);
 
 	setMachineState(machineState_off);
-	// TODO: Notify user interface
 
 	// Notifiy client
 	sendNotification_BEGIN(this, MainController, clientDescriptor, MachineStateChangedNotification)

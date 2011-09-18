@@ -25,15 +25,6 @@
 #define PROCESS_NO_MILK_ERROR 7
 #define PROCESS_UNDEFINED_PRODUCT_ERROR 8
 
-#define WASTE_BIN_FULL_ERROR 1401
-#define WASTE_BIN_CLEAR_NOTIFICATION 1301
-
-//typedef struct {
-//	ActivityDescriptor activity;
-//	int intValue;
-//	char strValue[256];
-//} MainControllerMessage;
-
 COMMON_MESSAGE_CONTENT_REDEFINITION(MainController, InitCommand)
 
 COMMON_MESSAGE_CONTENT_REDEFINITION(MainController, OffCommand)

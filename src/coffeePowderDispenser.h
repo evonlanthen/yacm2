@@ -36,23 +36,8 @@ typedef struct {
 	char strValue[256];
 } MotorControllerMessage;
 
-/**
- * Represents a coffeePowderDispenser event
- */
-typedef enum {
-	coffeePowderDispenserEvent_init,
-	coffeePowderDispenserEvent_switchOff,
-	coffeePowderDispenserEvent_initialized,
-	coffeePowderDispenserEvent_startSupplying,
-	coffeePowderDispenserEvent_supplyingFinished,
-	coffeePowderDispenserEvent_stop,
-	coffeePowderDispenserEvent_noBeans,
-	coffeePowderDispenserEvent_beansAvailable,
-} CoffeePowderDispenserEvent;
-
 extern ActivityDescriptor getCoffeePowderDispenser(void);
 extern ActivityDescriptor getCoffeeBeansFillStateMonitor(void);
 extern ActivityDescriptor getMotorController(void);
-
 
 #endif /* COFFEEPOWDERDISPENSER_H_ */

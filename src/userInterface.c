@@ -73,8 +73,7 @@ ActivityDescriptor getUserInterfaceDescriptor() {
 }
 
 static void updateDisplay() {
-	//TODO Outcomment logging
-	logInfo("[%s] Notifiying display...", this->descriptor->name);
+	//logInfo("[%s] Updating display...", this->descriptor->name);
 
 	sendRequest_BEGIN(this, Display, ChangeViewCommand)
 		.powerState = powerState,
@@ -166,14 +165,12 @@ static void runUserInterface(void *activity) {
 	updateDisplay();
 
 	// initially read switches states and process event:
-	//TODO Outcomment logging
-	logInfo("[userInterface] Checking initial switches states...");
+	//logInfo("[userInterface] Checking initial switches states...");
 	switchesStates = readNonBlockingDevice(switchesDevice);
 	processSwitchesChanges(switchesStates);
 
 	// open file descriptors for buttons and switches:
-	//TODO Outcomment logging
-	logInfo("[userInterface] Open file descriptors...");
+	//logInfo("[userInterface] Open file descriptors...");
 	buttonsFileDescriptor = open(buttonsEventDevice, O_RDONLY);
 	if (buttonsFileDescriptor < 0) {
 		logErr("[%s] Unable to open device %s: %s", this->descriptor->name, buttonsEventDevice, strerror(errno));
@@ -186,8 +183,7 @@ static void runUserInterface(void *activity) {
 	}
 
 	// create poll device and add message queue, switches and buttons event devices:
-	//TODO Outcomment logging
-	logInfo("[userInterface] Creating polling device...");
+	//logInfo("[userInterface] Creating polling device...");
 	if ((polling = epoll_create(3)) < 0) {
 		logErr("[%s] Error setting up event waiting: %s", this->descriptor->name, strerror(errno));
 	}
@@ -212,8 +208,7 @@ static void runUserInterface(void *activity) {
 		if (numberOfFiredEvents < 0) {
 			logErr("[%s] Error waiting for event: %s", this->descriptor->name, strerror(errno));
 		} else {
-			//TODO Outcomment logging
-			logInfo("[%s] Number of Events: %d", this->descriptor->name, numberOfFiredEvents);
+			//logInfo("[%s] Number of Events: %d", this->descriptor->name, numberOfFiredEvents);
 			for (i = 0; i < numberOfFiredEvents; i++) {
 				if (!(firedEvents[i].events & EPOLLIN)) {
 					logErr("[%s] Event was not EPOLLIN", this->descriptor->name);
@@ -222,7 +217,7 @@ static void runUserInterface(void *activity) {
 
 				fd = firedEvents[i].data.fd;
 				if (fd == this->messageQueue) {
-					logInfo("[%s] Message queue event", this->descriptor->name);
+					//logInfo("[%s] Message queue event", this->descriptor->name);
 					receiveGenericMessage_BEGIN(this)
 						if (error) {
 							//TODO Implement appropriate error handling
@@ -241,7 +236,6 @@ static void runUserInterface(void *activity) {
 								MESSAGE_SELECTOR_BEGIN
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, MachineStateChangedNotification)
 										// Process received machine state and update display
-										logInfo("[%s] Machine state update received! New state is %d.", this->descriptor->name, content.state);
 										MachineState lastMachineState = machineState;
 										machineState = content.state;
 										// if machine is not producing reset product index to 0:
@@ -318,7 +312,7 @@ static void runUserInterface(void *activity) {
 						//updateDisplay();
 					receiveGenericMessage_END
 				} else if(fd == buttonsFileDescriptor) {
-					logInfo("[%s] Buttons event", this->descriptor->name);
+					//logInfo("[%s] Buttons event", this->descriptor->name);
 					memset(buffer, 0, BUFFER_SIZE);
 					result = read(buttonsFileDescriptor, buffer, BUFFER_SIZE);
 					if (result < 0) {
@@ -339,14 +333,14 @@ static void runUserInterface(void *activity) {
 								sendRequest_END
 								//updateDisplay();
 							} else {
-								logWarn("[%s] No product at index %d", this->descriptor->name, value+1);
+								logWarn("[%s] Undefined product %d!", this->descriptor->name, value+1);
 							}
 						} else {
-							logWarn("[%s] Product selected, but machine is in state %d and not in idle state", this->descriptor->name, machineState);
+							logWarn("[%s] Product selected, but machine is not ready!", this->descriptor->name, machineState);
 						}
 					}
 				} else if(fd == switchesFileDescriptor) {
-					logInfo("[%s] Switches event", this->descriptor->name);
+					//logInfo("[%s] Switches event", this->descriptor->name);
 					// Get bitfield of current switches status:
 					memset(buffer, 0, BUFFER_SIZE);
 					result = read(switchesFileDescriptor, buffer, BUFFER_SIZE);

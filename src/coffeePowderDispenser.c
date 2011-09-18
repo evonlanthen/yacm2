@@ -18,6 +18,11 @@
 #include "activity.h"
 #include "stateMachineEngine.h"
 
+typedef enum {
+	dispenseResult_ok,
+	dispenseResult_nok
+} DispenseResult;
+
 static void setUpCoffeePowderDispenser(void *activity);
 static void runCoffeePowderDispenser(void *activity);
 static void tearDownCoffeePowderDispenser(void *activity);
@@ -115,6 +120,20 @@ typedef enum {
 	coffeePowderDispenserState_supplying
 } CoffeePowderDispenserState;
 
+/**
+ * Represents a coffeePowderDispenser event
+ */
+typedef enum {
+	coffeePowderDispenserEvent_init,
+	coffeePowderDispenserEvent_switchOff,
+	coffeePowderDispenserEvent_initialized,
+	coffeePowderDispenserEvent_startSupplying,
+	coffeePowderDispenserEvent_supplyingFinished,
+	coffeePowderDispenserEvent_stop,
+	coffeePowderDispenserEvent_noBeans,
+	coffeePowderDispenserEvent_beansAvailable,
+} CoffeePowderDispenserEvent;
+
 /*
  ***************************************************************************
  * switchedOff state powder dispenser
@@ -196,8 +215,14 @@ static State coffeePowderDispenserIdleState = {
  ***************************************************************************
  */
 
+static DispenseResult dispenseResult;
+static int dispenseError;
+
 static void coffeePowderDispenserSupplyingStateEntryAction() {
 	//logInfo("[coffeePowderDispenser] Entered Supplying State...");
+	dispenseResult = dispenseResult_nok;
+	dispenseError = NO_ERROR;
+
 	// notifiy motorController:
 	sendMessage(getMotorController(), (char *)&(MotorControllerMessage) {
 		.activity = getCoffeePowderDispenser(),
@@ -210,6 +235,7 @@ static Event coffeePowderDispenserSupplyingStateDoAction() {
 	// enough Powder
 	if (hasEnoughPowder()) {
 		logInfo("[coffeePowderDispenser] Enough powder!");
+		dispenseResult = dispenseResult_ok;
 		return coffeePowderDispenserEvent_supplyingFinished;
 	}
 	return NO_EVENT;
@@ -225,7 +251,7 @@ static void coffeePowderDispenserSupplyingStateExitAction() {
 	// notifiy coffeeSupply:
 	sendMessage(getCoffeeSupplyDescriptor(), (char *)&(SimpleCoffeeSupplyMessage) {
 		.activity = getCoffeePowderDispenser(),
-		.intValue = OK_RESULT,
+		.intValue = dispenseResult == dispenseResult_ok ? OK_RESULT : NOK_RESULT,
 		.strValue = "grinding complete",
 	}, sizeof(SimpleCoffeeSupplyMessage), messagePriority_medium);
 }
@@ -317,7 +343,7 @@ static void runCoffeePowderDispenser(void *activity) {
 		CoffeePowderDispenserMessage incomingMessage;
 		int result = waitForEvent(coffeePowderDispenser, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
-			//TODO Implement apropriate error handling
+			//TODO Implement appropriate error handling
 			sleep(10);
 			// Try to recover from error
 			continue;
@@ -349,6 +375,7 @@ static void runCoffeePowderDispenser(void *activity) {
 				case POWDER_DISPENSER_NO_BEANS_ERROR:
 					//logInfo("[coffeePowderDispenser] Received no beans error...");
 					processStateMachineEvent(&coffeePowderDispenserStateMachine, coffeePowderDispenserEvent_noBeans);
+					dispenseError = SUPPLY_NO_BEANS_ERROR;
 					sendMessage(getCoffeeSupplyDescriptor(),(char *)&(SimpleCoffeeSupplyMessage){
 						.activity = getCoffeePowderDispenser(),
 						.intValue = SUPPLY_NO_BEANS_ERROR,
@@ -406,7 +433,7 @@ static void runFillStateMonitor(void *activity) {
 		FillStateMonitorMessage incomingMessage;
 		int result = waitForEvent(fillStateMonitor, (char *)&incomingMessage, sizeof(incomingMessage), 100);
 		if (result < 0) {
-			//TODO Implement apropriate error handling
+			//TODO Implement appropriate error handling
 			sleep(10);
 				// Try to recover from error
 			continue;

@@ -90,7 +90,7 @@ void processStateMachineEvent(StateMachine *stateMachine, Event event) {
 				processStateMachineEvent(stateMachine, event);
 			}
 		} else {
-			logWarn("[%s state machine] Precondition for state %d is not met!", stateMachine->name, nextState->stateIndex);
+			//logWarn("[%s state machine] Precondition for state %d is not met!", stateMachine->name, nextState->stateIndex);
 
 			// If the state has an 'post' action,
 			// run the state's 'post' action
@@ -99,7 +99,7 @@ void processStateMachineEvent(StateMachine *stateMachine, Event event) {
 			}
 		}
 	} else {
-		logWarn("[%s state machine] Ignoring event %d!", stateMachine->name, event);
+		//logWarn("[%s state machine] Ignoring event %d!", stateMachine->name, event);
 	}
 }
 

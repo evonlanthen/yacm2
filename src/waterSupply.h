@@ -13,19 +13,9 @@
 #include "defines.h"
 #include "activity.h"
 
-//#define SUPPLY_WATER_COMMAND 3001
-//#define WATER_AVAILABLE_NOTIFICATION 3301
-//#define NO_WATER_AVAILABLE_ERROR 3401
-
 #define NO_WATER_ERROR 1
 #define NO_WATER_FLOW_ERROR 2
 #define WATER_TEMPERATURE_TOO_LOW_ERROR 3
-
-//typedef struct {
-//	ActivityDescriptor activity;
-//	int intValue;
-//	char strValue[256];
-//} WaterSupplyMessage;
 
 COMMON_MESSAGE_CONTENT_REDEFINITION(WaterSupply, InitCommand)
 

@@ -22,13 +22,14 @@
 
 static void sigCtrlC(int sig)
 {
-	/* do nothing here */
-	;
+	// Do nothing here
 }
 
 int main(int argc, char **argv) {
 	logInfo("[init] Setting up subsystems...");
+
 	setUpSyslog();
+
 	Activity *coffeeSupply = createActivity(getCoffeeSupplyDescriptor(), messageQueue_blocking);
 	Activity *waterSupply = createActivity(getWaterSupplyDescriptor(), messageQueue_blocking);
 	Activity *milkSupply = createActivity(getMilkSupplyDescriptor(), messageQueue_blocking);
@@ -36,19 +37,24 @@ int main(int argc, char **argv) {
 	Activity *serviceInterface = createActivity(getServiceInterfaceDescriptor(), messageQueue_blocking);
 	Activity *mainController = createActivity(getMainControllerDescriptor(), messageQueue_blocking);
 
-	/* Establish the signal handler. */
+	// Establish the signal handler
 	(void) signal(SIGINT, sigCtrlC);
-	/* wait for signal SIGINT: */
+
+	// Wait for SIGINT signal
 	pause();
 
 	logInfo("[init] Tearing down subsystems...");
+
 	destroyActivity(mainController);
 	destroyActivity(serviceInterface);
 	destroyActivity(userInterface);
 	destroyActivity(milkSupply);
 	destroyActivity(waterSupply);
+
 	destroyActivity(coffeeSupply);
 	logInfo("[init] ...done. (tear down subsystems)");
+
 	tearDownSyslog();
+
 	return 0;
 }

@@ -12,12 +12,6 @@
 #include <mqueue.h>
 #include "activity.h"
 
-//typedef struct {
-//	ActivityDescriptor activity;
-//	int intValue;
-//	char strValue[256];
-//} ServiceInterfaceMessage;
-
 MESSAGE_DEFINITION_BEGIN
 MESSAGE_DEFINITION_END(ServiceInterface)
 

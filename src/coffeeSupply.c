@@ -84,6 +84,20 @@ typedef enum {
 	coffeeSupplyState_supplying
 } CoffeeSupplyState;
 
+/**
+ * Represents a coffeeSupply event
+ */
+typedef enum {
+	coffeeSupplyEvent_init,
+	coffeeSupplyEvent_switchOff,
+	coffeeSupplyEvent_initialized,
+	coffeeSupplyEvent_startSupplying,
+	coffeeSupplyEvent_supplyingFinished,
+	coffeeSupplyEvent_stop,
+	coffeeSupplyEvent_noBeans,
+	coffeeSupplyEvent_beansAvailable,
+} CoffeeSupplyEvent;
+
 /*
  ***************************************************************************
  * switchedOff state
@@ -268,7 +282,7 @@ static void runCoffeeSupply(void *activityarg) {
 		SimpleCoffeeSupplyMessage incomingMessage;
 		int result = waitForEvent(coffeeSupply, (char *)&incomingMessage, sizeof(incomingMessage), 1000);
 		if (result < 0) {
-			//TODO Implement apropriate error handling
+			//TODO Implement appropriate error handling
 			sleep(10);
 				// Try to recover from error
 			continue;
@@ -306,12 +320,7 @@ static void runCoffeeSupply(void *activityarg) {
 				break;
 			case SUPPLY_NO_BEANS_ERROR:
 				//logInfo("[coffeeSupply] Received no beans error");
-				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_noBeans);
-				// notifiy mainController:
-				sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
-					.availability = notAvailable
-				sendNotification_END
-
+				logInfo("%d\n", coffeeSupplyStateMachine.activeState->stateIndex);
 				if (coffeeSupplyStateMachine.activeState == &coffeeSupplySupplyingState) {
 					logInfo("[coffeeSupply] No beans!");
 					sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), Result)
@@ -319,6 +328,12 @@ static void runCoffeeSupply(void *activityarg) {
 						.errorCode = NO_COFFEE_BEANS_ERROR
 					sendNotification_END
 				}
+
+				processStateMachineEvent(&coffeeSupplyStateMachine, coffeeSupplyEvent_noBeans);
+				// notifiy mainController:
+				sendNotification_BEGIN(coffeeSupply, CoffeeSupply, getMainControllerDescriptor(), BeanStatus)
+					.availability = notAvailable
+				sendNotification_END
 
 				lastHasBeans = notAvailable;
 				break;
