@@ -22,7 +22,7 @@
 #include "data.h"
 #include "mainController.h"
 #include "display.h"
-#include <rtModelDisplay.h>
+#include "rtModelDisplay.h"
 #include "device.h"
 #include "log.h"
 #include "userInterface.h"

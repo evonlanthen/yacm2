@@ -6,8 +6,8 @@
  * @date    Sep 19, 2011
  */
 
-#include <rtModelDisplay.h>
-#include <rtModelDisplayMessageMapping.h>
+#include "rtModelDisplay.h"
+#include "rtModelDisplayMessageMapping.h"
 
 // Activity descriptor
 static ActivityDescriptor rtModelDisplay = {

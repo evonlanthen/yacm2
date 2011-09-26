@@ -9,7 +9,7 @@
 #ifndef RTMODELDISPLAY_H_
 #define RTMODELDISPLAY_H_
 
-#include <activity.h>
+#include "activity.h"
 
 MESSAGE_CONTENT_DEFINITION_BEGIN
 	char message[128];
