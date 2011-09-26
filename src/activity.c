@@ -6,6 +6,8 @@
  * @date    Aug 15, 2011
  */
 
+#define HAVE_MQUEUE_H
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +39,10 @@ static char *createMessageQueueId(char *activityName) {
 
 	return id;
 }
+
+#ifdef __XENO__
+#define mq_open __real_mq_open
+#endif
 
 static mqd_t createMessageQueue(char *activityName, MessageQueueMode messageQueueMode) {
 	char *id = createMessageQueueId(activityName);
@@ -118,6 +124,11 @@ Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode message
 	return activity;
 }
 
+#ifdef __XENO__
+#define mq_close __real_mq_close
+#define mq_unlink __real_mq_unlink
+#endif
+
 void destroyActivity(Activity *activity) {
 	pthread_cancel(activity->thread);
 	pthread_join(activity->thread, NULL);
@@ -196,6 +207,10 @@ int waitForEvent2(Activity *activity, ActivityDescriptor *senderDescriptor, void
 		return 0;
 	}
 }
+
+#ifdef __XENO__
+#define mq_receive __real_mq_receive
+#endif
 
 int receiveMessage(void *_receiver, char *buffer, unsigned long length) {
 	return receiveMessage2(_receiver, NULL, buffer, length);

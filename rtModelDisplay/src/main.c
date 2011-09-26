@@ -8,6 +8,7 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <sys/mman.h>
 #include <defines.h>
 #include <activity.h>
 #include <device.h>
@@ -22,6 +23,8 @@ static void handleCtrlC(int sig)
 }
 
 int main(int argc, char **argv) {
+	mlockall(MCL_CURRENT|MCL_FUTURE);
+
 	if (argc > 1) {
 		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "-1", wrm_replace, FALSE);
 

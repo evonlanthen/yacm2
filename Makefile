@@ -23,6 +23,9 @@ orchid:
 
 carme:
 	$(CC) -DCARME $(CFLAGS) -o $(EXEC_NAME)_carme src/*.c $(LDFLAGS)
+#	$(CC) -DCARME $(CFLAGS) -c src/activity.c
+#	$(CC) -DCARME $(CFLAGS) -c src/device.c
+#	$(CC) -DCARME $(CFLAGS) -c src/log.c
 
 modules:
 	$(MAKE) -C src/kernelModules

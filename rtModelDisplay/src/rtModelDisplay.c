@@ -7,6 +7,7 @@
  */
 
 #include <unistd.h>
+#include <time.h>
 #include <defines.h>
 #include <log.h>
 #include "display.h"
@@ -34,14 +35,40 @@ ActivityDescriptor getRtModelDisplayDescriptor() {
 	return rtModelDisplay;
 }
 
+static pthread_t thread;
+
+static void * runThread() {
+	while (TRUE) {
+		//logInfo("[rtModelDisplay] Heartbeat!");
+
+		struct timespec time;
+		time.tv_sec = 1;
+		nanosleep(&time, NULL);
+	}
+
+	return NULL;
+}
+
 static void setUpRtModelDisplay(void *activity) {
 	logInfo("[rtModelDisplay] Setting up...");
 
 	this = (Activity *)activity;
+
+	pthread_attr_t threadAttributes;
+	pthread_attr_init(&threadAttributes);
+	pthread_attr_setinheritsched(&threadAttributes, PTHREAD_EXPLICIT_SCHED);
+	pthread_attr_setschedpolicy(&threadAttributes, SCHED_FIFO);
+	struct sched_param par;
+	par.__sched_priority = 50;
+	pthread_attr_setschedparam(&threadAttributes, &par);
+
+	if (pthread_create(&thread, &threadAttributes, runThread, activity) < 0) {
+		logErr("[rtModelDisplay] Error creating new thread: %s", strerror(errno));
+	}
 }
 
 static void runRtModelDisplay(void *activity) {
-	logInfo("[rtModelDisplay] Running up...");
+	logInfo("[rtModelDisplay] Running...");
 
 	while (TRUE) {
 		receiveMessage_BEGIN(this, RtModelDisplay)
@@ -65,4 +92,7 @@ static void runRtModelDisplay(void *activity) {
 
 static void tearDownRtModelDisplay(void *activity) {
 	logInfo("[rtModelDisplay] Tearing down...");
+
+	pthread_cancel(thread);
+	pthread_join(thread, NULL);
 }
