@@ -155,12 +155,18 @@ typedef struct {
 
 typedef void (*ActivityRun)(void *activity);
 
+typedef enum {
+	activityScope_local = 0,
+	activityScope_external = 1
+} ActivityScope;
+
 typedef struct {
 	unsigned int id;
 	char name[MAX_ACTIVITY_NAME_LENGTH];
 	ActivityRun setUp;
 	ActivityRun run;
 	ActivityRun tearDown;
+	ActivityScope scope;
 } ActivityDescriptor;
 
 typedef enum {

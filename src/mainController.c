@@ -12,7 +12,7 @@
 #include "defines.h"
 #include "data.h"
 #include "device.h"
-#include "syslog.h"
+#include "log.h"
 #include "memoryManagement.h"
 #include "stateMachineEngine.h"
 #include "coffeeSupply.h"

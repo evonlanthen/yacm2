@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "timer.h"
 #include "device.h"
 #include "data.h"

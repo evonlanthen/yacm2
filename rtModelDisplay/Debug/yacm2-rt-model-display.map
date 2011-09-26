@@ -1,0 +1,517 @@
+Archive member included because of file (symbol)
+
+/carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+                              /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o (__libc_csu_init)
+
+Discarded input sections
+
+ .note.GNU-stack
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+ .note.GNU-stack
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ .note.GNU-stack
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .note.GNU-stack
+                0x00000000        0x0 ./src/display.o
+ .note.GNU-stack
+                0x00000000        0x0 ./src/main.o
+ .note.GNU-stack
+                0x00000000        0x0 ./src/rtModelDisplay.o
+ .note.GNU-stack
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+ .note.GNU-stack
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+ .note.GNU-stack
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+LOAD /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+LOAD ./src/display.o
+LOAD ./src/main.o
+LOAD ./src/rtModelDisplay.o
+LOAD /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/libgcc.a
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/lib/libgcc_s.so
+START GROUP
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/lib/libgcc_s.so.1
+LOAD /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/libgcc.a
+END GROUP
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc.so
+START GROUP
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/lib/libc.so.6
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/lib/ld-linux.so.3
+END GROUP
+LOAD /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/libgcc.a
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/lib/libgcc_s.so
+START GROUP
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/lib/libgcc_s.so.1
+LOAD /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/libgcc.a
+END GROUP
+LOAD /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+LOAD /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+                0x00008000                PROVIDE (__executable_start, 0x8000)
+                0x00008134                . = (0x8000 + SIZEOF_HEADERS)
+
+.interp         0x00008134       0x13
+ *(.interp)
+ .interp        0x00008134       0x13 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.note.ABI-tag   0x00008148       0x20
+ .note.ABI-tag  0x00008148       0x20 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+
+.note.gnu.build-id
+ *(.note.gnu.build-id)
+
+.hash           0x00008168       0x38
+ *(.hash)
+ .hash          0x00008168       0x38 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.gnu.hash
+ *(.gnu.hash)
+
+.dynsym         0x000081a0       0x90
+ *(.dynsym)
+ .dynsym        0x000081a0       0x90 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.dynstr         0x00008230       0xa1
+ *(.dynstr)
+ .dynstr        0x00008230       0xa1 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.gnu.version    0x000082d2       0x12
+ *(.gnu.version)
+ .gnu.version   0x000082d2       0x12 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.gnu.version_d  0x000082e4        0x0
+ *(.gnu.version_d)
+ .gnu.version_d
+                0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.gnu.version_r  0x000082e4       0x40
+ *(.gnu.version_r)
+ .gnu.version_r
+                0x000082e4       0x40 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.rel.dyn        0x00008324        0x8
+ *(.rel.init)
+ *(.rel.text .rel.text.* .rel.gnu.linkonce.t.*)
+ *(.rel.fini)
+ *(.rel.rodata .rel.rodata.* .rel.gnu.linkonce.r.*)
+ *(.rel.data.rel.ro* .rel.gnu.linkonce.d.rel.ro.*)
+ *(.rel.data .rel.data.* .rel.gnu.linkonce.d.*)
+ *(.rel.tdata .rel.tdata.* .rel.gnu.linkonce.td.*)
+ *(.rel.tbss .rel.tbss.* .rel.gnu.linkonce.tb.*)
+ *(.rel.ctors)
+ *(.rel.dtors)
+ *(.rel.got)
+ .rel.got       0x00008324        0x8 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ *(.rel.bss .rel.bss.* .rel.gnu.linkonce.b.*)
+ .rel.bss       0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+                0x0000832c                PROVIDE (__rel_iplt_start, .)
+ *(.rel.iplt)
+                0x0000832c                PROVIDE (__rel_iplt_end, .)
+                0x0000832c                PROVIDE (__rela_iplt_start, .)
+                0x0000832c                PROVIDE (__rela_iplt_end, .)
+
+.rela.dyn       0x0000832c        0x0
+ *(.rela.init)
+ *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
+ *(.rela.fini)
+ *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
+ *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*)
+ *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*)
+ *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*)
+ *(.rela.ctors)
+ *(.rela.dtors)
+ *(.rela.got)
+ *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*)
+                0x0000832c                PROVIDE (__rel_iplt_start, .)
+                0x0000832c                PROVIDE (__rel_iplt_end, .)
+                0x0000832c                PROVIDE (__rela_iplt_start, .)
+ *(.rela.iplt)
+                0x0000832c                PROVIDE (__rela_iplt_end, .)
+
+.rel.plt        0x0000832c       0x28
+ *(.rel.plt)
+ .rel.plt       0x0000832c       0x28 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+
+.rela.plt
+ *(.rela.plt)
+
+.init           0x00008354        0xc
+ *(.init)
+ .init          0x00008354        0x8 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+                0x00008354                _init
+ .init          0x0000835c        0x4 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+
+.plt            0x00008360       0x50
+ *(.plt)
+ .plt           0x00008360       0x50 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+                0x00008374                abort@@GLIBC_2.4
+                0x00008380                __libc_start_main@@GLIBC_2.4
+                0x00008398                printf@@GLIBC_2.4
+                0x000083a4                sleep@@GLIBC_2.4
+
+.iplt
+ *(.iplt)
+
+.text           0x000083b0      0x284
+ *(.text.unlikely .text.*_unlikely)
+ *(.text .stub .text.* .gnu.linkonce.t.*)
+ .text          0x000083b0       0x3c /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+                0x000083b0                _start
+ .text          0x000083ec       0x24 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ .text          0x00008410       0x4c /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .text          0x0000845c       0x2c ./src/display.o
+                0x0000845c                writeDisplay
+ .text          0x00008488       0x30 ./src/main.o
+                0x00008488                main
+ .text          0x000084b8       0xb4 ./src/rtModelDisplay.o
+                0x000084b8                getRtModelDisplayDescriptor
+ .text          0x0000856c       0xc8 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+                0x0000856c                __libc_csu_init
+                0x00008630                __libc_csu_fini
+ .text          0x00008634        0x0 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+ .text          0x00008634        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+ *(.gnu.warning)
+ *(.glue_7t)
+ .glue_7t       0x00000000        0x0 linker stubs
+ *(.glue_7)
+ .glue_7        0x00000000        0x0 linker stubs
+ *(.vfp11_veneer)
+ .vfp11_veneer  0x00000000        0x0 linker stubs
+ *(.v4_bx)
+ .v4_bx         0x00000000        0x0 linker stubs
+
+.fini           0x00008634        0x8
+ *(.fini)
+ .fini          0x00008634        0x4 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+                0x00008634                _fini
+ .fini          0x00008638        0x4 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+                0x0000863c                PROVIDE (__etext, .)
+                0x0000863c                PROVIDE (_etext, .)
+                0x0000863c                PROVIDE (etext, .)
+
+.rodata         0x00008640       0x38
+ *(.rodata .rodata.* .gnu.linkonce.r.*)
+ .rodata.cst4   0x00008640        0x4 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+                0x00008640                _IO_stdin_used
+ *fill*         0x00008644        0x4 00
+ .rodata        0x00008648       0x10 ./src/display.o
+ .rodata        0x00008658       0x10 ./src/main.o
+ .rodata        0x00008668       0x10 ./src/rtModelDisplay.o
+
+.rodata1
+ *(.rodata1)
+
+.ARM.extab      0x00008678       0x3c
+ *(.ARM.extab* .gnu.linkonce.armextab.*)
+ .ARM.extab     0x00008678        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+ .ARM.extab     0x00008678        0xc /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .ARM.extab     0x00008684        0xc ./src/display.o
+ .ARM.extab     0x00008690        0xc ./src/main.o
+ .ARM.extab     0x0000869c       0x18 ./src/rtModelDisplay.o
+ .ARM.extab     0x000086b4        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+                0x000086b4                PROVIDE (__exidx_start, .)
+
+.ARM.exidx      0x000086b4       0x60
+ *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+ .ARM.exidx     0x000086b4        0x8 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+ .ARM.exidx     0x000086bc       0x10 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .ARM.exidx     0x000086cc        0x8 ./src/display.o
+ .ARM.exidx     0x000086d4        0x8 ./src/main.o
+ .ARM.exidx     0x000086dc       0x20 ./src/rtModelDisplay.o
+ .ARM.exidx     0x000086fc       0x18 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+                                 0x10 (size before relaxing)
+                0x00008714                PROVIDE (__exidx_end, .)
+
+.eh_frame_hdr
+ *(.eh_frame_hdr)
+
+.eh_frame
+ *(.eh_frame)
+
+.gcc_except_table
+ *(.gcc_except_table .gcc_except_table.*)
+                0x00008714                . = (ALIGN (0x8000) - ((0x8000 - .) & 0x7fff))
+                0x00010714                . = DATA_SEGMENT_ALIGN (0x8000, 0x1000)
+
+.eh_frame
+ *(.eh_frame)
+
+.gcc_except_table
+ *(.gcc_except_table .gcc_except_table.*)
+
+.tdata
+ *(.tdata .tdata.* .gnu.linkonce.td.*)
+
+.tbss
+ *(.tbss .tbss.* .gnu.linkonce.tb.*)
+ *(.tcommon)
+
+.preinit_array  0x00010714        0x0
+                0x00010714                PROVIDE (__preinit_array_start, .)
+ *(.preinit_array)
+                0x00010714                PROVIDE (__preinit_array_end, .)
+
+.init_array     0x00010714        0x4
+                0x00010714                PROVIDE (__init_array_start, .)
+ *(SORT(.init_array.*))
+ *(.init_array)
+ .init_array    0x00010714        0x4 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+                0x00010718                PROVIDE (__init_array_end, .)
+
+.fini_array     0x00010718        0x4
+                0x00010718                PROVIDE (__fini_array_start, .)
+ *(SORT(.fini_array.*))
+ *(.fini_array)
+ .fini_array    0x00010718        0x4 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+                0x0001071c                PROVIDE (__fini_array_end, .)
+
+.ctors
+ *crtbegin.o(.ctors)
+ *crtbegin?.o(.ctors)
+ *(EXCLUDE_FILE(*crtend?.o *crtend.o) .ctors)
+ *(SORT(.ctors.*))
+ *(.ctors)
+
+.dtors
+ *crtbegin.o(.dtors)
+ *crtbegin?.o(.dtors)
+ *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
+ *(SORT(.dtors.*))
+ *(.dtors)
+
+.jcr            0x0001071c        0x4
+ *(.jcr)
+ .jcr           0x0001071c        0x0 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .jcr           0x0001071c        0x4 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+
+.data.rel.ro
+ *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*)
+ *(.data.rel.ro* .gnu.linkonce.d.rel.ro.*)
+
+.dynamic        0x00010720       0xf0
+ *(.dynamic)
+ .dynamic       0x00010720       0xf0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+                0x00010720                _DYNAMIC
+                0x00010810                . = DATA_SEGMENT_RELRO_END (., 0x0)
+
+.got            0x00010810       0x24
+ *(.got.plt)
+ .got.plt       0x00010810       0x20 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+                0x00010810                _GLOBAL_OFFSET_TABLE_
+ *(.igot.plt)
+ *(.got)
+ .got           0x00010830        0x4 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ *(.igot)
+
+.data           0x00010834       0x38
+                0x00010834                PROVIDE (__data_start, .)
+ *(.data .data.* .gnu.linkonce.d.*)
+ .data          0x00010834        0x4 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+                0x00010834                data_start
+                0x00010834                __data_start
+ .data          0x00010838        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ .data          0x00010838        0x4 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+                0x00010838                __dso_handle
+ .data          0x0001083c        0x0 ./src/display.o
+ .data          0x0001083c        0x0 ./src/main.o
+ .data          0x0001083c       0x30 ./src/rtModelDisplay.o
+ .data          0x0001086c        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+ .data          0x0001086c        0x0 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+ .data          0x0001086c        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+
+.data1
+ *(.data1)
+                0x0001086c                _edata = .
+                0x0001086c                PROVIDE (edata, .)
+                0x0001086c                __bss_start = .
+                0x0001086c                __bss_start__ = .
+
+.bss            0x0001086c        0x8
+ *(.dynbss)
+ .dynbss        0x00000000        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ *(.bss .bss.* .gnu.linkonce.b.*)
+ .bss           0x0001086c        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+ .bss           0x0001086c        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ .bss           0x0001086c        0x1 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .bss           0x0001086d        0x0 ./src/display.o
+ .bss           0x0001086d        0x0 ./src/main.o
+ *fill*         0x0001086d        0x3 00
+ .bss           0x00010870        0x4 ./src/rtModelDisplay.o
+ .bss           0x00010874        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+ .bss           0x00010874        0x0 /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+ .bss           0x00010874        0x0 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+ *(COMMON)
+                0x00010874                . = ALIGN ((. != 0x0)?0x4:0x1)
+                0x00010874                _bss_end__ = .
+                0x00010874                __bss_end__ = .
+                0x00010874                . = ALIGN (0x4)
+                0x00010874                . = ALIGN (0x4)
+                0x00010874                __end__ = .
+                0x00010874                _end = .
+                0x00010874                PROVIDE (end, .)
+                0x00010874                . = DATA_SEGMENT_END (.)
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.ARM.attributes
+                0x00000000       0x2b
+ .ARM.attributes
+                0x00000000       0x2b /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crt1.o
+ .ARM.attributes
+                0x0000002b       0x2d /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crti.o
+ .ARM.attributes
+                0x00000058       0x2d /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtbegin.o
+ .ARM.attributes
+                0x00000085       0x30 ./src/display.o
+ .ARM.attributes
+                0x000000b5       0x30 ./src/main.o
+ .ARM.attributes
+                0x000000e5       0x30 ./src/rtModelDisplay.o
+ .ARM.attributes
+                0x00000115       0x2d /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+ .ARM.attributes
+                0x00000142       0x2d /carme/crosstools/arm-2010.09/bin/../lib/gcc/arm-none-linux-gnueabi/4.5.1/crtend.o
+ .ARM.attributes
+                0x0000016f       0x2d /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/crtn.o
+
+.comment        0x00000000       0x2a
+ *(.comment)
+ .comment       0x00000000       0x2a ./src/display.o
+                                 0x2b (size before relaxing)
+ .comment       0x00000000       0x2b ./src/main.o
+ .comment       0x00000000       0x2b ./src/rtModelDisplay.o
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x00000000       0x60
+ *(.debug_aranges)
+ .debug_aranges
+                0x00000000       0x20 ./src/display.o
+ .debug_aranges
+                0x00000020       0x20 ./src/main.o
+ .debug_aranges
+                0x00000040       0x20 ./src/rtModelDisplay.o
+
+.debug_pubnames
+                0x00000000       0x70
+ *(.debug_pubnames)
+ .debug_pubnames
+                0x00000000       0x23 ./src/display.o
+ .debug_pubnames
+                0x00000023       0x1b ./src/main.o
+ .debug_pubnames
+                0x0000003e       0x32 ./src/rtModelDisplay.o
+
+.debug_info     0x00000000      0x35d
+ *(.debug_info .gnu.linkonce.wi.*)
+ .debug_info    0x00000000       0x9d ./src/display.o
+ .debug_info    0x0000009d       0x7a ./src/main.o
+ .debug_info    0x00000117      0x246 ./src/rtModelDisplay.o
+
+.debug_abbrev   0x00000000      0x1a4
+ *(.debug_abbrev)
+ .debug_abbrev  0x00000000       0x57 ./src/display.o
+ .debug_abbrev  0x00000057       0x5b ./src/main.o
+ .debug_abbrev  0x000000b2       0xf2 ./src/rtModelDisplay.o
+
+.debug_line     0x00000000      0x165
+ *(.debug_line)
+ .debug_line    0x00000000       0x42 ./src/display.o
+ .debug_line    0x00000042       0x40 ./src/main.o
+ .debug_line    0x00000082       0xe3 ./src/rtModelDisplay.o
+
+.debug_frame    0x00000000      0x118
+ *(.debug_frame)
+ .debug_frame   0x00000000       0x2c ./src/display.o
+ .debug_frame   0x0000002c       0x2c ./src/main.o
+ .debug_frame   0x00000058       0x7c ./src/rtModelDisplay.o
+ .debug_frame   0x000000d4       0x44 /carme/crosstools/arm-2010.09/bin/../arm-none-linux-gnueabi/libc/usr/lib/libc_nonshared.a(elf-init.oS)
+
+.debug_str      0x00000000      0x22e
+ *(.debug_str)
+ .debug_str     0x00000000       0xbf ./src/display.o
+                                 0xf8 (size before relaxing)
+ .debug_str     0x000000bf       0x1d ./src/main.o
+                                 0x6b (size before relaxing)
+ .debug_str     0x000000dc      0x152 ./src/rtModelDisplay.o
+                                0x224 (size before relaxing)
+
+.debug_loc      0x00000000      0x108
+ *(.debug_loc)
+ .debug_loc     0x00000000       0x2c ./src/display.o
+ .debug_loc     0x0000002c       0x2c ./src/main.o
+ .debug_loc     0x00000058       0xb0 ./src/rtModelDisplay.o
+
+.debug_macinfo
+ *(.debug_macinfo)
+
+.debug_weaknames
+ *(.debug_weaknames)
+
+.debug_funcnames
+ *(.debug_funcnames)
+
+.debug_typenames
+ *(.debug_typenames)
+
+.debug_varnames
+ *(.debug_varnames)
+
+.debug_pubtypes
+                0x00000000       0x85
+ *(.debug_pubtypes)
+ .debug_pubtypes
+                0x00000000       0x12 ./src/display.o
+ .debug_pubtypes
+                0x00000012       0x73 ./src/rtModelDisplay.o
+
+.debug_ranges
+ *(.debug_ranges)
+
+.gnu.attributes
+ *(.gnu.attributes)
+
+.note.gnu.arm.ident
+ *(.note.gnu.arm.ident)
+
+/DISCARD/
+ *(.note.GNU-stack)
+ *(.gnu_debuglink)
+ *(.gnu.lto_*)
+OUTPUT(yacm2-rt-model-display elf32-littlearm)

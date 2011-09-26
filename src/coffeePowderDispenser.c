@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "device.h"
 #include "unistd.h"
 #include "mainController.h"

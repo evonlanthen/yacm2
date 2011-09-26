@@ -8,7 +8,7 @@
  */
 
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "stateMachineEngine.h"
 
 static Event activateState(StateMachine *stateMachine, State *nextState);

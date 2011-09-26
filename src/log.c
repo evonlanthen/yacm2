@@ -12,7 +12,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <syslog.h>
-#include "syslog.h"
+#include "log.h"
 
 int setUpSyslog(void) {
 	openlog("yacm2", LOG_PID|LOG_CONS, LOG_USER);

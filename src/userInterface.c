@@ -18,12 +18,13 @@
 #include <errno.h>
 #include <sys/epoll.h>
 #include "defines.h"
-#include "data.h"
-#include "syslog.h"
-#include "device.h"
-#include "display.h"
 #include "activity.h"
+#include "data.h"
 #include "mainController.h"
+#include "display.h"
+#include <rtModelDisplay.h>
+#include "device.h"
+#include "log.h"
 #include "userInterface.h"
 
 /**
@@ -104,8 +105,6 @@ static void setUpUserInterface(void *activity) {
 	this = (Activity *)activity;
 
 	display = createActivity(getDisplayDescriptor(), messageQueue_blocking);
-
-	//updateDisplay();
 }
 
 static void processSwitchesChanges(int switchesStates) {
@@ -144,8 +143,6 @@ static void processSwitchesChanges(int switchesStates) {
 			updateDisplay();
 		}
 		switchesPreviousStates = switchesStates;
-
-		//updateDisplay();
 	}
 }
 
@@ -163,6 +160,11 @@ static void runUserInterface(void *activity) {
 	//logInfo("[userInterface] Running...");
 
 	updateDisplay();
+
+	logInfo("[userInterface] Going to show a message on RT-model display...");
+	sendRequest_BEGIN(this, RtModelDisplay, ShowMessageCommand)
+		.message = "Starting yacm2..."
+	sendRequest_END
 
 	// initially read switches states and process event:
 	//logInfo("[userInterface] Checking initial switches states...");
@@ -194,7 +196,7 @@ static void runUserInterface(void *activity) {
 	};
 	for (i = 0; i < 3; i++) {
 		if (epoll_ctl(polling, EPOLL_CTL_ADD, eventDescriptors[i].data.fd, &eventDescriptors[i]) < 0) {
-			logErr("[%s] Error registering event source %d (fd %d): %s", this->descriptor->name, i, eventDescriptors[i].data.fd, strerror(errno));
+			logErr("[%s] Error registering event source %d (file descriptor: %d): %s", this->descriptor->name, i, eventDescriptors[i].data.fd, strerror(errno));
 			close(polling);
 			close(buttonsFileDescriptor);
 			close(switchesFileDescriptor);
@@ -309,7 +311,6 @@ static void runUserInterface(void *activity) {
 										}
 								MESSAGE_SELECTOR_END
 						MESSAGE_SELECTOR_END
-						//updateDisplay();
 					receiveGenericMessage_END
 				} else if(fd == buttonsFileDescriptor) {
 					//logInfo("[%s] Buttons event", this->descriptor->name);
@@ -324,16 +325,15 @@ static void runUserInterface(void *activity) {
 							logWarn("[%s] Unable to produce coffee, because waste bin is full", this->descriptor->name);
 						} else if (machineState == machineState_idle) {
 							value = atoi(buffer);
+							unsigned int productIndex = value + 1;
 							// check if product index is in range:
-							if (value >= 0 && value < NUMBER_OF_PRODUCTS) {
-								unsigned int productIndex = value + 1;
+							if (productIndex > 0 && productIndex <= NUMBER_OF_PRODUCTS) {
 								sendRequest_BEGIN(this, MainController, ProduceProductCommand)
 									.productIndex = productIndex,
 									.withMilk = withMilk
 								sendRequest_END
-								//updateDisplay();
 							} else {
-								logWarn("[%s] Undefined product %d!", this->descriptor->name, value+1);
+								logWarn("[%s] Undefined product %d!", this->descriptor->name, value + 1);
 							}
 						} else {
 							logWarn("[%s] Product selected, but machine is not ready!", this->descriptor->name, machineState);

@@ -12,7 +12,7 @@
 #include <string.h>
 #include <sys/epoll.h>
 #include <errno.h>
-#include "syslog.h"
+#include "log.h"
 #include "activity.h"
 
 #define UNKNOWN_SENDER_DESCRIPTOR \
@@ -69,11 +69,10 @@ static mqd_t createMessageQueue(char *activityName, MessageQueueMode messageQueu
 static void * runThread(void *argument) {
 	Activity *activity = (Activity *)argument;
 
-	pthread_cleanup_push(activity->descriptor->tearDown, NULL);
-
 	logInfo("[%s] Launching...", activity->descriptor->name);
 
 	activity->descriptor->setUp(activity);
+	pthread_cleanup_push(activity->descriptor->tearDown, NULL);
 
 	activity->descriptor->run(activity);
 
@@ -94,25 +93,27 @@ Activity *createActivity(ActivityDescriptor descriptor, MessageQueueMode message
 	memcpy(descriptorCopy, &descriptor, sizeof(ActivityDescriptor));
 	activity->descriptor = descriptorCopy;
 
-	// Create new message queue (= queue for incoming messages)
-	mqd_t messageQueue = createMessageQueue(descriptor.name, messageQueueMode);
-	if (messageQueue < 0) {
-		logErr("[%s] Error creating activity's message queue for incoming messages: %s", descriptor.name, strerror(errno));
+	if (descriptor.scope == activityScope_local) {
+		// Create new message queue (= queue for incoming messages)
+		mqd_t messageQueue = createMessageQueue(descriptor.name, messageQueueMode);
+		if (messageQueue < 0) {
+			logErr("[%s] Error creating activity's message queue for incoming messages: %s", descriptor.name, strerror(errno));
 
-		// TODO Error handling
+			// TODO Error handling
+		}
+		activity->messageQueue = messageQueue;
+		activity->messageQueueMode = messageQueueMode;
+
+		activity->polling = NULL_FILE_DESCRIPTOR;
+
+		// Start new thread
+		pthread_t thread;
+		if (pthread_create(&thread, NULL, runThread, activity) < 0) {
+			logErr("[%s] Error creating new thread for activity: %s", descriptor.name, strerror(errno));
+			// TODO Error handling
+		}
+		activity->thread = thread;
 	}
-	activity->messageQueue = messageQueue;
-	activity->messageQueueMode = messageQueueMode;
-
-	activity->polling = NULL_FILE_DESCRIPTOR;
-
-	// Start new thread
-	pthread_t thread;
-	if (pthread_create(&thread, NULL, runThread, activity) < 0) {
-		logErr("[%s] Error creating new thread for activity: %s", descriptor.name, strerror(errno));
-		// TODO Error handling
-	}
-	activity->thread = thread;
 
 	return activity;
 }

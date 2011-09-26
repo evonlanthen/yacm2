@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <signal.h>
-#include "syslog.h"
+#include "log.h"
 #include "activity.h"
 #include "coffeeSupply.h"
 #include "waterSupply.h"

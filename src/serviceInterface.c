@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "device.h"
 #include "mainController.h"
 #include "serviceInterface.h"

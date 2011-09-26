@@ -14,7 +14,7 @@
 #include <poll.h>
 #include <errno.h>
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "device.h"
 
 int readBlockingDevice(char *deviceFifo) {
@@ -70,12 +70,12 @@ int readNonBlockingDevice(char *deviceFile) {
 	lock.l_whence = SEEK_SET;
 
 	if (fcntl(fd, F_SETLKW, &lock) < 0) {
-		logErr("[device] [%s] fcntl: %s", deviceFile, strerror(errno));
+		logErr("[device] [%s] fcntl: %s!", deviceFile, strerror(errno));
 	}
 	//lseek(fd, 0, SEEK_SET);
 	bytesRead = read(fd, input, 80);
 	if (bytesRead < 0) {
-		logErr("[device] [%s] read: %s", deviceFile, strerror(errno));
+		logErr("[device] [%s] read: %s!", deviceFile, strerror(errno));
 	}
 	lock.l_type = F_UNLCK;
 	fcntl(fd, F_SETLKW, &lock);
@@ -101,24 +101,24 @@ int writeNonBlockingDevice(char *deviceFile, char *str, WriteMode mode, int newL
 		openMode |= O_APPEND;
 	}
 	if ((fd = open(deviceFile, openMode)) < 0) {
-		logErr("[blocking] open: %s! File: %s", strerror(errno), deviceFile);
+		logErr("[device] [%s] open: %s!", deviceFile, strerror(errno));
 		return bytesWritten;
 	}
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
 
 	if (fcntl(fd, F_SETLKW, &lock) < 0) {
-		logErr("[blocking] fcntl: %s", strerror(errno));
+		logErr("[device] [%s] fcntl: %s!", deviceFile, strerror(errno));
 		return bytesWritten;
 	}
 	bytesWritten = write(fd, str, strlen(str));
 	if (bytesWritten < 0) {
-		logErr("[blocking] write: %s", strerror(errno));
+		logErr("[device] [%s] write: %s!", deviceFile, strerror(errno));
 	}
 	if (newLine == TRUE) {
 		bytesWritten += write(fd, "\n", 1);
 		if (bytesWritten < 0) {
-			logErr("[blocking] write: %s", strerror(errno));
+			logErr("[device] [%s] write: %s!", deviceFile, strerror(errno));
 		}
 	}
 	lock.l_type = F_UNLCK;

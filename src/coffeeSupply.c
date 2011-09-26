@@ -17,7 +17,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "device.h"
 #include "mainController.h"
 #include "coffeeSupply.h"

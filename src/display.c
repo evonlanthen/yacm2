@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "defines.h"
-#include "syslog.h"
+#include "log.h"
 #include "device.h"
 #include "activity.h"
 #include "userInterface.h"
@@ -69,7 +69,7 @@ static void runDisplay(void *activity) {
 	char ledsBitFieldString[5];
 	char viewString[301];
 
-	//logInfo("[display] Running...");
+	logInfo("[display] Running...");
 
 	while(TRUE) {
 		waitForEvent_BEGIN(this, Display, 1000)
@@ -125,7 +125,6 @@ static void runDisplay(void *activity) {
 					if (!writeNonBlockingDevice("/dev/leds", ledsBitFieldString, wrm_replace, FALSE)) {
 						logErr("[%s] Could not update leds!", this->descriptor->name);
 					}
-
 					if (!writeNonBlockingDevice("./dev/display", viewString, wrm_append, TRUE)) {
 						logErr("[%s] Could not write to display!", this->descriptor->name);
 					}
@@ -138,7 +137,7 @@ static void runDisplay(void *activity) {
 }
 
 static void tearDownDisplay(void *activity) {
-	//logInfo("[display] Tearing down...");
+	logInfo("[display] Tearing down...");
 
 	if (!writeNonBlockingDevice("/dev/leds", "0", wrm_replace, FALSE)) {
 		logErr("[%s] Could not update leds!", this->descriptor->name);
