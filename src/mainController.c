@@ -45,8 +45,9 @@ MESSAGE_CONTENT_TYPE_MAPPING(MainController, AbortCommand, 4)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, Result, 5)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, MachineStateChangedNotification, 6)
 MESSAGE_CONTENT_TYPE_MAPPING(MainController, ProducingProductNotification, 7)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 8)
-MESSAGE_CONTENT_TYPE_MAPPING(MainController, CoffeeWasteBinStateChangedNotification, 9)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, ExecutingActivityNotification, 8)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, IngredientAvailabilityChangedNotification, 9)
+MESSAGE_CONTENT_TYPE_MAPPING(MainController, CoffeeWasteBinStateChangedNotification, 10)
 
 static Activity *this;
 
@@ -420,6 +421,10 @@ static void warmingUpActivityEntryAction() {
 	logInfo("[mainController] [makeCoffee process] Warming up...");
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_warmingUp;
+
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_WARMING_UP_ACTIVITY
+	sendNotification_END
 }
 
 static Event warmingUpActivityDoAction() {
@@ -442,6 +447,10 @@ static Event checkingCupFillStateActivityDoAction() {
 	logInfo("[mainController] [makeCoffee process] Checking cup fill state...");
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_checkingCupFillState;
+
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_CHECKING_CUP_FILL_STATE_ACTIVITY
+	sendNotification_END
 
 	if (readNonBlockingDevice("./dev/cupFillStateSensor") > 0) {
 		logInfo("[mainController] [makeCoffee process] Cup is not empty!");
@@ -467,6 +476,10 @@ static void grindingCoffeePowderActivityEntryAction() {
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_grindingCoffeePowder;
 
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_GRINDING_COFFEE_POWDER_ACTIVITY
+	sendNotification_END
+
 	// Old message format
 	sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
 		.intValue = SUPPLY_START_COMMAND
@@ -491,6 +504,10 @@ static void supplyingWaterActivityEntryAction() {
 	logInfo("[mainController] [makeCoffee process] Going to supply water...");
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_supplyingWater;
+
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_SUPPLYING_WATER_ACTIVITY
+	sendNotification_END
 
 	sendRequest_BEGIN(this, WaterSupply, SupplyWaterCommand)
 		//TODO Determine water amount on the basis of the product definition
@@ -536,6 +553,10 @@ static void supplyingMilkActivityEntryAction() {
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_supplyingMilk;
 
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_SUPPLYING_MILK_ACTIVITY
+	sendNotification_END
+
 	sendRequest_BEGIN(this, MilkSupply, SupplyMilkCommand)
 		//TODO Determine milk amount on the basis of the product definition
 		.milkAmount = 20
@@ -560,6 +581,10 @@ static void ejectingCoffeeWasteActivityEntryAction() {
 	logInfo("[mainController] [makeCoffee process] Going to eject coffee waste...");
 
 	coffeeMaker.ongoingCoffeeMaking->currentActivity = coffeeMakingActivity_ejectingCoffeeWaste;
+
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_EJECTING_COFFEE_WASTE_ACTIVITY
+	sendNotification_END
 
 	// Old message format
 	sendMessage2(this, getCoffeeSupplyDescriptor(), sizeof(SimpleCoffeeSupplyMessage), &(SimpleCoffeeSupplyMessage) {
@@ -619,6 +644,10 @@ static State errorState = {
 // -----------------------------------------------------------------------------
 
 static void coffeeMakingProcessAbortAction() {
+	sendNotification_BEGIN(this, MainController, clientDescriptor, ExecutingActivityNotification)
+		.activityIndex = PROCESS_NO_ACTIVITY
+	sendNotification_END
+
 	if (productionResult != productionResult_ok) {
 		logErr("[mainController] [makeCoffee process] Aborting...");
 

@@ -88,10 +88,15 @@ static void updateDisplay() {
 	sendRequest_END
 }
 
+static void showActivity(char *message) {
+	RtModelDisplayMessage activityMessage = {
+		.type = RtModelDisplayShowMessageCommandType
+	};
+	memcpy(activityMessage.content.RtModelDisplayShowMessageCommand.message, message, strlen(message) + 1);
+	sendMessage2(this, getRtModelDisplayDescriptor(), sizeof(activityMessage), &activityMessage, messagePriority_medium);
+}
+
 static void showError(char *message) {
-//	sendRequest_BEGIN(this, Display, ShowErrorCommand)
-//		.message = "..."
-//	sendRequest_END
 	DisplayMessage errorMessage = {
 		.type = DisplayShowErrorCommandType
 	};
@@ -162,9 +167,10 @@ static void runUserInterface(void *activity) {
 	updateDisplay();
 
 	logInfo("[userInterface] Going to show a message on RT-model display...");
-	sendRequest_BEGIN(this, RtModelDisplay, ShowMessageCommand)
-		.message = "Starting yacm2..."
-	sendRequest_END
+	//sendRequest_BEGIN(this, RtModelDisplay, ShowMessageCommand)
+	//	.message = "Starting yacm2..."
+	//sendRequest_END
+	showActivity("Starting yacm2...");
 
 	// initially read switches states and process event:
 	//logInfo("[userInterface] Checking initial switches states...");
@@ -250,6 +256,34 @@ static void runUserInterface(void *activity) {
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, ProducingProductNotification)
 										productIndex = content.productIndex;
 										updateDisplay();
+									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, ExecutingActivityNotification)
+										char *activityMessage;
+										switch (content.activityIndex) {
+										case PROCESS_NO_ACTIVITY:
+											activityMessage = "";
+											break;
+										case PROCESS_WARMING_UP_ACTIVITY:
+											activityMessage = "Warming up...";
+											break;
+										case PROCESS_CHECKING_CUP_FILL_STATE_ACTIVITY:
+											activityMessage = "Checking cup fill state...";
+											break;
+										case PROCESS_GRINDING_COFFEE_POWDER_ACTIVITY:
+											activityMessage = "Grinding coffee powder...";
+											break;
+										case PROCESS_SUPPLYING_WATER_ACTIVITY:
+											activityMessage = "Supplying water...";
+											break;
+										case PROCESS_SUPPLYING_MILK_ACTIVITY:
+											activityMessage = "Supplying milk...";
+											break;
+										case PROCESS_EJECTING_COFFEE_WASTE_ACTIVITY:
+											activityMessage = "Ejecting coffee waste...";
+											break;
+										default:
+											activityMessage = "Unknown activity!";
+										}
+										showActivity(activityMessage);
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, IngredientAvailabilityChangedNotification)
 										// Process received ingredient availability and update display
 										Availability lastCoffeeAvailability = coffeeAvailability;
