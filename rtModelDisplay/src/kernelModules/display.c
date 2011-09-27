@@ -86,6 +86,7 @@ static struct gpio displayGpios[] = {
 
 //static int open(struct inode *inode, struct file *file);
 static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, int oflag);
+static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, void *buffer, size_t size);
 //static ssize_t write(struct file *file, const char __user *buffer, size_t length, loff_t *offset);
 static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, const void *buffer, size_t size);
 //static int close(struct inode *inode, struct file *file);
@@ -128,8 +129,8 @@ static void __init setGpioFunction(int gpio, int mode) {
  */
 
 static int interruptHandler(rtdm_irq_t *interrupt) {
-	gpio_set_value(GPIO_TRIGGER, HIGH);
-	gpio_set_value(GPIO_TRIGGER, LOW);
+	//gpio_set_value(GPIO_TRIGGER, HIGH);
+	//gpio_set_value(GPIO_TRIGGER, LOW);
 
 	return RTDM_IRQ_HANDLED;
 }
@@ -141,42 +142,49 @@ static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, in
 	return 0;
 }
 
+static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, void *buffer, size_t size) {
+	// Wait for interrupt...
+
+	return 0;
+}
+
 //static ssize_t write(struct file *file, const char __user *buffer, size_t size, loff_t *offset) {
 static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, const void *buffer, size_t size) {
 	ssize_t result = 0;
 
-	char *message;
-	if (!(message = rtdm_malloc(size + 1))) {
-		return -ENOMEM;
-	}
+//	char *message;
+//	if (!(message = rtdm_malloc(size + 1))) {
+//		return -ENOMEM;
+//	}
 
-	if (!copy_from_user(message, buffer, size)) {
+//	if (!copy_from_user(message, buffer, size)) {
+//		// Critical section:
+//		if (rtdm_mutex_lock(&mutex)) {
+//			result = -ERESTARTSYS;
+//
+//			goto write_lockError;
+//		}
+//
+//		//if (strcmp(file->f_path.dentry->d_name.name, "display") == 0) {
+//			//SSDR_P1 = value;
+//		//}
+//
+//		rtdm_mutex_unlock(&mutex);
+//	} else {
+//		printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
+//		result = /* Error copying data! */ -EFAULT;
+//
+//		goto write_copyError;
+//	}
 
-	// Critical section:
-	if (rtdm_mutex_lock(&mutex)) {
-		result = -ERESTARTSYS;
-
-		goto write_lockError;
-	}
-
-	//if (strcmp(file->f_path.dentry->d_name.name, "display") == 0) {
-		//SSDR_P1 = value;
-	//}
-
-	rtdm_mutex_unlock(&mutex);
-
-	} else {
-		printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
-		result = /* Error copying data! */ -EFAULT;
-
-		goto write_copyError;
-	}
+	gpio_set_value(GPIO_TRIGGER, HIGH);
+	gpio_set_value(GPIO_TRIGGER, LOW);
 
 	goto write_out;
 
 write_copyError:
 write_lockError:
-	rtdm_free(message);
+//	rtdm_free(message);
 
 write_out:
 	return result;
@@ -196,6 +204,7 @@ static struct rtdm_device displayDevice = {
 	.device_name = "display",
 	.open_nrt = open,
 	.ops = {
+		.read_rt = read,
 		.write_nrt = write,
 		// .write_rt = ...
 		.close_nrt = close
