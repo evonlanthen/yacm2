@@ -37,6 +37,7 @@ static void runMotorController(void *activity);
 static void tearDownMotorController(void *activity);
 
 static StateMachine coffeePowderDispenserStateMachine;
+static int currentMotorPower = 0;
 
 static Activity *coffeePowderDispenser;
 static Activity *fillStateMonitor;
@@ -72,20 +73,25 @@ static int setMotor(int power) {
 }
 
 static int setMotorPotentiometerControlled() {
-	int potentiometerValue, newPowerValue;
+	int potentiometerValue, newMotorPower;
 
 	// read value from potentiometer:
 	potentiometerValue = readNonBlockingDevice("/proc/adc/ADC0");
 	// calculate power value:
-	newPowerValue = POWER_MAX * potentiometerValue / POTENTIOMETER_MAX;
+	newMotorPower = POWER_MAX * potentiometerValue / POTENTIOMETER_MAX;
 	// check if new value is in allowed range:
-	if (newPowerValue > POWER_MAX) {
-		newPowerValue = 99;
-	} else if (newPowerValue < 0) {
-		newPowerValue = 0;
+	if (newMotorPower == currentMotorPower) {
+		// do nothing if value has not changed:
+		return TRUE;
+	} else if (newMotorPower > POWER_MAX) {
+		newMotorPower = 99;
+	} else if (newMotorPower < 0) {
+		newMotorPower = 0;
 	}
+	// save value:
+	currentMotorPower = newMotorPower;
 	// set new value:
-	return setMotor(newPowerValue);
+	return setMotor(newMotorPower);
 }
 
 static int hasEnoughPowder(void) {
@@ -492,6 +498,7 @@ static void runMotorController(void *activity) {
 		//logInfo("[motorController] Message received from %s (length: %ld): value: %d, message: %s", message.activity.name, messageLength, message.intValue, message.strValue);
 		switch (message.intValue) {
 			case MOTOR_START_COMMAND:
+				currentMotorPower = 0;
 				setMotorPotentiometerControlled();
 				//setMotor(50);
 				break;
