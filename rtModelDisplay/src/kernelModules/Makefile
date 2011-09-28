@@ -1,11 +1,11 @@
 ifneq ($(KERNELRELEASE),)
-KDIR ?= /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME
+KDIR ?= /carme/rootfs/lib/modules/2.6.35.9-xenomai-CARME/build
 EXTRA_CFLAGS := -I$(KDIR)/include/xenomai -I$(KDIR)/include/xenomai/rtdm $(ADD_CFLAGS)
 
 obj-m := display.o
 
 else
-KDIR ?= /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME
+KDIR ?= /carme/rootfs/lib/modules/2.6.35.9-xenomai-CARME/build
 PWD := $(shell pwd)
 
 all:
