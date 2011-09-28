@@ -339,9 +339,9 @@ int sendMessage2(void *_sender, ActivityDescriptor receiverDescriptor, unsigned 
 	mqd_t receiverQueue = mq_open(receiverMessageQueueId, O_WRONLY);
 	free(receiverMessageQueueId);
 	if (receiverQueue < 0) {
-		// special message if display is not running:
+		// If there is no corresponding message queue, the receiver is probably not running
 		if (errno == ENOENT) {
-			logWarn("[%s] %s is not running!", sender->descriptor->name, receiverDescriptor.name);
+			logWarn("[%s] %s is not running?!", sender->descriptor->name, receiverDescriptor.name);
 		} else {
 			if (sender) {
 				logErr("[%s] Error opening message queue %s for sending: %s", sender->descriptor->name, receiverDescriptor.name, strerror(errno));
