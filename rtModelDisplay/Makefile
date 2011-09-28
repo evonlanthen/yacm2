@@ -24,8 +24,8 @@ MY_LDFLAGS 	= ../device.o ../log.o
 # -lrt -lpthread
 # -lnano-X -lvncserver -lm -lpng -lfreetype -ljpeg -lz -lSDL -lSDL_mixer -ldirectfb -ldirect -lfusion -lmad -L$(ROOTFS)/usr/lib ../device.o ../log.o
 
-CFLAGS=$(shell $(XENOCONFIG) --skin=posix --cflags) $(MY_CFLAGS)
-LDFLAGS=$(shell $(XENOCONFIG) --skin=posix --ldflags) $(MY_LDFLAGS)
+CFLAGS=$(shell DESTDIR=$(DESTDIR) $(XENOCONFIG) --skin=posix --cflags) $(MY_CFLAGS)
+LDFLAGS=$(shell DESTDIR=$(DESTDIR) $(XENOCONFIG) --skin=posix --ldflags) $(MY_LDFLAGS)
 LDFLAGS+=-Xlinker -rpath -Xlinker $(shell $(XENOCONFIG) --libdir)
 
 # Installation variables
@@ -54,7 +54,7 @@ orchid-install:
 
 carme-install:
 	cp $(EXEC_NAME)_carme $(ROOTFS)/$(INSTALL_DIR)/$(EXEC_NAME)
-#	cp src/kernelModules/*.ko $(ROOTFS)/$(INSTALL_DIR)/
+	cp src/kernelModules/*.ko $(ROOTFS)/$(INSTALL_DIR)/
 
 install: carme-install
 

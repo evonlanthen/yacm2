@@ -129,6 +129,8 @@ static void __init setGpioFunction(int gpio, int mode) {
  */
 
 static int interruptHandler(rtdm_irq_t *interrupt) {
+	rtdm_printk("Interrupt occured!\n");
+
 	//gpio_set_value(GPIO_TRIGGER, HIGH);
 	//gpio_set_value(GPIO_TRIGGER, LOW);
 
@@ -177,8 +179,8 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 //		goto write_copyError;
 //	}
 
-	gpio_set_value(GPIO_TRIGGER, HIGH);
-	gpio_set_value(GPIO_TRIGGER, LOW);
+	//gpio_set_value(GPIO_TRIGGER, HIGH);
+	//gpio_set_value(GPIO_TRIGGER, LOW);
 
 	goto write_out;
 
@@ -252,7 +254,7 @@ static int __init initDisplay(void) {
 	// Critical section:
 	// Disable interrupts in order to prevent race conditions
 	unsigned long flags = 0;
-	local_irq_save(flags);
+	rtdm_lock_irqsave(flags);
 
 	SSCR0_P1 &= ~SSCR0_SSE;				/* Disable synchronous serial */
 	SSCR0_P1 = SSCR0_DataSize(8);		/* Data size is 8 bit */
@@ -261,7 +263,7 @@ static int __init initDisplay(void) {
 	SSCR0_P1 |= SSCR0_SSE;				/* Enable synchronous serial */
 	SSDR_P1 = 50;						/* Data register for flash time */
 	  
-	local_irq_restore(flags);
+	rtdm_lock_irqrestore(flags);
 
 //	if ((result = request_irq(gpio_to_irq(GPIO_INDEX),
 //			interruptHandler,

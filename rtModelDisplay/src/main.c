@@ -26,11 +26,16 @@ int main(int argc, char **argv) {
 	mlockall(MCL_CURRENT|MCL_FUTURE);
 
 	if (argc > 1) {
+		setUpDisplay();
+
 		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "-1", wrm_replace, FALSE);
 
 		writeDisplay(argv[1]);
+		joinDisplay();
 
 		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "0", wrm_replace, FALSE);
+
+		tearDownDisplay();
 	} else {
 		Activity *rtModelDisplay = createActivity(getRtModelDisplayDescriptor(), messageQueue_blocking);
 

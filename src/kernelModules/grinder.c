@@ -24,6 +24,8 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Toni Baumann, Ronny Stauffer, Elmar Vonlanthen");
 MODULE_DESCRIPTION("Grinder controlling device");
 
+//#define STROBE_SUPPORT
+
 /**
  *******************************************************************************
  * Defines
@@ -80,6 +82,7 @@ MODULE_DESCRIPTION("Grinder controlling device");
 static struct gpio gpioGrinder[] = {
 	{ GPIO_PWM3, GPIOF_OUT_INIT_LOW, "PWM3" },			/* PWM3 (GPIO 12, velocity): Alternate Function 2 Output */
 	{ GPIO_DIR, GPIOF_OUT_INIT_LOW, "DIR" },			/* DIR (GPIO 21): Output, default low */
+#ifdef STROBE_SUPPORT
 	{ GPIO_INDEX, GPIOF_IN, "INDEX" },					/* INDEX (GPIO 35): Input */
 	{ GPIO_TRIGGER, GPIOF_OUT_INIT_LOW, "TRIGGER" },	/* TRIGGER (GPIO 16): Output, default low */
 	{ GPIO_SSPSCLK, GPIOF_OUT_INIT_LOW, "SSPSCLK" },	/* SSPSCLK (GPIO 23): Alternate Function 2 Output */
@@ -87,6 +90,7 @@ static struct gpio gpioGrinder[] = {
 	{ GPIO_SSPTXD, GPIOF_OUT_INIT_LOW, "SSPTXD" },		/* SSPTxD (GPIO 25): Alternate Function 2 Output */
 	{ GPIO_SSPRXD, GPIOF_IN, "SSPRXD" },				/* SSPRxD (GPIO 26): Alternate Function 1 Input */
 	{ GPIO_SPICS, GPIOF_OUT_INIT_HIGH, "SPICS" },		/* SPI CS (GPIO 22): Output, default high */
+#endif
 };
 
 int grinderOpen (struct inode *inode, struct file *file);
@@ -158,6 +162,7 @@ void __init gpio_fn_set(int gpio, int mode) {
  *******************************************************************************
  */
 
+#ifdef STROBE_SUPPORT
 static irqreturn_t interruptHandler(int irq, void *deviceId) {
 	//printk(KERN_INFO "grinder interrupt handler\n");
 #ifdef KTHREAD
@@ -186,6 +191,7 @@ static void taskletHandler(unsigned long data) {
 	gpio_set_value(GPIO_TRIGGER, LOW);
 }
 #endif
+#endif /* STROBE_SUPPORT */
 
 ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset) {
 	ssize_t result = 0;
@@ -252,7 +258,8 @@ int grinderRelease(struct inode *inode, struct file *file) {
 
 int __init grinderInit(void) {
 	int result = 0, error;
-	unsigned long flags = 0;
+
+	printk(KERN_INFO "grinderInit: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
 
 	/* initialize mutex: */
   	mutex_init(&mutex);
@@ -265,6 +272,7 @@ int __init grinderInit(void) {
 	    goto err_gpio;
 	}
 
+#ifdef STROBE_SUPPORT
 	/* set alternate functions: */
 	gpio_fn_set(GPIO_PWM3, GPIO_ALT_FN_2_OUT);
 	gpio_fn_set(GPIO_TRIGGER, 0);
@@ -274,9 +282,9 @@ int __init grinderInit(void) {
 	gpio_fn_set(GPIO_SSPRXD, GPIO_ALT_FN_1_IN);
 
 	/* prevent race conditions with interrupts: */
+	unsigned long flags = 0;
 	local_irq_save(flags);
 
-	printk(KERN_INFO "grinderInit: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
 	/* set prescale value, periodic interval and speed for PWM3: */
 	PWMCR3 = 0x14;						/* divide 13MHz clock by 0x14 */
 	PWMDCR3 = 0;						/* initial speed is zero */
@@ -318,6 +326,7 @@ int __init grinderInit(void) {
 #ifdef TASKLET
 	tasklet_init(&grinderTasklet, taskletHandler, 0);
 #endif
+#endif /* STROBE_SUPPORT */
 	
 	/* craete device /dev/coffeeGrinderMotor: */
 	if ((result = misc_register(&grinderDevice))) {
