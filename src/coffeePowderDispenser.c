@@ -18,6 +18,9 @@
 #include "activity.h"
 #include "stateMachineEngine.h"
 
+#define POWER_MAX 99
+#define POTENTIOMETER_MAX 1011
+
 typedef enum {
 	dispenseResult_ok,
 	dispenseResult_nok
@@ -66,6 +69,23 @@ static int setMotor(int power) {
 	if (power < 0) power = 0;
 	snprintf(level,3,"%d",power);
 	return writeNonBlockingDevice("/dev/coffeeGrinderMotor",level,wrm_replace,FALSE);
+}
+
+static int setMotorPotentiometerControlled() {
+	int potentiometerValue, newPowerValue;
+
+	// read value from potentiometer:
+	potentiometerValue = readNonBlockingDevice("/proc/adc/ADC0");
+	// calculate power value:
+	newPowerValue = POWER_MAX * potentiometerValue / POTENTIOMETER_MAX;
+	// check if new value is in allowed range:
+	if (newPowerValue > POWER_MAX) {
+		newPowerValue = 99;
+	} else if (newPowerValue < 0) {
+		newPowerValue = 0;
+	}
+	// set new value:
+	return setMotor(newPowerValue);
 }
 
 static int hasEnoughPowder(void) {
@@ -238,6 +258,9 @@ static Event coffeePowderDispenserSupplyingStateDoAction() {
 		dispenseResult = dispenseResult_ok;
 		return coffeePowderDispenserEvent_supplyingFinished;
 	}
+	// adjust motor power according to the current value of the potentiometer:
+	setMotorPotentiometerControlled();
+
 	return NO_EVENT;
 }
 
@@ -469,7 +492,8 @@ static void runMotorController(void *activity) {
 		//logInfo("[motorController] Message received from %s (length: %ld): value: %d, message: %s", message.activity.name, messageLength, message.intValue, message.strValue);
 		switch (message.intValue) {
 			case MOTOR_START_COMMAND:
-				setMotor(50);
+				setMotorPotentiometerControlled();
+				//setMotor(50);
 				break;
 			case MOTOR_STOP_COMMAND:
 				setMotor(0);
