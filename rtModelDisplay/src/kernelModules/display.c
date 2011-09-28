@@ -135,7 +135,7 @@ static irqreturn_t interruptHandlerDummy(int irq, void *deviceId) {
 static rtdm_event_t interruptEvent;
 
 static int interruptHandler(rtdm_irq_t *interrupt) {
-	rtdm_printk("Interrupt occured!\n");
+	//rtdm_printk("Interrupt occured!\n");
 
 	//gpio_set_value(GPIO_TRIGGER, HIGH);
 	//gpio_set_value(GPIO_TRIGGER, LOW);
@@ -270,7 +270,7 @@ static int __init initDisplay(void) {
 	SSCR1_P1 = SSCR1_SPH | SSCR1_SPO;	/* Motorola SPI */
 	CKEN |= (1 << CKEN_SSP1);			/* Enable SSP1 Unit Clock */
 	SSCR0_P1 |= SSCR0_SSE;				/* Enable synchronous serial */
-	SSDR_P1 = 50;						/* Data register for flash time */
+	SSDR_P1 = 200;						/* Data register for flash time */
 	  
 	rtdm_lock_irqrestore(flags);
 

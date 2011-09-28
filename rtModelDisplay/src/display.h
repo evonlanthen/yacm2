@@ -9,7 +9,7 @@
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
 
-void setUpDisplay();
+int setUpDisplay();
 void writeDisplay(char *newMessage);
 void joinDisplay();
 void tearDownDisplay();

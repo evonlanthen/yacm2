@@ -35,12 +35,16 @@ ActivityDescriptor getRtModelDisplayDescriptor() {
 	return rtModelDisplay;
 }
 
+static int isDisplaySetUp = FALSE;
+
 static void setUpRtModelDisplay(void *activity) {
 	logInfo("[rtModelDisplay] Setting up...");
 
 	this = (Activity *)activity;
 
-	setUpDisplay();
+	if (!setUpDisplay()) {
+		isDisplaySetUp = TRUE;
+	}
 }
 
 static void runRtModelDisplay(void *activity) {
@@ -59,7 +63,13 @@ static void runRtModelDisplay(void *activity) {
 				//TODO Implement business logic
 				MESSAGE_SELECTOR_BEGIN
 					MESSAGE_BY_TYPE_SELECTOR(message, RtModelDisplay, ShowMessageCommand)
-						writeDisplay(content.message);
+						if (isDisplaySetUp) {
+							writeDisplay(content.message);
+							joinDisplay();
+						} else {
+							// Write message to console
+							printf("%s\n", content.message);
+						}
 				MESSAGE_SELECTOR_END
 			}
 		receiveMessage_END

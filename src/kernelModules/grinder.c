@@ -81,7 +81,7 @@ MODULE_DESCRIPTION("Grinder controlling device");
 // grinder gpios:
 static struct gpio gpioGrinder[] = {
 	{ GPIO_PWM3, GPIOF_OUT_INIT_LOW, "PWM3" },			/* PWM3 (GPIO 12, velocity): Alternate Function 2 Output */
-	{ GPIO_DIR, GPIOF_OUT_INIT_LOW, "DIR" },			/* DIR (GPIO 21): Output, default low */
+	{ GPIO_DIR, GPIOF_OUT_INIT_HIGH, "DIR" },			/* DIR (GPIO 21): Output, default low */
 #ifdef STROBE_SUPPORT
 	{ GPIO_INDEX, GPIOF_IN, "INDEX" },					/* INDEX (GPIO 35): Input */
 	{ GPIO_TRIGGER, GPIOF_OUT_INIT_LOW, "TRIGGER" },	/* TRIGGER (GPIO 16): Output, default low */
@@ -93,13 +93,15 @@ static struct gpio gpioGrinder[] = {
 #endif
 };
 
-int grinderOpen (struct inode *inode, struct file *file);
-int grinderRelease(struct inode *inode, struct file *file);
-ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset);
+static int grinderOpen(struct inode *inode, struct file *file);
+static ssize_t grinderRead(struct file *filePointer, char __user *buffer, size_t length, loff_t *offset);
+static ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset);
+static int grinderRelease(struct inode *inode, struct file *file);
 
 static struct file_operations grinderFileOperations = {
 	.owner   = THIS_MODULE,
 	.open    = grinderOpen,
+	.read    = grinderRead,
 	.write   = grinderWrite,
 	.release = grinderRelease,
 };
@@ -193,7 +195,53 @@ static void taskletHandler(unsigned long data) {
 #endif
 #endif /* STROBE_SUPPORT */
 
-ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset) {
+static int grinderOpen(struct inode *inode, struct file *file) {
+	printk(KERN_INFO "grinderOpen: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
+	return 0;
+}
+
+static unsigned char motorPower = 0;
+
+static ssize_t grinderRead(struct file *filePointer, char __user *buffer, size_t length, loff_t *offset) {
+	ssize_t result;
+
+	if (*offset == 0) {
+		if (length >= 3) {
+			/* enter critical section: */
+			if (mutex_lock_interruptible(&mutex)) {
+				result = -ERESTARTSYS;
+				goto grinderRead_out;
+			}
+
+			unsigned char _motorPower = motorPower;
+
+			/* leave critical section: */
+			mutex_unlock(&mutex);
+
+			char motorPowerAsString[4];
+			memset(motorPowerAsString, 0, 4);
+			sprintf(motorPowerAsString, "%u", _motorPower);
+			size_t motorPowerAsStringLength = strlen(motorPowerAsString);
+			// Copy data from kernel to user memory
+			if (!copy_to_user(buffer, motorPowerAsString, motorPowerAsStringLength)) {
+				*offset = motorPowerAsStringLength;
+				result = motorPowerAsStringLength;
+			} else {
+				printk(KERN_WARNING "grinderRead: copy_to_user failed!\n");
+				result = /* Error copying data! */ -EFAULT;
+			}
+		} else {
+			result = /* Buffer too short! */ -EFAULT;
+		}
+	} else {
+		result = /* EOF: */ 0;
+	}
+
+grinderRead_out:
+	return result;
+}
+
+static ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t length, loff_t *offset) {
 	ssize_t result = 0;
 	char *data;
 	int value;
@@ -202,13 +250,13 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 	if (!(data)) {
 		printk(KERN_WARNING "grinderWrite: kzalloc failed!\n");
 			result = -ENOMEM;
-			goto out;
+			goto grinderWrite_out;
 	}
 
 	if (copy_from_user(data, buffer, length)) {
 		printk(KERN_WARNING "grinderWrite: copy_from_user failed!\n");
 		result = -EFAULT;
-		goto out;
+		goto grinderWrite_out;
 	}
 	value = simple_strtol(data, NULL, 0);
 	kfree(data);
@@ -216,7 +264,7 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 	/* enter critical section: */
 	if (mutex_lock_interruptible(&mutex)) {
 		result = -ERESTARTSYS;
-		goto out;
+		goto grinderWrite_out;
 	}
 
 	if (strcmp(filePointer->f_path.dentry->d_name.name, "coffeeGrinderSPI") == 0) {
@@ -231,6 +279,7 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 		/* set speed: */
 		if (value >= 0 && value < 100) {
 			printk(KERN_INFO "grinderWrite: setting pwm3 value to %d\n", value);
+			motorPower = value;
 			PWMDCR3 = value;
 		} else {
 			printk(KERN_WARNING "grinderWrite: pwm3 value %d is invalid\n", value);
@@ -242,16 +291,11 @@ ssize_t grinderWrite(struct file *filePointer, const char __user *buffer, size_t
 
 	result = length;
 
-	out:
+grinderWrite_out:
 	  return result;
 }
 
-int grinderOpen (struct inode *inode, struct file *file) {
-	printk(KERN_INFO "grinderOpen: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
-	return 0;
-}
-
-int grinderRelease(struct inode *inode, struct file *file) {
+static int grinderRelease(struct inode *inode, struct file *file) {
 	printk(KERN_INFO "grinderRelease: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
 	return 0;
 }

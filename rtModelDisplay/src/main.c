@@ -11,11 +11,8 @@
 #include <sys/mman.h>
 #include <defines.h>
 #include <activity.h>
-#include <device.h>
 #include "rtModelDisplay.h"
 #include "display.h"
-
-#define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
 
 static void handleCtrlC(int sig)
 {
@@ -23,17 +20,19 @@ static void handleCtrlC(int sig)
 }
 
 int main(int argc, char **argv) {
-	mlockall(MCL_CURRENT|MCL_FUTURE);
+	int result = 0;
+
+	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	if (argc > 1) {
-		setUpDisplay();
+		if (!setUpDisplay()) {
+			result = 1;
 
-		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "50", wrm_replace, FALSE);
+			goto main_out;
+		}
 
 		writeDisplay(argv[1]);
 		joinDisplay();
-
-		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "0", wrm_replace, FALSE);
 
 		tearDownDisplay();
 	} else {
@@ -48,6 +47,7 @@ int main(int argc, char **argv) {
 		destroyActivity(rtModelDisplay);
 	}
 
-	return 0;
+main_out:
+	return result;
 }
 

@@ -65,33 +65,35 @@ static ActivityDescriptor motorControllerDescriptor = {
 };
 
 static int setMotor(int power) {
-	char level[3];
-	if (power > 99) power = 99;
-	if (power < 0) power = 0;
-	snprintf(level,3,"%d",power);
-	return writeNonBlockingDevice("/dev/coffeeGrinderMotor",level,wrm_replace,FALSE);
+	if (power > POWER_MAX) {
+		power = 99;
+	} else if (power < 0) {
+		power = 0;
+	}
+
+	int currentPower = readNonBlockingDevice("/dev/coffeeGrinderMotor");
+
+	if (power != currentPower) {
+		char powerAsString[3];
+		snprintf(powerAsString, 3, "%d", power);
+		writeNonBlockingDevice("/dev/coffeeGrinderMotor", powerAsString, wrm_replace, FALSE);
+	}
+
+	return currentPower;
 }
 
 static int setMotorPotentiometerControlled() {
-	int potentiometerValue, newMotorPower;
+	int potentiometerValue;
+	int power;
 
 	// read value from potentiometer:
 	potentiometerValue = readNonBlockingDevice("/proc/adc/ADC0");
-	// calculate power value:
-	newMotorPower = POWER_MAX * potentiometerValue / POTENTIOMETER_MAX;
-	// check if new value is in allowed range:
-	if (newMotorPower == currentMotorPower) {
-		// do nothing if value has not changed:
-		return TRUE;
-	} else if (newMotorPower > POWER_MAX) {
-		newMotorPower = 99;
-	} else if (newMotorPower < 0) {
-		newMotorPower = 0;
-	}
-	// save value:
-	currentMotorPower = newMotorPower;
-	// set new value:
-	return setMotor(newMotorPower);
+	// calculate power:
+	power = POWER_MAX * potentiometerValue / POTENTIOMETER_MAX;
+	// set motor:
+	int previousPower = setMotor(power);
+
+	return previousPower;
 }
 
 static int hasEnoughPowder(void) {
@@ -484,14 +486,15 @@ static void tearDownFillStateMonitor(void *activity) {
 static void setUpMotorController(void *activityarg) {
 	//logInfo("[motorController] Setting up...");
 	motorController = activityarg;
-	setMotor(0);
+	//setMotor(0);
 }
 
 static void runMotorController(void *activity) {
 	//logInfo("[motorController] Running...");
 
-	while (TRUE) {
+	int previousMotorPower = 0;
 
+	while (TRUE) {
 		//logInfo("[motorController] Going to receive message...");
 		MotorControllerMessage message;
 		receiveMessage(activity, (char *)&message, sizeof(message));
@@ -499,11 +502,12 @@ static void runMotorController(void *activity) {
 		switch (message.intValue) {
 			case MOTOR_START_COMMAND:
 				currentMotorPower = 0;
-				setMotorPotentiometerControlled();
 				//setMotor(50);
+				previousMotorPower = setMotorPotentiometerControlled();
 				break;
 			case MOTOR_STOP_COMMAND:
-				setMotor(0);
+				//setMotor(0);
+				setMotor(previousMotorPower);
 				break;
 		}
 	}
@@ -511,5 +515,5 @@ static void runMotorController(void *activity) {
 
 static void tearDownMotorController(void *activity) {
 	//logInfo("[motorController] Tearing down...");
-	setMotor(0);
+	//setMotor(0);
 }

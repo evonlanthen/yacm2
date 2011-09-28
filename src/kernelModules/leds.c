@@ -47,7 +47,7 @@ static ssize_t read(struct file *file, char __user *buffer, size_t size, loff_t 
 				result = /* Error copying data! */ -EFAULT;
 			}
 		} else {
-			result = /* Buffer to short! */ -EFAULT;
+			result = /* Buffer too short! */ -EFAULT;
 		}
 	} else {
 		result = /* EOF: */ 0;
