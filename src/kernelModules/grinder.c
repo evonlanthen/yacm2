@@ -272,14 +272,15 @@ int __init grinderInit(void) {
 	    goto err_gpio;
 	}
 
-#ifdef STROBE_SUPPORT
 	/* set alternate functions: */
 	gpio_fn_set(GPIO_PWM3, GPIO_ALT_FN_2_OUT);
+#ifdef STROBE_SUPPORT
 	gpio_fn_set(GPIO_TRIGGER, 0);
 	gpio_fn_set(GPIO_SSPSCLK, GPIO_ALT_FN_2_OUT);
 	gpio_fn_set(GPIO_SSPSFRM, GPIO_ALT_FN_2_OUT);
 	gpio_fn_set(GPIO_SSPTXD, GPIO_ALT_FN_2_OUT);
 	gpio_fn_set(GPIO_SSPRXD, GPIO_ALT_FN_1_IN);
+#endif /* STROBE_SUPPORT */
 
 	/* prevent race conditions with interrupts: */
 	unsigned long flags = 0;
@@ -293,6 +294,7 @@ int __init grinderInit(void) {
 	/* enable clock for PWM3: */
 	CKEN |= 0x03;
 
+#ifdef STROBE_SUPPORT
 	/* set stroboscope registers: */
 	SSCR0_P1 &= ~SSCR0_SSE;				/* disable synchronous serial */
 	SSCR0_P1 = SSCR0_DataSize(8);		/* data size is 8 bit */
@@ -300,10 +302,12 @@ int __init grinderInit(void) {
 	CKEN |= (1 << CKEN_SSP1);			/* enable SSP1 Unit Clock */
 	SSCR0_P1 |= SSCR0_SSE;				/* enable synchronous serial */
 	SSDR_P1 = 50;						/* data register for flash time */
+#endif /* STROBE_SUPPORT */
 	  
 	/* leave critical section: */
 	local_irq_restore(flags);
 
+#ifdef STROBE_SUPPORT
 #ifdef KTHREAD
     error = request_threaded_irq(gpio_to_irq(GPIO_INDEX),
     		interruptHandler,
@@ -356,10 +360,12 @@ int __init grinderInit(void) {
 void __exit grinderExit(void) {
 	misc_deregister(&grinderSPIDevice);
 	misc_deregister(&grinderDevice);
+#ifdef STROBE_SUPPORT
 #ifdef TASKLET
 	tasklet_kill(&grinderTasklet);
 #endif
 	free_irq(gpio_to_irq(GPIO_INDEX), (void *)0);
+#endif /* STROBE_SUPPORT */
 	gpio_free_array(gpioGrinder, ARRAY_SIZE(gpioGrinder));
 	printk(KERN_INFO "grinderExit: device unregistered!\n");
 }

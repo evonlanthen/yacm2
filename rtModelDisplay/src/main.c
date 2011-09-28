@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		setUpDisplay();
 
-		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "-1", wrm_replace, FALSE);
+		writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "50", wrm_replace, FALSE);
 
 		writeDisplay(argv[1]);
 		joinDisplay();

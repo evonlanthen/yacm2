@@ -128,11 +128,19 @@ static void __init setGpioFunction(int gpio, int mode) {
  *******************************************************************************
  */
 
+static irqreturn_t interruptHandlerDummy(int irq, void *deviceId) {
+	return IRQ_HANDLED;
+}
+
+static rtdm_event_t interruptEvent;
+
 static int interruptHandler(rtdm_irq_t *interrupt) {
 	rtdm_printk("Interrupt occured!\n");
 
 	//gpio_set_value(GPIO_TRIGGER, HIGH);
 	//gpio_set_value(GPIO_TRIGGER, LOW);
+
+	rtdm_event_signal(&interruptEvent);
 
 	return RTDM_IRQ_HANDLED;
 }
@@ -146,6 +154,7 @@ static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, in
 
 static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, void *buffer, size_t size) {
 	// Wait for interrupt...
+	rtdm_event_wait(&interruptEvent);
 
 	return 0;
 }
@@ -179,8 +188,8 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 //		goto write_copyError;
 //	}
 
-	//gpio_set_value(GPIO_TRIGGER, HIGH);
-	//gpio_set_value(GPIO_TRIGGER, LOW);
+	gpio_set_value(GPIO_TRIGGER, HIGH);
+	gpio_set_value(GPIO_TRIGGER, LOW);
 
 	goto write_out;
 
@@ -203,7 +212,7 @@ static struct rtdm_device displayDevice = {
 	.struct_version = RTDM_DEVICE_STRUCT_VER,
 	.device_flags = RTDM_NAMED_DEVICE,
 	.context_size = 0,
-	.device_name = "display",
+	.device_name = "yacm-rt-model-display",
 	.open_nrt = open,
 	.ops = {
 		.read_rt = read,
@@ -265,13 +274,27 @@ static int __init initDisplay(void) {
 	  
 	rtdm_lock_irqrestore(flags);
 
+	rtdm_event_init(&interruptEvent, 0);
+
 //	if ((result = request_irq(gpio_to_irq(GPIO_INDEX),
 //			interruptHandler,
 //			IRQF_TRIGGER_RISING,
 //			"INDEX",
 //			(void *)0))) {
+	int irqNumber = gpio_to_irq(GPIO_INDEX);
+	rtdm_printk("Interrupt number: %d\n", irqNumber);
+
+	if ((result = request_irq(irqNumber,
+			interruptHandlerDummy,
+			IRQF_TRIGGER_RISING,
+			"INDEX",
+			(void *)0))) {
+		goto initDisplay_error;
+	}
+	free_irq(irqNumber, (void *)0);
+
 	if ((result = rtdm_irq_request(&interrupt,
-			gpio_to_irq(GPIO_INDEX),
+			irqNumber,
 			interruptHandler,
 			0,
 			"INDEX",
@@ -280,6 +303,9 @@ static int __init initDisplay(void) {
 
 		goto initDisplay_error;
 	}
+//	if ((result = rtdm_irq_enable(&interrupt))) {
+//		rtdm_printk(KERN_WARNING MODULE_LABEL "Error enabling display index GPIO interrupt!\n");
+//	}
 	isInterruptSetUp = 1;
 	
 	if ((result = rtdm_dev_register(&displayDevice))) {
@@ -311,6 +337,8 @@ static void __exit exitDisplay(void) {
 		//free_irq(gpio_to_irq(GPIO_INDEX), (void *)0);
 		rtdm_irq_free(&interrupt);
 	}
+
+	rtdm_event_destroy(&interruptEvent);
 
 	gpio_free_array(displayGpios, ARRAY_SIZE(displayGpios));
 
