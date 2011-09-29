@@ -26,6 +26,7 @@ MY_LDFLAGS 	= ../device.o ../log.o
 
 CFLAGS=$(shell XENO=$(XENO) DESTDIR=$(DESTDIR) $(XENOCONFIG) --skin=posix --cflags) $(MY_CFLAGS)
 LDFLAGS=$(shell XENO=$(XENO) DESTDIR=$(DESTDIR) $(XENOCONFIG) --skin=posix --ldflags) $(MY_LDFLAGS)
+#LDFLAGS+=-lnative
 LDFLAGS+=-Xlinker -rpath -Xlinker $(shell $(XENOCONFIG) --libdir)
 
 # Installation variables

@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	if (argc > 1) {
-		if (!setUpDisplay()) {
+		if (setUpDisplay()) {
 			result = 1;
 
 			goto main_out;

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <pthread.h>
+//#include <native/cond.h>
 #include <time.h>
 #include <defines.h>
 #include <device.h>
@@ -28,6 +29,9 @@ static int displayDevice;
 static pthread_cond_t isMessageToWriteConditionQueue;
 static pthread_mutex_t writingMessageMutex;
 
+//static RT_COND c;
+//static RT_MUTEX m;
+
 // Real-time worker thread
 static void * runThread(void *argument) {
 	struct timespec time;
@@ -36,31 +40,41 @@ static void * runThread(void *argument) {
 //			.tv_sec = 0
 //	};
 //	unsigned long long elapsedTime;
+	pthread_mutex_lock(&writingMessageMutex);
+//	rt_mutex_acquire(&m, TM_INFINITE);
+//	struct timespec time = {
+//			.tv_sec = 1,
+//			.tv_nsec = 0
+//	};
+//	nanosleep(&time, NULL);
 	while (TRUE) {
-//		int result;
-//		if ((result = pthread_cond_wait(&isMessageToWriteConditionQueue, &writingMessageMutex))) {
+		//printf("***\n");
+		int result;
+		if ((result = pthread_cond_wait(&isMessageToWriteConditionQueue, &writingMessageMutex))) {
+			logErr("[display] Error waiting for message: %s", strerror(result));
+
+			//usleep(10000);
+		}
+//		if ((result = rt_cond_wait(&c, &m, TM_INFINITE)) < 0) {
 //			logErr("[display] Error waiting for message: %s", strerror(result));
-//
-//			usleep(10000);
 //		}
-		pthread_mutex_lock(&writingMessageMutex);
+
 		printf("Going to write message...\n");
 		while (characterToWrite && *characterToWrite) {
-			//printf("%c\n", *characterToWrite);
+			printf("%c\n", *characterToWrite);
 
-			int i;
-			for (i = 0; i < 50; i++) {
+			//int i;
+			//for (i = 0; i < 50; i++) {
 
 				//logInfo("%c", *characterToWrite);
 				//printf("%c\n", *characterToWrite);
-				read(displayDevice, NULL, 0);
+				//read(displayDevice, NULL, 0);
 				clock_gettime(CLOCK_MONOTONIC, &time);
+				printf("time.tv_sec: %ld\n", time.tv_sec);
+				printf("time.tv_nsec: %ld\n", time.tv_nsec);
 
-
-
-
-				write(displayDevice, NULL, 0);
-			}
+				//write(displayDevice, NULL, 0);
+			//}
 
 			characterToWrite++;
 		}
@@ -80,27 +94,32 @@ int setUpDisplay() {
 
 	logInfo("[display] Setting up...");
 
-//	pthread_mutexattr_t mutexAttributes;
-//	pthread_mutexattr_init(&mutexAttributes);
-	if ((result = pthread_mutex_init(&writingMessageMutex, NULL))) {
+	pthread_mutexattr_t mutexAttributes;
+	pthread_mutexattr_init(&mutexAttributes);
+	pthread_mutexattr_setprotocol(&mutexAttributes, PTHREAD_PRIO_INHERIT);
+	if ((result = pthread_mutex_init(&writingMessageMutex, &mutexAttributes))) {
 		logErr("[display] Error initializing mutex: %s", strerror(result));
 
 		goto setUpDisplay_out;
 	}
-	pthread_mutex_lock(&writingMessageMutex);
+
+//	rt_mutex_create(&m, "m");
+
 	if ((result = pthread_cond_init(&isMessageToWriteConditionQueue, NULL))) {
 		logErr("[display] Error initializing condition queue: %s", strerror(result));
 
 		goto setUpDisplay_out;
 	}
 
-	if ((displayDevice = open("yacm-rt-model-display", O_RDONLY)) >= 0) {
+//	rt_cond_create(&c, "c");
+
+	if ((displayDevice = open("rt-model-display", O_RDONLY)) >= 0) {
 		logInfo("[display] Display device opened (file descriptor: %d)", displayDevice);
 	} else {
-		logErr("[display] Error opening display device: %s", strerror(errno));
-		result = 1;
+		//logErr("[display] Error opening display device: %s", strerror(errno));
+		//result = 1;
 
-		goto setUpDisplay_out;
+		//goto setUpDisplay_out;
 	}
 
 	pthread_attr_t threadAttributes;
@@ -116,12 +135,15 @@ int setUpDisplay() {
 
 		goto setUpDisplay_out;
 	}
+#ifdef __XENO__
+    pthread_set_name_np(workerThread, "worker");
+#endif
 
 	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "20", wrm_replace, FALSE)) {
-		logErr("[display] Error starting motor!");
-		result = 1;
+		//logErr("[display] Error starting motor!");
+		//result = 1;
 
-		goto setUpDisplay_out;
+		//goto setUpDisplay_out;
 	}
 
 	isSetUp = TRUE;
@@ -139,6 +161,10 @@ void writeDisplay(char *newMessage) {
 
 	printf(">>> %s <<<\n", newMessage);
 
+//	pthread_mutex_lock(&writingMessageMutex);
+
+	logInfo("Triggering worker thread...");
+
 	//TODO Add synchronization with (real-time) worker thread
 	if (message) {
 		free(message);
@@ -148,7 +174,7 @@ void writeDisplay(char *newMessage) {
 		memcpy(message, newMessage, newMessageLength + 1);
 		characterToWrite = message;
 
-		pthread_mutex_unlock(&writingMessageMutex);
+		//pthread_mutex_unlock(&writingMessageMutex);
 //		int result;
 //		if ((result = pthread_cond_signal(&isMessageToWriteConditionQueue))) {
 //			logErr("[display] Error signaling worker thread: %s", strerror(result));
@@ -156,6 +182,8 @@ void writeDisplay(char *newMessage) {
 	} else {
 		logErr("[display] Error copying message: %s", strerror(errno));
 	}
+
+//	pthread_mutex_unlock(&writingMessageMutex);
 }
 
 void joinDisplay() {
