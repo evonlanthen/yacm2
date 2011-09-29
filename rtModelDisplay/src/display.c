@@ -105,7 +105,10 @@ int setUpDisplay() {
 
 //	rt_mutex_create(&m, "m");
 
-	if ((result = pthread_cond_init(&isMessageToWriteConditionQueue, NULL))) {
+	pthread_condattr_t conditionQueueAttributes;
+	pthread_condattr_init(&conditionQueueAttributes);
+	pthread_condattr_setpshared(&conditionQueueAttributes, PTHREAD_PROCESS_SHARED);
+	if ((result = pthread_cond_init(&isMessageToWriteConditionQueue, &conditionQueueAttributes))) {
 		logErr("[display] Error initializing condition queue: %s", strerror(result));
 
 		goto setUpDisplay_out;
