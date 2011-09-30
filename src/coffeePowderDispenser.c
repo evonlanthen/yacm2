@@ -19,6 +19,7 @@
 #include "stateMachineEngine.h"
 
 #define POWER_MAX 99
+#define FLASH_MAX 255
 #define POTENTIOMETER_MAX 1011
 
 typedef enum {
@@ -77,6 +78,17 @@ static int setMotor(int power) {
 		char powerAsString[3];
 		snprintf(powerAsString, 3, "%d", power);
 		writeNonBlockingDevice("/dev/coffeeGrinderMotor", powerAsString, wrm_replace, FALSE);
+		/*
+		 * adjust flash value as well, calculate it from power:
+		 * power=0 => flash=200
+		 * power=99 => flash=101
+		 * TODO: the steps might be to big, adjust step!
+		 */
+		int step = 100;
+		int flash = (FLASH_MAX - 55) /* set max value to 200 */ - (power * step / 100);
+		char flashAsString[4];
+		snprintf(flashAsString, 4, "%d", flash);
+		writeNonBlockingDevice("/dev/coffeeGrinderSPI", flashAsString, wrm_replace, FALSE);
 	}
 
 	return currentPower;
