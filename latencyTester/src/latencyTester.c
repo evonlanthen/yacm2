@@ -32,7 +32,6 @@ static pthread_mutex_t writingMessageMutex;
 
 // Real-time worker thread
 static void * runThread(void *argument) {
-	struct timespec time;
 	pthread_mutex_lock(&writingMessageMutex);
 	while (TRUE) {
 		read(displayDevice, NULL, 0);
@@ -160,10 +159,12 @@ void tearDownDisplay() {
 	}
 }
 
+/*
 static void handleCtrlC(int sig)
 {
 	// Do nothing here
 }
+*/
 
 int main(int argc, char **argv) {
 	int result = 0;
@@ -174,13 +175,11 @@ int main(int argc, char **argv) {
 			result = 1;
 
 			goto main_out;
-		}
-
-		writeDisplay(argv[1]);
-		joinDisplay();
-
-		tearDownDisplay();
 	}
+	writeDisplay(argv[1]);
+	joinDisplay();
+
+	tearDownDisplay();
 main_out:
 	return result;
 }
