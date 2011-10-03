@@ -17,12 +17,12 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Toni Baumann, Ronny Stauffer, Elmar Vonlanthen");
-MODULE_DESCRIPTION("Latency tester ISR");
+MODULE_DESCRIPTION("Latency tester kthread");
 
-#define MODULE_LABEL "LatencyTesterISR"
+#define MODULE_LABEL "LatencyTesterKthread"
 
-#define TEST_ISR
-//#define TEST_KERNEL_THREAD
+//#define TEST_ISR
+#define TEST_KERNEL_THREAD
 //#define TEST_USER_THREAD
 
 /**
