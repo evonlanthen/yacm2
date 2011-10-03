@@ -18,20 +18,13 @@
 #include <device.h>
 #include <log.h>
 
-//#define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
 #define LATENCY_TESTER_DEVICE_FILE "latencyTester"
 
 static pthread_t workerThread;
-
 static int latencyTesterDevice;
-
-//static pthread_cond_t isMessageToWriteConditionQueue;
-//static pthread_mutex_t writingMessageMutex;
 
 // Real-time worker thread
 static void * runThread(void *argument) {
-	//char buffer[256];
-	//pthread_mutex_lock(&writingMessageMutex);
 	while (TRUE) {
 		read(latencyTesterDevice, NULL, 0);
 		write(latencyTesterDevice, NULL, 0);
@@ -47,25 +40,6 @@ int setUpLatencyTester() {
 
 	logInfo("[latencyTester] Setting up...");
 
-	/*
-	pthread_mutexattr_t mutexAttributes;
-	pthread_mutexattr_init(&mutexAttributes);
-	pthread_mutexattr_setprotocol(&mutexAttributes, PTHREAD_PRIO_INHERIT);
-	if ((result = pthread_mutex_init(&writingMessageMutex, &mutexAttributes))) {
-		logErr("[latencyTester] Error initializing mutex: %s", strerror(result));
-
-		goto setUpLatencyTester_out;
-	}
-
-	pthread_condattr_t conditionQueueAttributes;
-	pthread_condattr_init(&conditionQueueAttributes);
-	pthread_condattr_setpshared(&conditionQueueAttributes, PTHREAD_PROCESS_SHARED);
-	if ((result = pthread_cond_init(&isMessageToWriteConditionQueue, &conditionQueueAttributes))) {
-		logErr("[latencyTester] Error initializing condition queue: %s", strerror(result));
-
-		goto setUpLatencyTester_out;
-	}
-	*/
 	if ((latencyTesterDevice = open(LATENCY_TESTER_DEVICE_FILE, O_RDWR)) >= 0) {
 		logInfo("[latencyTester] LatencyTester device opened (file descriptor: %d)", latencyTesterDevice);
 	}
@@ -87,9 +61,6 @@ int setUpLatencyTester() {
     pthread_set_name_np(workerThread, "worker");
 #endif
 
-	//if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "20", wrm_replace, FALSE)) {
-	//}
-
 	isSetUp = TRUE;
 
 setUpLatencyTester_out:
@@ -103,15 +74,8 @@ void tearDownLatencyTester() {
 
 	logInfo("[latencyTester] Tearing down...");
 
-	//if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "0", wrm_replace, FALSE)) {
-	//	logErr("[latencyTester] Error stopping motor!");
-	//}
-
 	pthread_cancel(workerThread);
 	pthread_join(workerThread, NULL);
-
-	//pthread_cond_destroy(&isMessageToWriteConditionQueue);
-	//pthread_mutex_destroy(&writingMessageMutex);
 
 	close(latencyTesterDevice);
 }
