@@ -12,7 +12,6 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <rtdm_driver.h>
-//#include <native/timer.h>
 #include <mach/pxa2xx-regs.h>
 
 MODULE_LICENSE("GPL");
@@ -80,12 +79,9 @@ static struct gpio latencyTesterGpios[] = {
 	{ GPIO_SPICS, GPIOF_OUT_INIT_HIGH, "SPICS" },		/* SPI CS (GPIO 22): Output, default high */
 };
 
-//static int open(struct inode *inode, struct file *file);
 static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, int oflag);
 static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, void *buffer, size_t size);
-//static ssize_t write(struct file *file, const char __user *buffer, size_t length, loff_t *offset);
 static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, const void *buffer, size_t size);
-//static int close(struct inode *inode, struct file *file);
 static int close(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo);
 
 static rtdm_mutex_t mutex;
@@ -97,8 +93,6 @@ static rtdm_irq_t interrupt;
 #endif
 static int isDeviceSetUp = 0;
 static int isInterruptSetUp = 0;
-//struct timespec startTime = NULL;
-//struct timespec stopTime = NULL;
 
 /**
  *******************************************************************************
@@ -128,37 +122,6 @@ static void __init setGpioFunction(int gpio, int mode) {
 	local_irq_restore(flags);
 }
 
-/*
-struct timespec timeDiff(struct timespec x, struct timespec y) {
-	struct timespec result;
-	int xsec;
-	int sign = 1;
-
-	if ( y.tv_nsec > x.tv_nsec ) {
-		xsec = (int)((y.tv_nsec - x.tv_nsec) / (1E9 + 1));
-		y.tv_nsec -= (long int)(1E9 * xsec);
-		y.tv_sec += xsec;
-	}
-
-	if ( (x.tv_nsec - y.tv_nsec) > 1E9 ) {
-		xsec = (int)((x.tv_nsec - y.tv_nsec) / 1E9);
-		y.tv_nsec += (long int)(1E9 * xsec);
-		y.tv_sec -= xsec;
-	}
-
-	result.tv_sec = x.tv_sec - y.tv_sec;
-	result.tv_nsec = x.tv_nsec - y.tv_nsec;
-
-	if (x.tv_sec < y.tv_sec) {
-		sign = -1;
-	}
-
-	result.tv_sec = result.tv_sec * sign;
-
-	return result;
-}
-*/
-
 /**
  *******************************************************************************
  * Main functions
@@ -166,14 +129,12 @@ struct timespec timeDiff(struct timespec x, struct timespec y) {
  */
 
 static irqreturn_t interruptHandlerDummy(int irq, void *deviceId) {
-	//clock_gettime(CLOCK_MONOTONIC, startTime);
 	return IRQ_HANDLED;
 }
 
 #ifdef TEST_KERNEL_THREAD
 void taskProcedure() {
 	while(1) {
-	//printk(KERN_INFO "grinder thread handler\n");
 		rtdm_event_wait(&interruptEvent);
 		gpio_set_value(GPIO_TRIGGER, HIGH);
 		gpio_set_value(GPIO_TRIGGER, LOW);
@@ -182,11 +143,9 @@ void taskProcedure() {
 #endif
 
 static int interruptHandler(rtdm_irq_t *interrupt) {
-	//clock_gettime(CLOCK_MONOTONIC, startTime);
 #ifdef TEST_ISR
 	gpio_set_value(GPIO_TRIGGER, HIGH);
 	gpio_set_value(GPIO_TRIGGER, LOW);
-	//clock_gettime(CLOCK_MONOTONIC, stopTime);
 #elif defined(TEST_KERNEL_THREAD)
 	rtdm_event_signal(&interruptEvent);
 #elif defined(TEST_USER_THREAD)
@@ -201,12 +160,6 @@ static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, in
 
 static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, void *buffer, size_t size) {
 	ssize_t result = 0;
-	/*struct timespec diff;
-
-	if (startTime && stopTime) {
-		diff = timeDiff(startTime, stopTime);
-		rtdm_printk(KERN_INFO MODULE_LABEL "DiffValue: %ld.%ld\n", diff.tv_sec, diff.tv_nsec);
-	}*/
 
 #ifdef TEST_USER_THREAD
 	rtdm_event_wait(&interruptEvent);
@@ -220,7 +173,6 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 
 	gpio_set_value(GPIO_TRIGGER, HIGH);
 	gpio_set_value(GPIO_TRIGGER, LOW);
-	//clock_gettime(CLOCK_MONOTONIC, stopTime);
 
 	return result;
 }
@@ -237,7 +189,7 @@ static struct rtdm_device latencyTesterDevice = {
 	.open_nrt = open,
 	.ops = {
 		.read_rt = read,
-		.write_nrt = write,
+		.write_rt = write,
 		.close_nrt = close
 	},
 	.device_class = RTDM_CLASS_EXPERIMENTAL,

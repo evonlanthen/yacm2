@@ -18,8 +18,8 @@
 #include <device.h>
 #include <log.h>
 
-#define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
-#define LATENCY_TESTER_DEVICE_FILE "/dev/coffeeGrinderMotor"
+//#define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
+#define LATENCY_TESTER_DEVICE_FILE "latencyTester"
 
 static pthread_t workerThread;
 
@@ -30,12 +30,11 @@ static int latencyTesterDevice;
 
 // Real-time worker thread
 static void * runThread(void *argument) {
-	char buffer[256];
+	//char buffer[256];
 	//pthread_mutex_lock(&writingMessageMutex);
 	while (TRUE) {
-		read(latencyTesterDevice, buffer, 256);
+		read(latencyTesterDevice, NULL, 0);
 		write(latencyTesterDevice, NULL, 0);
-		printf("latency values: %s\n", buffer);
 	}
 
 	return NULL;
@@ -88,8 +87,8 @@ int setUpLatencyTester() {
     pthread_set_name_np(workerThread, "worker");
 #endif
 
-	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "20", wrm_replace, FALSE)) {
-	}
+	//if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "20", wrm_replace, FALSE)) {
+	//}
 
 	isSetUp = TRUE;
 
@@ -104,9 +103,9 @@ void tearDownLatencyTester() {
 
 	logInfo("[latencyTester] Tearing down...");
 
-	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "0", wrm_replace, FALSE)) {
-		logErr("[latencyTester] Error stopping motor!");
-	}
+	//if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "0", wrm_replace, FALSE)) {
+	//	logErr("[latencyTester] Error stopping motor!");
+	//}
 
 	pthread_cancel(workerThread);
 	pthread_join(workerThread, NULL);

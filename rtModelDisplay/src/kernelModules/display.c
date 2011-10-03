@@ -216,8 +216,7 @@ static struct rtdm_device displayDevice = {
 	.open_nrt = open,
 	.ops = {
 		.read_rt = read,
-		.write_nrt = write,
-		// .write_rt = ...
+		.write_rt = write,
 		.close_nrt = close
 	},
 	.device_class = RTDM_CLASS_EXPERIMENTAL,
