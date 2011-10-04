@@ -21,8 +21,8 @@
 #define NANOSECONDS_PER_SECOND 1000000000
 
 //#define NO_DISPLAY
-//#define APPLICATION_LOGIC
-#define DEVICE_DRIVER_LOGIC
+#define APPLICATION_LOGIC
+//#define DEVICE_DRIVER_LOGIC
 
 #define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
 
@@ -49,11 +49,11 @@ static RT_EVENT events;
 static void * runThread(void *argument) {
 	struct timespec blankTime = {
 			.tv_sec = 0,
-			.tv_nsec = NANOSECONDS_PER_SECOND / 5
+			.tv_nsec = NANOSECONDS_PER_SECOND / 2 / 5
 	};
 	struct timespec showCharacterTime = {
-			.tv_sec = 1,
-			.tv_nsec = 0
+			.tv_sec = 0,
+			.tv_nsec = NANOSECONDS_PER_SECOND / 2
 	};
 
 	struct timespec previousTime = {
@@ -103,7 +103,7 @@ static void * runThread(void *argument) {
 			}
 
 #if defined(APPLICATION_LOGIC) || defined(DEVICE_DRIVER_LOGIC)
-			unsigned char imageIndex = 0;
+			signed char imageIndex = 0;
 			if (isCharacter) {
 				if (*c == ' ') {
 					imageIndex = BLANK_IMAGE_INDEX;

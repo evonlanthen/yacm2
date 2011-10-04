@@ -196,7 +196,7 @@ static void taskletHandler(unsigned long data) {
 #endif /* STROBE_SUPPORT */
 
 static int grinderOpen(struct inode *inode, struct file *file) {
-	printk(KERN_INFO "grinderOpen: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
+	//printk(KERN_INFO "grinderOpen: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
 	return 0;
 }
 
@@ -278,7 +278,7 @@ static ssize_t grinderWrite(struct file *filePointer, const char __user *buffer,
 	} else {
 		/* set speed: */
 		if (value >= 0 && value < 100) {
-			printk(KERN_INFO "grinderWrite: setting pwm3 value to %d\n", value);
+			//printk(KERN_INFO "grinderWrite: setting pwm3 value to %d\n", value);
 			motorPower = value;
 			PWMDCR3 = value;
 		} else {
@@ -296,7 +296,7 @@ grinderWrite_out:
 }
 
 static int grinderRelease(struct inode *inode, struct file *file) {
-	printk(KERN_INFO "grinderRelease: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
+	//printk(KERN_INFO "grinderRelease: process is \"%s\" (pid: %i)\n", current->comm, current->pid);
 	return 0;
 }
 
