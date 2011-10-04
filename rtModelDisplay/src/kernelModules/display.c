@@ -97,6 +97,8 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 static int close(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo);
 
 static rtdm_mutex_t mutex;
+static unsigned char imageIndex;
+static unsigned char channelCounter;
 
 /**
  *******************************************************************************
@@ -142,16 +144,30 @@ static int handleIndexInterrupt(rtdm_irq_t *interrupt) {
 	//rtdm_printk("Index interrupt occured!\n");
 
 	rtdm_event_signal(&indexInterruptEvent);
+	rtdm_mutex_lock(&mutex);
+	channelCounter = 0;
+	rtdm_mutex_unlock(&mutex);
 
 	return RTDM_IRQ_HANDLED;
 }
 
 static int handleChannelInterrupt(rtdm_irq_t *interrupt) {
+	int triggered = 0;
 	//rtdm_printk("Channel interrupt occured!\n");
+	rtdm_mutex_lock(&mutex);
+	channelCounter++;
+	if (channelCounter == imageIndex) {
+		triggered = 1;
+	}
+	rtdm_mutex_unlock(&mutex);
+	if (triggered) {
+		rtdm_printk("Disk position reached!\n");
+		// Trigger stroboscope
+		gpio_set_value(GPIO_TRIGGER, HIGH);
+		gpio_set_value(GPIO_TRIGGER, LOW);
+	}
 
-	// Trigger stroboscope
-//	gpio_set_value(GPIO_TRIGGER, HIGH);
-//	gpio_set_value(GPIO_TRIGGER, LOW);
+
 
 	return RTDM_IRQ_HANDLED;
 }
@@ -206,13 +222,17 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 		unsigned char _imageIndex = 0;
 		if (!copy_from_user(&_imageIndex, buffer, 1)) {
 			// Critical section:
-//			if (rtdm_mutex_lock(&mutex)) {
-//				// Error handling...
-//			}
+			if (rtdm_mutex_lock(&mutex)) {
+				printk(KERN_WARNING MODULE_LABEL "Failed locking mutex!");
+				goto write_lockError;
+			}
 
-//			imageIndex = _imageIndex;
+			imageIndex = _imageIndex;
+			if (imageIndex > 36) {
+				imageIndex = 0;
+			}
 
-//			rtdm_mutex_unlock(&mutex);
+			rtdm_mutex_unlock(&mutex);
 		} else {
 			printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
 			result = /* Error copying data! */ -EFAULT;
@@ -341,6 +361,7 @@ static int __init initDisplay(void) {
 		goto initDisplay_error;
 	}
 	isIndexInterruptSetUp = 1;
+
 
 	int channelInterruptNumber = gpio_to_irq(GPIO_CHANNEL_A);
 	rtdm_printk("Channel interrupt number: %d\n", channelInterruptNumber);
