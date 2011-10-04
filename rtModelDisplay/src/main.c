@@ -13,6 +13,7 @@
 #include <activity.h>
 #include "rtModelDisplay.h"
 #include "display.h"
+#include "log.h"
 
 static void handleCtrlC(int sig)
 {
@@ -31,7 +32,17 @@ int main(int argc, char **argv) {
 			goto main_out;
 		}
 
+		sleep(1);
+
+		logInfo("Going to write message to display...");
 		writeDisplay(argv[1]);
+
+//		sleep(3);
+//
+//		writeDisplay("Bye!");
+//
+//		sleep(3);
+
 		joinDisplay();
 
 		tearDownDisplay();
@@ -50,4 +61,3 @@ int main(int argc, char **argv) {
 main_out:
 	return result;
 }
-

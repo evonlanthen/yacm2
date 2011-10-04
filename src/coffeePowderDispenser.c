@@ -504,7 +504,7 @@ static void setUpMotorController(void *activityarg) {
 static void runMotorController(void *activity) {
 	//logInfo("[motorController] Running...");
 
-	int previousMotorPower = 0;
+	int previousMotorPower = -1;
 
 	while (TRUE) {
 		//logInfo("[motorController] Going to receive message...");
@@ -519,7 +519,9 @@ static void runMotorController(void *activity) {
 				break;
 			case MOTOR_STOP_COMMAND:
 				//setMotor(0);
-				setMotor(previousMotorPower);
+				if (previousMotorPower != -1) {
+					setMotor(previousMotorPower);
+				}
 				break;
 		}
 	}
