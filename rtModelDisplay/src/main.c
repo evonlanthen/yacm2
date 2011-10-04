@@ -39,9 +39,7 @@ int main(int argc, char **argv) {
 
 //		sleep(3);
 //
-//		writeDisplay("Bye!");
-//
-//		sleep(3);
+//		writeDisplay("A message");
 
 		joinDisplay();
 

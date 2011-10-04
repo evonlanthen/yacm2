@@ -139,7 +139,7 @@ static irqreturn_t interruptHandlerDummy(int irq, void *deviceId) {
 static rtdm_event_t indexInterruptEvent;
 
 static int handleIndexInterrupt(rtdm_irq_t *interrupt) {
-	rtdm_printk("Index interrupt occured!\n");
+	//rtdm_printk("Index interrupt occured!\n");
 
 	rtdm_event_signal(&indexInterruptEvent);
 
