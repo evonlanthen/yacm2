@@ -56,6 +56,8 @@ MODULE_DESCRIPTION("RT-Model display");
 
 // GPIO numbers
 #define GPIO_INDEX			35
+#define GPIO_CHANNEL_A		36
+#define GPIO_CHANNEL_B		37
 #define GPIO_TRIGGER		16
 #define GPIO_SSPSCLK		23
 #define GPIO_SSPSFRM		24
@@ -76,6 +78,8 @@ MODULE_DESCRIPTION("RT-Model display");
 // Display GPIOS
 static struct gpio displayGpios[] = {
 	{ GPIO_INDEX, GPIOF_IN, "INDEX" },					/* INDEX (GPIO 35): Input */
+	{ GPIO_CHANNEL_A, GPIOF_IN, "CHANNEL_A" },			/* CHANNEL_A (GPIO 36): Input */
+	{ GPIO_CHANNEL_B, GPIOF_IN, "CHANNEL_B" },			/* CHANNEL_B (GPIO 37): Input */
 	{ GPIO_TRIGGER, GPIOF_OUT_INIT_LOW, "TRIGGER" },	/* TRIGGER (GPIO 16): Output, default low */
 	{ GPIO_SSPSCLK, GPIOF_OUT_INIT_LOW, "SSPSCLK" },	/* SSPSCLK (GPIO 23): Alternate Function 2 Output */
 	{ GPIO_SSPSFRM, GPIOF_OUT_INIT_LOW, "SSPSFRM" },	/* SSPSFRM (GPIO 24): Alternate Function 2 Output */
@@ -93,6 +97,8 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 static int close(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo);
 
 static rtdm_mutex_t mutex;
+static unsigned char imageIndex;
+static unsigned char channelCounter;
 
 /**
  *******************************************************************************
@@ -132,15 +138,36 @@ static irqreturn_t interruptHandlerDummy(int irq, void *deviceId) {
 	return IRQ_HANDLED;
 }
 
-static rtdm_event_t interruptEvent;
+static rtdm_event_t indexInterruptEvent;
 
-static int interruptHandler(rtdm_irq_t *interrupt) {
-	//rtdm_printk("Interrupt occured!\n");
+static int handleIndexInterrupt(rtdm_irq_t *interrupt) {
+	//rtdm_printk("Index interrupt occured!\n");
 
-	//gpio_set_value(GPIO_TRIGGER, HIGH);
-	//gpio_set_value(GPIO_TRIGGER, LOW);
+	rtdm_event_signal(&indexInterruptEvent);
+	rtdm_mutex_lock(&mutex);
+	channelCounter = 0;
+	rtdm_mutex_unlock(&mutex);
 
-	rtdm_event_signal(&interruptEvent);
+	return RTDM_IRQ_HANDLED;
+}
+
+static int handleChannelInterrupt(rtdm_irq_t *interrupt) {
+	int triggered = 0;
+	//rtdm_printk("Channel interrupt occured!\n");
+	rtdm_mutex_lock(&mutex);
+	channelCounter++;
+	if (channelCounter == imageIndex) {
+		triggered = 1;
+	}
+	rtdm_mutex_unlock(&mutex);
+	if (triggered) {
+		rtdm_printk("Disk position reached!\n");
+		// Trigger stroboscope
+		gpio_set_value(GPIO_TRIGGER, HIGH);
+		gpio_set_value(GPIO_TRIGGER, LOW);
+	}
+
+
 
 	return RTDM_IRQ_HANDLED;
 }
@@ -154,7 +181,7 @@ static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, in
 
 static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, void *buffer, size_t size) {
 	// Wait for interrupt...
-	rtdm_event_wait(&interruptEvent);
+	rtdm_event_wait(&indexInterruptEvent);
 
 	return 0;
 }
@@ -188,8 +215,31 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 //		goto write_copyError;
 //	}
 
-	gpio_set_value(GPIO_TRIGGER, HIGH);
-	gpio_set_value(GPIO_TRIGGER, LOW);
+	if (size == 0) {
+		gpio_set_value(GPIO_TRIGGER, HIGH);
+		gpio_set_value(GPIO_TRIGGER, LOW);
+	} else {
+		unsigned char _imageIndex = 0;
+		if (!copy_from_user(&_imageIndex, buffer, 1)) {
+			// Critical section:
+			if (rtdm_mutex_lock(&mutex)) {
+				printk(KERN_WARNING MODULE_LABEL "Failed locking mutex!");
+				goto write_lockError;
+			}
+
+			imageIndex = _imageIndex;
+			if (imageIndex > 36) {
+				imageIndex = 0;
+			}
+
+			rtdm_mutex_unlock(&mutex);
+		} else {
+			printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
+			result = /* Error copying data! */ -EFAULT;
+
+			goto write_copyError;
+		}
+	}
 
 	goto write_out;
 
@@ -229,10 +279,38 @@ static struct rtdm_device displayDevice = {
 	.proc_name = displayDevice.device_name
 };
 
+static int requestInterrupt(rtdm_irq_t *interrupt, int interruptNumber, int (*interruptHandler)(rtdm_irq_t *interrupt)) {
+	int result = 0;
+
+	if ((result = request_irq(interruptNumber,
+			interruptHandlerDummy,
+			IRQF_TRIGGER_RISING,
+			"INDEX",
+			(void *)0))) {
+		goto requestInterrupt_error;
+	}
+	free_irq(interruptNumber, (void *)0);
+
+	if ((result = rtdm_irq_request(interrupt,
+			interruptNumber,
+			interruptHandler,
+			0,
+			"INDEX",
+			(void *)0))) {
+		goto requestInterrupt_error;
+	}
+
+requestInterrupt_error:
+
+	return result;
+}
+
 static int isDisplayDeviceSetUp = 0;
 
-static int isInterruptSetUp = 0;
-static rtdm_irq_t interrupt;
+static int isIndexInterruptSetUp = 0;
+static rtdm_irq_t indexInterrupt;
+static int isChannelInterruptSetUp = 0;
+static rtdm_irq_t channelInterrupt;
 
 static void __exit exitDisplay(void);
 
@@ -273,39 +351,26 @@ static int __init initDisplay(void) {
 	  
 	rtdm_lock_irqrestore(flags);
 
-	rtdm_event_init(&interruptEvent, 0);
+	rtdm_event_init(&indexInterruptEvent, 0);
 
-//	if ((result = request_irq(gpio_to_irq(GPIO_INDEX),
-//			interruptHandler,
-//			IRQF_TRIGGER_RISING,
-//			"INDEX",
-//			(void *)0))) {
-	int irqNumber = gpio_to_irq(GPIO_INDEX);
-	rtdm_printk("Interrupt number: %d\n", irqNumber);
-
-	if ((result = request_irq(irqNumber,
-			interruptHandlerDummy,
-			IRQF_TRIGGER_RISING,
-			"INDEX",
-			(void *)0))) {
-		goto initDisplay_error;
-	}
-	free_irq(irqNumber, (void *)0);
-
-	if ((result = rtdm_irq_request(&interrupt,
-			irqNumber,
-			interruptHandler,
-			0,
-			"INDEX",
-			(void *)0))) {
-		rtdm_printk(KERN_WARNING MODULE_LABEL "Error requesting display index GPIO interrupt!\n");
+	int indexInterruptNumber = gpio_to_irq(GPIO_INDEX);
+	rtdm_printk("Index interrupt number: %d\n", indexInterruptNumber);
+	if ((result = requestInterrupt(&indexInterrupt, indexInterruptNumber, handleIndexInterrupt))) {
+		rtdm_printk(KERN_WARNING MODULE_LABEL "Error requesting index GPIO interrupt!\n");
 
 		goto initDisplay_error;
 	}
-//	if ((result = rtdm_irq_enable(&interrupt))) {
-//		rtdm_printk(KERN_WARNING MODULE_LABEL "Error enabling display index GPIO interrupt!\n");
-//	}
-	isInterruptSetUp = 1;
+	isIndexInterruptSetUp = 1;
+
+
+	int channelInterruptNumber = gpio_to_irq(GPIO_CHANNEL_A);
+	rtdm_printk("Channel interrupt number: %d\n", channelInterruptNumber);
+	if ((result = requestInterrupt(&channelInterrupt, channelInterruptNumber, handleChannelInterrupt))) {
+		rtdm_printk(KERN_WARNING MODULE_LABEL "Error requesting channel GPIO interrupt!\n");
+
+		goto initDisplay_error;
+	}
+	isChannelInterruptSetUp = 1;
 	
 	if ((result = rtdm_dev_register(&displayDevice))) {
 		printk(KERN_WARNING MODULE_LABEL "Error registering display device!\n");
@@ -332,12 +397,14 @@ static void __exit exitDisplay(void) {
 		rtdm_dev_unregister(&displayDevice, 0);
 	}
 
-	if (isInterruptSetUp) {
-		//free_irq(gpio_to_irq(GPIO_INDEX), (void *)0);
-		rtdm_irq_free(&interrupt);
+	if (isIndexInterruptSetUp) {
+		rtdm_irq_free(&indexInterrupt);
+	}
+	if (isChannelInterruptSetUp) {
+		rtdm_irq_free(&channelInterrupt);
 	}
 
-	rtdm_event_destroy(&interruptEvent);
+	rtdm_event_destroy(&indexInterruptEvent);
 
 	gpio_free_array(displayGpios, ARRAY_SIZE(displayGpios));
 

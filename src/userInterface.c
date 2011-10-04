@@ -170,7 +170,7 @@ static void runUserInterface(void *activity) {
 	//sendRequest_BEGIN(this, RtModelDisplay, ShowMessageCommand)
 	//	.message = "Starting yacm2..."
 	//sendRequest_END
-	showActivity("Starting yacm2...");
+	showActivity("Starting yacm...");
 
 	// initially read switches states and process event:
 	//logInfo("[userInterface] Checking initial switches states...");
