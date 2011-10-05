@@ -25,6 +25,12 @@
 
 #include <mach/pxa2xx-regs.h>
 
+#define MIN(a, b) \
+	(a < b ? a : b)
+
+#define MAX(a, b) \
+	(a > b ? a : b)
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Toni Baumann, Ronny Stauffer, Elmar Vonlanthen");
 MODULE_DESCRIPTION("RT-Model display");
@@ -142,6 +148,9 @@ static irqreturn_t interruptHandlerDummy(int irq, void *deviceId) {
 	return IRQ_HANDLED;
 }
 
+static nanosecs_abs_t previousTime = 0;;
+static nanosecs_abs_t time;
+
 static rtdm_event_t indexInterruptEvent;
 
 static int handleIndexInterrupt(rtdm_irq_t *interrupt) {
@@ -149,12 +158,34 @@ static int handleIndexInterrupt(rtdm_irq_t *interrupt) {
 
 	rtdm_event_signal(&indexInterruptEvent);
 
+	int strobeDuration = 0;
+	time = rtdm_clock_read_monotonic();
+	if (previousTime) {
+		nanosecs_abs_t _deltaTime = time - previousTime;
+
+		unsigned int deltaTime;
+		if (_deltaTime < UINT_MAX) {
+			deltaTime = (unsigned int)_deltaTime;
+		} else {
+			deltaTime = UINT_MAX;
+		}
+
+		unsigned char roundsPerSecond = MIN(MAX((1000000000 / deltaTime), 10), 100);
+
+		strobeDuration = 255 - (180 * roundsPerSecond / 100);
+	}
+	previousTime = time;
+
 	rtdm_lock_get_irqsave(&lock, lockContext);
+
+	SSDR_P1 = strobeDuration;
+
 	channelCounter = 0;
 	int triggered = 0;
 	if (channelCounter == imageIndex) {
 		triggered = 1;
 	}
+
 	rtdm_lock_put_irqrestore(&lock, lockContext);
 
 	if (triggered) {

@@ -21,8 +21,8 @@
 #define NANOSECONDS_PER_SECOND 1000000000
 
 //#define NO_DISPLAY
-//#define APPLICATION_LOGIC
-#define DEVICE_DRIVER_LOGIC
+#define APPLICATION_LOGIC
+//#define DEVICE_DRIVER_LOGIC
 
 #define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
 #define DISPLAY_DEVICE "rt-model-display"
