@@ -12,19 +12,26 @@ Authors:
 
 ================================================================================
 
-Build and installation for CARME board:
-	$ make 
-
 Requirements for build:
 - User has sudo rights
 - Rootfs of CARME board is mounted on /carme/rootfs
+- KDIR is /carme/kernel/linux-2.6.35.9-adeos-ipipe-1.18-01-CARME/
+
+Build and installation for CARME board:
+	$ make
+	$ cd rtModelDisplay/
+	$ make
+	$ cd ../latencyTester/
+	$ make 
 
 Running yacm2 on CARME board:
 	# cd /root
 	# insmod ./grinder.ko
 	# insmod ./hmi.ko
+	# insmod ./display.ko
+	# ./yacm-rt-model-display		
 	# ./yacm
 
-Stopping yacm2:
+Stopping yacm and yacm-rt-model-display:
 	Press CTRL+C
 
