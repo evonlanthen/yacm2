@@ -25,12 +25,19 @@ Build and installation for CARME board:
 	$ make 
 
 Running yacm2 on CARME board:
-	# cd /root
-	# insmod ./grinder.ko
-	# insmod ./hmi.ko
-	# insmod ./display.ko
-	# ./yacm-rt-model-display		
-	# ./yacm
+	- Load modules and execute binaries:
+	  # cd /root
+	  # insmod ./grinder.ko
+	  # insmod ./hmi.ko
+	  # insmod ./display.ko
+	  # ./yacm-rt-model-display		
+	  # ./yacm
+	- Prepare sensors:
+	  # echo 0 > dev/coffeePowderDispenser
+	- Power on coffee machine by using switch S7
+	- Select coffee product 1 with button T0
+	- Signal grinding end with:
+	  # echo 1 > dev/coffeePowderDispenser
 
 Stopping yacm and yacm-rt-model-display:
 	Press CTRL+C
