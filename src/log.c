@@ -14,17 +14,23 @@
 #include <syslog.h>
 #include "log.h"
 
+#undef LOG_SYSLOG
+
 int setUpSyslog(void) {
+#ifdef LOG_SYSLOG
 	openlog("yacm2", LOG_PID|LOG_CONS, LOG_USER);
+#endif
 	return 0;
 }
 
 void logInfo(const char *str, ...) {
 	va_list ap;
 	/* print to sylog: */
+#ifdef LOG_SYSLOG
 	va_start(ap, str);
 	vsyslog(LOG_INFO, str, ap);
 	va_end(ap);
+#endif
 #ifdef DEBUG
 	/* print to stdout as well: */
 	printf("LogInfo: ");
@@ -38,9 +44,11 @@ void logInfo(const char *str, ...) {
 void logWarn(const char *str, ...) {
 	va_list ap;
 	/* print to sylog: */
+#ifdef LOG_SYSLOG
 	va_start(ap, str);
 	vsyslog(LOG_WARNING, str, ap);
 	va_end(ap);
+#endif
 #ifdef DEBUG
 	/* print to stdout as well: */
 	printf("LogWarn: ");
@@ -54,9 +62,11 @@ void logWarn(const char *str, ...) {
 void logErr(const char *str, ...) {
 	va_list ap;
 	/* print to sylog: */
+#ifdef LOG_SYSLOG
 	va_start(ap, str);
 	vsyslog(LOG_ERR, str, ap);
 	va_end(ap);
+#endif
 #ifdef DEBUG
 	/* print to stdout as well: */
 	printf("LogErr: ");
@@ -68,5 +78,7 @@ void logErr(const char *str, ...) {
 }
 
 void tearDownSyslog(void) {
+#ifdef LOG_SYSLOG
 	closelog();
+#endif
 }
