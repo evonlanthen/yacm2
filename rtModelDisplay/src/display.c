@@ -21,13 +21,21 @@
 #define NANOSECONDS_PER_SECOND 1000000000
 
 //#define NO_DISPLAY
-#define APPLICATION_LOGIC
-//#define DEVICE_DRIVER_LOGIC
+//#define APPLICATION_LOGIC
+#define DEVICE_DRIVER_LOGIC
 
 #define COFFEE_GRINDER_MOTOR_DEVICE_FILE "/dev/coffeeGrinderMotor"
+#define DISPLAY_DEVICE "rt-model-display"
 
+#define DISPLAY_OFFSET -1
+
+#define POINT_IMAGE_INDEX 30
+#define COLON_IMAGE_INDEX 32
 #define BLANK_IMAGE_INDEX 35
 #define UNDEFINED_CHARACTER_IMAGE_INDEX 0
+
+#define WRITE_MESSAGE_EVENT 2
+#define MESSAGE_WRITTEN_EVENT 1
 
 static pthread_t workerThread;
 
@@ -65,22 +73,18 @@ static void * runThread(void *argument) {
 
 	while (TRUE) {
 		int result;
-//		if ((result = pthread_mutex_lock(&writingMessageMutex))) {
-//			logErr("[display] Error locking mutex: %s", strerror(result));
-//		}
 		unsigned long raisedEvents;
-		if ((result = rt_event_wait(&events, 2, &raisedEvents, EV_ALL, TM_INFINITE)) < 0) {
+		//		if ((result = pthread_cond_wait(&isMessageToWriteConditionQueue, &writingMessageMutex))) {
+		//			logErr("[display] Error waiting for message: %s", strerror(result));
+		//
+		//			//usleep(10000);
+		//		}
+		if ((result = rt_event_wait(&events, WRITE_MESSAGE_EVENT, &raisedEvents, EV_ALL, TM_INFINITE)) < 0) {
 			logErr("[display] Error waiting for event: %s", strerror(result));
 		}
-		rt_event_clear(&events, 2, &raisedEvents);
+		rt_event_clear(&events, WRITE_MESSAGE_EVENT, &raisedEvents);
 
-//		if ((result = pthread_cond_wait(&isMessageToWriteConditionQueue, &writingMessageMutex))) {
-//			logErr("[display] Error waiting for message: %s", strerror(result));
-//
-//			//usleep(10000);
-//		}
-
-		printf("Going to write message...\n");
+		//printf("Going to write message \"%s\"...\n", messageBuffer);
 
 		pthread_mutex_lock(&writingDisplayMutex);
 		newMessage = FALSE;
@@ -108,7 +112,9 @@ static void * runThread(void *argument) {
 				if (*c == ' ') {
 					imageIndex = BLANK_IMAGE_INDEX;
 				} else if (*c == '.') {
-					imageIndex = 30;
+					imageIndex = POINT_IMAGE_INDEX;
+				} else if (*c == ':') {
+					imageIndex = COLON_IMAGE_INDEX;
 				} else if ((*c >= 'A' && *c <= 'Z')
 					|| (*c >= 'a' && *c <= 'z')) {
 					imageIndex = toupper(*c) - 'A' + 1;
@@ -119,7 +125,7 @@ static void * runThread(void *argument) {
 				imageIndex = BLANK_IMAGE_INDEX;
 			}
 
-			imageIndex = imageIndex - 2;
+			imageIndex = imageIndex + DISPLAY_OFFSET;
 			if (imageIndex < 0) {
 				imageIndex = 36 + imageIndex;
 			}
@@ -149,23 +155,25 @@ static void * runThread(void *argument) {
 
 				if (previousTime.tv_sec > 0) {
 					unsigned long long elapsedTime = (time.tv_sec - previousTime.tv_sec) * NANOSECONDS_PER_SECOND + (time.tv_nsec - previousTime.tv_nsec);
-					//printf("elapsedTime: %lld\n", elapsedTime);
+					if (elapsedTime < 100000000 /* 100ms */) {
+						//printf("elapsedTime: %lld\n", elapsedTime);
 
-					long d = elapsedTime / 36 * imageIndex - 100000;
-					struct timespec delayTime = {
-							.tv_nsec = d,
-							.tv_sec = 0
-					};
-					nanosleep(&delayTime, NULL);
+						long d = elapsedTime / 36 * imageIndex - 100000;
+						struct timespec delayTime = {
+								.tv_nsec = d,
+								.tv_sec = 0
+						};
+						nanosleep(&delayTime, NULL);
 
-					write(displayDevice, NULL, 0);
+						write(displayDevice, NULL, 0);
+					}
 				}
 
 				previousTime.tv_sec = time.tv_sec;
 				previousTime.tv_nsec = time.tv_nsec;
 			}
 #elif defined(DEVICE_DRIVER_LOGIC)
-			write(displayDevice, imageIndex, 1);
+			write(displayDevice, &imageIndex, 1);
 
 			if (isCharacter) {
 				nanosleep(&showCharacterTime, NULL);
@@ -182,7 +190,7 @@ static void * runThread(void *argument) {
 		}
 
 		if (!abort) {
-			if ((result = rt_event_signal(&events, 1)) < 0) {
+			if ((result = rt_event_signal(&events, MESSAGE_WRITTEN_EVENT)) < 0) {
 				logErr("[display] Error signaling event: %s", strerror(result));
 			}
 		}
@@ -190,6 +198,8 @@ static void * runThread(void *argument) {
 
 	return NULL;
 }
+
+static int previousMotorPower;
 
 static int isSetUp = FALSE;
 
@@ -226,7 +236,7 @@ int setUpDisplay() {
 //		goto setUpDisplay_out;
 //	}
 
-	if ((displayDevice = open("rt-model-display", O_RDONLY)) >= 0) {
+	if ((displayDevice = open(DISPLAY_DEVICE, O_RDONLY)) >= 0) {
 		logInfo("[display] Display device opened (file descriptor: %d)", displayDevice);
 	} else {
 		logErr("[display] Error opening display device: %s", strerror(errno));
@@ -252,12 +262,16 @@ int setUpDisplay() {
 #ifdef __XENO__
     pthread_set_name_np(workerThread, "worker");
 #endif
+    previousMotorPower = readNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE);
+    if (previousMotorPower == 0) {
+    	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "50", wrm_replace, FALSE)) {
+    		logErr("[display] Error starting motor!");
+    		result = 1;
 
-	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "50", wrm_replace, FALSE)) {
-		logErr("[display] Error starting motor!");
-		result = 1;
-
-		goto setUpDisplay_out;
+    		goto setUpDisplay_out;
+    	}
+	} else {
+		logInfo("[display] Motor is already running.");
 	}
 
 	sleep(1);
@@ -279,29 +293,30 @@ void writeDisplay(char *message) {
 
 	pthread_mutex_lock(&writingDisplayMutex);
 	unsigned long raisedEvents;
-	rt_event_clear(&events, 1, &raisedEvents);
+	rt_event_clear(&events, MESSAGE_WRITTEN_EVENT, &raisedEvents);
 
 	logInfo("Triggering worker thread...");
 
-	//TODO Add synchronization with (real-time) worker thread
+	// Synchronization with (real-time) worker thread
 	if (messageBuffer) {
 		free(messageBuffer);
 	}
 	size_t messageLength = strlen(message);
-	if ((messageBuffer = malloc(messageLength + 1))) {
-		memset(messageBuffer, 0, messageLength + 1);
-		memcpy(messageBuffer, message, messageLength + 1);
+	size_t messageBufferSize = 1 + messageLength + 3;
+	if ((messageBuffer = malloc(messageBufferSize))) {
+		memset(messageBuffer, 0, messageBufferSize);
+		messageBuffer[0] = ':';
+		memcpy(messageBuffer + 1, message, messageLength);
+		messageBuffer[messageLength + 1] = ':';
+		messageBuffer[messageLength + 2] = ' ';
 
 		newMessage = TRUE;
 
 		int result;
-//		if ((result = pthread_mutex_unlock(&writingMessageMutex))) {
-//			logErr("[display] Error unlocking mutex: %s", strerror(result));
-//		}
 //		if ((result = pthread_cond_signal(&isMessageToWriteConditionQueue))) {
 //			logErr("[display] Error signaling worker thread: %s", strerror(result));
 //		}
-		if ((result = rt_event_signal(&events, 2)) < 0) {
+		if ((result = rt_event_signal(&events, WRITE_MESSAGE_EVENT)) < 0) {
 			logErr("[display] Error signaling event: %s", strerror(result));
 		}
 	} else {
@@ -320,7 +335,7 @@ void joinDisplay() {
 
 	unsigned long raisedEvents;
 	int result;
-	if ((result = rt_event_wait(&events, 1, &raisedEvents, EV_ALL, TM_INFINITE)) < 0) {
+	if ((result = rt_event_wait(&events, MESSAGE_WRITTEN_EVENT, &raisedEvents, EV_ALL, TM_INFINITE)) < 0) {
 		logErr("[display] Error waiting for event: %s", strerror(result));
 	}
 }
@@ -332,7 +347,9 @@ void tearDownDisplay() {
 
 	logInfo("[display] Tearing down...");
 
-	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, "0", wrm_replace, FALSE)) {
+	char motorPowerAsString[3];
+	snprintf(motorPowerAsString, 3, "%d", previousMotorPower);
+	if (!writeNonBlockingDevice(COFFEE_GRINDER_MOTOR_DEVICE_FILE, motorPowerAsString, wrm_replace, FALSE)) {
 		logErr("[display] Error stopping motor!");
 	}
 

@@ -283,7 +283,9 @@ static void runUserInterface(void *activity) {
 										default:
 											activityMessage = "Unknown activity!";
 										}
-										showActivity(activityMessage);
+										if (strlen(activityMessage) > 0) {
+											showActivity(activityMessage);
+										}
 									MESSAGE_BY_TYPE_SELECTOR(*specificMessage, MainController, IngredientAvailabilityChangedNotification)
 										// Process received ingredient availability and update display
 										Availability lastCoffeeAvailability = coffeeAvailability;

@@ -84,11 +84,11 @@ static int setMotor(int power) {
 		 * power=99 => flash=101
 		 * TODO: the steps might be to big, adjust step!
 		 */
-		int step = 100;
-		int flash = (FLASH_MAX - 55) /* set max value to 200 */ - (power * step / 100);
-		char flashAsString[4];
-		snprintf(flashAsString, 4, "%d", flash);
-		//writeNonBlockingDevice("/dev/coffeeGrinderSPI", flashAsString, wrm_replace, FALSE);
+//		int step = 100;
+//		int flash = (FLASH_MAX - 55) /* set max value to 200 */ - (power * step / 100);
+//		char flashAsString[4];
+//		snprintf(flashAsString, 4, "%d", flash);
+//		writeNonBlockingDevice("/dev/coffeeGrinderSPI", flashAsString, wrm_replace, FALSE);
 	}
 
 	return currentPower;

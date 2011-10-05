@@ -31,6 +31,8 @@ MODULE_DESCRIPTION("RT-Model display");
 
 #define MODULE_LABEL "rt-model-display "
 
+#define UNDEFINED_CHARACTER_IMAGE_INDEX 99
+
 /**
  *******************************************************************************
  * Defines
@@ -96,9 +98,11 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 //static int close(struct inode *inode, struct file *file);
 static int close(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo);
 
-static rtdm_mutex_t mutex;
-static unsigned char imageIndex;
-static unsigned char channelCounter;
+static rtdm_lock_t lock;
+static rtdm_lockctx_t lockContext;
+
+static unsigned char imageIndex = 0;
+static unsigned char channelCounter = 0;
 
 /**
  *******************************************************************************
@@ -144,30 +148,44 @@ static int handleIndexInterrupt(rtdm_irq_t *interrupt) {
 	//rtdm_printk("Index interrupt occured!\n");
 
 	rtdm_event_signal(&indexInterruptEvent);
-	rtdm_mutex_lock(&mutex);
+
+	rtdm_lock_get_irqsave(&lock, lockContext);
 	channelCounter = 0;
-	rtdm_mutex_unlock(&mutex);
-
-	return RTDM_IRQ_HANDLED;
-}
-
-static int handleChannelInterrupt(rtdm_irq_t *interrupt) {
 	int triggered = 0;
-	//rtdm_printk("Channel interrupt occured!\n");
-	rtdm_mutex_lock(&mutex);
-	channelCounter++;
 	if (channelCounter == imageIndex) {
 		triggered = 1;
 	}
-	rtdm_mutex_unlock(&mutex);
+	rtdm_lock_put_irqrestore(&lock, lockContext);
+
 	if (triggered) {
-		rtdm_printk("Disk position reached!\n");
+		//rtdm_printk("Disk position reached!\n");
+
 		// Trigger stroboscope
 		gpio_set_value(GPIO_TRIGGER, HIGH);
 		gpio_set_value(GPIO_TRIGGER, LOW);
 	}
 
+	return RTDM_IRQ_HANDLED;
+}
 
+static int handleChannelInterrupt(rtdm_irq_t *interrupt) {
+	//rtdm_printk("Channel interrupt occured!\n");
+
+	rtdm_lock_get_irqsave(&lock, lockContext);
+	channelCounter++;
+	int triggered = 0;
+	if (channelCounter == imageIndex + 1) {
+		triggered = 1;
+	}
+	rtdm_lock_put_irqrestore(&lock, lockContext);
+
+	if (triggered) {
+		//rtdm_printk("Disk position reached!\n");
+
+		// Trigger stroboscope
+		gpio_set_value(GPIO_TRIGGER, HIGH);
+		gpio_set_value(GPIO_TRIGGER, LOW);
+	}
 
 	return RTDM_IRQ_HANDLED;
 }
@@ -175,6 +193,10 @@ static int handleChannelInterrupt(rtdm_irq_t *interrupt) {
 //static int open(struct inode *inode, struct file *file) {
 static int open(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, int oflag) {
 	//rtdm_printk(KERN_INFO MODULE_LABEL "Opening device (by process \"%s\" (PID: %i)...\n", current->comm, current->pid);
+
+	rtdm_lock_get_irqsave(&lock, lockContext);
+	imageIndex = UNDEFINED_CHARACTER_IMAGE_INDEX;
+	rtdm_lock_put_irqrestore(&lock, lockContext);
 
 	return 0;
 }
@@ -190,49 +212,23 @@ static ssize_t read(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo
 static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInfo, const void *buffer, size_t size) {
 	ssize_t result = 0;
 
-//	char *message;
-//	if (!(message = rtdm_malloc(size + 1))) {
-//		return -ENOMEM;
-//	}
-
-//	if (!copy_from_user(message, buffer, size)) {
-//		// Critical section:
-//		if (rtdm_mutex_lock(&mutex)) {
-//			result = -ERESTARTSYS;
-//
-//			goto write_lockError;
-//		}
-//
-//		//if (strcmp(file->f_path.dentry->d_name.name, "display") == 0) {
-//			//SSDR_P1 = value;
-//		//}
-//
-//		rtdm_mutex_unlock(&mutex);
-//	} else {
-//		printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
-//		result = /* Error copying data! */ -EFAULT;
-//
-//		goto write_copyError;
-//	}
-
 	if (size == 0) {
 		gpio_set_value(GPIO_TRIGGER, HIGH);
 		gpio_set_value(GPIO_TRIGGER, LOW);
 	} else {
-		unsigned char _imageIndex = 0;
-		if (!copy_from_user(&_imageIndex, buffer, 1)) {
+		unsigned char _imageIndex;
+		if (!(rtdm_safe_copy_from_user(userInfo, &_imageIndex, buffer, 1))) {
+			//rtdm_printk("Showing image with index %d...\n", _imageIndex);
+
 			// Critical section:
-			if (rtdm_mutex_lock(&mutex)) {
-				printk(KERN_WARNING MODULE_LABEL "Failed locking mutex!");
-				goto write_lockError;
-			}
+			rtdm_lock_get_irqsave(&lock, lockContext);
 
 			imageIndex = _imageIndex;
-			if (imageIndex > 36) {
-				imageIndex = 0;
+			if (imageIndex > 35) {
+				imageIndex = UNDEFINED_CHARACTER_IMAGE_INDEX;
 			}
 
-			rtdm_mutex_unlock(&mutex);
+			rtdm_lock_put_irqrestore(&lock, lockContext);
 		} else {
 			printk(KERN_WARNING MODULE_LABEL "Error copying data to kernel memory!");
 			result = /* Error copying data! */ -EFAULT;
@@ -245,7 +241,6 @@ static ssize_t write(struct rtdm_dev_context *context, rtdm_user_info_t *userInf
 
 write_copyError:
 write_lockError:
-//	rtdm_free(message);
 
 write_out:
 	return result;
@@ -319,8 +314,8 @@ static int __init initDisplay(void) {
 
 	rtdm_printk(KERN_INFO MODULE_LABEL "Loading module (by process \"%s\" (PID: %i)...\n", current->comm, current->pid);
 
-	// Initialize mutex
-  	rtdm_mutex_init(&mutex);
+	// Initialize lock
+  	rtdm_lock_init(&lock);
 
 	// Claim GPIOs
 	if ((result = gpio_request_array(displayGpios, ARRAY_SIZE(displayGpios)))) {
@@ -340,7 +335,7 @@ static int __init initDisplay(void) {
 	// Critical section:
 	// Disable interrupts in order to prevent race conditions
 	unsigned long flags = 0;
-	rtdm_lock_irqsave(flags);
+	rtdm_lock_get_irqsave(&lock, lockContext);
 
 	SSCR0_P1 &= ~SSCR0_SSE;				/* Disable synchronous serial */
 	SSCR0_P1 = SSCR0_DataSize(8);		/* Data size is 8 bit */
@@ -349,7 +344,7 @@ static int __init initDisplay(void) {
 	SSCR0_P1 |= SSCR0_SSE;				/* Enable synchronous serial */
 	SSDR_P1 = 200;						/* Data register for flash time */
 	  
-	rtdm_lock_irqrestore(flags);
+	rtdm_lock_put_irqrestore(&lock, lockContext);
 
 	rtdm_event_init(&indexInterruptEvent, 0);
 
@@ -361,7 +356,6 @@ static int __init initDisplay(void) {
 		goto initDisplay_error;
 	}
 	isIndexInterruptSetUp = 1;
-
 
 	int channelInterruptNumber = gpio_to_irq(GPIO_CHANNEL_A);
 	rtdm_printk("Channel interrupt number: %d\n", channelInterruptNumber);
