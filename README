@@ -35,3 +35,6 @@ Running yacm2 on CARME board:
 Stopping yacm and yacm-rt-model-display:
 	Press CTRL+C
 
+Documentation of latency tests:
+	doc/latency_measures_realtime.pdf
+	
